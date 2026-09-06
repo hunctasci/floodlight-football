@@ -204,7 +204,7 @@ export function createApp(
           peer.clientId = msg.clientId; peer.room = room.code;
           byClient.set(msg.clientId, ws);
           await store.heartbeat(msg.clientId, 60);
-          send(ws, { t: 'room-joined', roomCode: room.code, peers: room.members.filter((m) => m !== msg.clientId) });
+          send(ws, { t: 'room-joined', roomCode: room.code, peers: room.members.filter((m) => m !== msg.clientId), matchToken: room.matchToken });
           for (const m of room.members) {
             if (m !== msg.clientId) {
               const s = byClient.get(m);

@@ -30,7 +30,7 @@ test('parseClientMsg never throws and reports errors', () => {
 test('server messages cover the room lifecycle', () => {
   for (const m of [
     { t: 'room-created', roomCode: 'ABCDEF', matchToken: '0'.repeat(32) },
-    { t: 'room-joined', roomCode: 'ABCDEF', peers: [] },
+    { t: 'room-joined', roomCode: 'ABCDEF', peers: [], matchToken: '0'.repeat(32) },
     { t: 'peer-joined', clientId: 'a'.repeat(8) },
     { t: 'peer-left', clientId: 'a'.repeat(8) },
     { t: 'pong' },

@@ -61,8 +61,14 @@ function waitIceComplete(pc: RTCPeerConnection, timeoutMs = 4000): Promise<void>
   });
 }
 
-/** Browser WebRTC transport. Signaling (code exchange) stays outside:
- *  manual copy-paste now, the F4 signal server later. */
+/** Signaling payload shape: matches the server's SdpSchema relay verbatim. */
+export interface SdpInit {
+  type: RTCSdpType;
+  sdp: string;
+}
+
+/** Browser WebRTC transport. Signaling (offer/answer exchange) stays outside:
+ *  the F4 signal server relays it; manual copy-paste codes remain as fallback. */
 export class RTCTransport implements DataTransport {
   onmessage: ((data: Uint8Array) => void) | null = null;
   onstate: ((s: TransportState) => void) | null = null;
@@ -89,8 +95,8 @@ export class RTCTransport implements DataTransport {
     dc.onmessage = (e) => this.onmessage?.(new Uint8Array(e.data as ArrayBuffer));
   }
 
-  /** Host side: creates the offer + data channel, returns a shareable code. */
-  static async createOffer(stun = STUN): Promise<{ transport: RTCTransport; code: string }> {
+  /** Host side: creates the offer + data channel, returns raw SDP for relay. */
+  static async createOfferSdp(stun = STUN): Promise<{ transport: RTCTransport; offer: SdpInit }> {
     const pc = new RTCPeerConnection({ iceServers: [{ urls: stun }] });
     const t = new RTCTransport(pc);
     const dc = pc.createDataChannel('game', { ordered: true });
@@ -100,28 +106,47 @@ export class RTCTransport implements DataTransport {
     };
     await pc.setLocalDescription(await pc.createOffer());
     await waitIceComplete(pc);
-    return { transport: t, code: encodeCode({ sdp: pc.localDescription }) };
+    const d = pc.localDescription!;
+    return { transport: t, offer: { type: d.type, sdp: d.sdp } };
   }
 
-  /** Joiner side: consumes the host code, returns an answer code. */
-  static async acceptOffer(code: string, stun = STUN): Promise<{ transport: RTCTransport; answer: string }> {
-    const { sdp } = decodeCode<{ sdp: RTCSessionDescriptionInit }>(code);
+  /** Host side: creates the offer + data channel, returns a shareable code. */
+  static async createOffer(stun = STUN): Promise<{ transport: RTCTransport; code: string }> {
+    const { transport, offer } = await RTCTransport.createOfferSdp(stun);
+    return { transport, code: encodeCode({ sdp: offer }) };
+  }
+
+  /** Joiner side: consumes a raw offer, returns a raw answer for relay. */
+  static async acceptOfferSdp(offer: SdpInit, stun = STUN): Promise<{ transport: RTCTransport; answer: SdpInit }> {
     const pc = new RTCPeerConnection({ iceServers: [{ urls: stun }] });
     const t = new RTCTransport(pc);
     pc.ondatachannel = (e) => t.wire(e.channel);
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') t.setState('closed');
     };
-    await pc.setRemoteDescription(sdp);
+    await pc.setRemoteDescription(offer);
     await pc.setLocalDescription(await pc.createAnswer());
     await waitIceComplete(pc);
-    return { transport: t, answer: encodeCode({ sdp: pc.localDescription }) };
+    const d = pc.localDescription!;
+    return { transport: t, answer: { type: d.type, sdp: d.sdp } };
+  }
+
+  /** Joiner side: consumes the host code, returns an answer code. */
+  static async acceptOffer(code: string, stun = STUN): Promise<{ transport: RTCTransport; answer: string }> {
+    const { sdp } = decodeCode<{ sdp: SdpInit }>(code);
+    const { transport, answer } = await RTCTransport.acceptOfferSdp(sdp, stun);
+    return { transport, answer: encodeCode({ sdp: answer }) };
+  }
+
+  /** Host side: completes the handshake with the joiner's raw answer. */
+  async acceptAnswerSdp(answer: SdpInit): Promise<void> {
+    await this.pc.setRemoteDescription(answer);
   }
 
   /** Host side: completes the handshake with the joiner's answer. */
   async acceptAnswer(code: string): Promise<void> {
-    const { sdp } = decodeCode<{ sdp: RTCSessionDescriptionInit }>(code);
-    await this.pc.setRemoteDescription(sdp);
+    const { sdp } = decodeCode<{ sdp: SdpInit }>(code);
+    await this.acceptAnswerSdp(sdp);
   }
 
   send(data: Uint8Array) {

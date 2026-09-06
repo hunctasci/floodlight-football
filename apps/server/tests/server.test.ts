@@ -82,9 +82,10 @@ test('create, join, signal relay, leave lifecycle', async (t) => {
   assert.ok(created.matchToken.length >= 32);
 
   b.send({ t: 'join-room', code: created.roomCode, clientId: B });
-  const joined = await b.next() as { t: string; peers: string[] };
+  const joined = await b.next() as { t: string; peers: string[]; matchToken: string };
   assert.equal(joined.t, 'room-joined');
   assert.deepEqual(joined.peers, [A]);
+  assert.equal(joined.matchToken, created.matchToken, 'joiner learns the room token for handshake binding');
   // Codes are strict uppercase: lowercase never reaches the manager.
   b.send({ t: 'join-room', code: created.roomCode.toLowerCase(), clientId: B });
   assert.deepEqual(await b.next(), { t: 'error', message: 'invalid message' });

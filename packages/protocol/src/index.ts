@@ -24,7 +24,9 @@ export const ClientMsgSchema = z.discriminatedUnion('t', [
 
 export const ServerMsgSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('room-created'), roomCode: RoomCodeSchema, matchToken: z.string().min(16) }),
-  z.object({ t: z.literal('room-joined'), roomCode: RoomCodeSchema, peers: z.array(ClientIdSchema) }),
+  // The joiner learns the room's matchToken too: both peers prove it in the
+  // WebRTC handshake, so a stray peer can never land in someone's session.
+  z.object({ t: z.literal('room-joined'), roomCode: RoomCodeSchema, peers: z.array(ClientIdSchema), matchToken: z.string().min(16) }),
   z.object({ t: z.literal('peer-joined'), clientId: ClientIdSchema }),
   z.object({ t: z.literal('peer-left'), clientId: ClientIdSchema }),
   z.object({ t: z.literal('signaled'), from: ClientIdSchema, payload: SdpSchema }),

@@ -43,6 +43,11 @@ function pairHosts(openOrder: 'host-first' | 'guest-first', duration = 60) {
   return { host, guest };
 }
 
+/** Both users pressed READY: the only path to a started match. */
+function bothReady(host: NetDriver, guest: NetDriver) {
+  host.setReady(); guest.setReady();
+}
+
 function kickFor(d: NetDriver): Partial<InputFrame> {
   const r = d.session?.engine.state.restart;
   if (!r) return {};
@@ -53,6 +58,9 @@ function kickFor(d: NetDriver): Partial<InputFrame> {
 test('handshake agrees seed/teams regardless of open order', () => {
   for (const order of ['host-first', 'guest-first'] as const) {
     const { host, guest } = pairHosts(order);
+    assert.ok(host.events.some((e) => e.type === 'connected'), `${order}: host connected`);
+    assert.ok(guest.events.some((e) => e.type === 'connected'), `${order}: guest connected`);
+    bothReady(host, guest);
     const hs = host.events.find((e) => e.type === 'started');
     const gs = guest.events.find((e) => e.type === 'started');
     assert.ok(hs && hs.type === 'started' && gs && gs.type === 'started', `${order}: both started`);
@@ -61,6 +69,41 @@ test('handshake agrees seed/teams regardless of open order', () => {
     assert.equal(guest.session?.engine.state.halfDuration, 60, 'guest adopts host duration');
     host.close(); guest.close();
   }
+});
+
+test('match starts only after both sides press ready', () => {
+  const { host, guest } = pairHosts('host-first');
+  assert.ok(!host.events.some((e) => e.type === 'started'), 'connected but not started');
+  host.setReady();
+  assert.ok(!host.events.some((e) => e.type === 'started'), 'one ready is not enough');
+  assert.ok(guest.events.some((e) => e.type === 'peerReady'), 'guest sees host ready');
+  assert.ok(!guest.events.some((e) => e.type === 'started'), 'guest waits for its own user');
+  guest.setReady();
+  assert.ok(host.events.some((e) => e.type === 'started'), 'host starts on second ready');
+  assert.ok(guest.events.some((e) => e.type === 'started'), 'guest starts on second ready');
+  host.close(); guest.close();
+});
+
+test('handshake refuses a peer from another room (token mismatch)', () => {
+  const [ta, tb] = LoopbackTransport.pair();
+  const host = new NetDriver(ta, { host: true, matchToken: '0'.repeat(32) });
+  const guest = new NetDriver(tb, { host: false, matchToken: '1'.repeat(32) });
+  ta.open(); tb.open();
+  assert.ok(host.events.some((e) => e.type === 'error'), 'host rejects the stray peer');
+  assert.ok(!host.events.some((e) => e.type === 'started'), 'no match with a stranger');
+  host.close(); guest.close();
+});
+
+test('matching room tokens pass the handshake', () => {
+  const [ta, tb] = LoopbackTransport.pair();
+  const token = 'a'.repeat(32);
+  const host = new NetDriver(ta, { host: true, matchToken: token });
+  const guest = new NetDriver(tb, { host: false, matchToken: token });
+  ta.open(); tb.open();
+  bothReady(host, guest);
+  assert.ok(host.events.some((e) => e.type === 'started'), 'same room starts');
+  assert.ok(!host.events.some((e) => e.type === 'error'), 'no false mismatch');
+  host.close(); guest.close();
 });
 
 test('drivers stay in sync over latency, hashes flowing', () => {

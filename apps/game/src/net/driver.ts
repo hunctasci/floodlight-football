@@ -9,8 +9,8 @@ import { EMPTY_INPUT, type InputFrame, type TeamId } from '../types';
 import type { DataTransport } from './transport';
 
 export type ControlMsg =
-  | { t: 'hello'; proto: number; seedPart: number; clientId: string; teamIndex: number; duration: number }
-  | { t: 'welcome'; proto: number; seed: number; yourTeam: TeamId; teamIndex: number; duration: number }
+  | { t: 'hello'; proto: number; seedPart: number; clientId: string; teamIndex: number; duration: number; matchToken?: string }
+  | { t: 'welcome'; proto: number; seed: number; yourTeam: TeamId; teamIndex: number; duration: number; matchToken?: string }
   | { t: 'ready' }
   | { t: 'pause' }
   | { t: 'resume' }
@@ -21,6 +21,8 @@ export type ControlMsg =
 export type DriverState = 'handshake' | 'playing' | 'closed';
 
 export type DriverEvent =
+  | { type: 'connected' }
+  | { type: 'peerReady' }
   | { type: 'started'; seed: number; myTeam: TeamId }
   | { type: 'peerPaused'; paused: boolean }
   | { type: 'peerQuit' }
@@ -32,6 +34,10 @@ export interface DriverOpts {
   host: boolean;
   teamIndex?: number;
   duration?: number;
+  /** Room token from the signal server. When both sides present it, the
+   *  handshake verifies equality — a stray peer from another room can never
+   *  land in this session. Absent = legacy manual flow, check skipped. */
+  matchToken?: string;
   /** Lockstep input delay in ticks. */
   delay?: number;
   openTimeoutMs?: number;
@@ -53,6 +59,7 @@ export class NetDriver {
   private clientId = makeClientId();
   private teamIndex: number;
   private duration: number;
+  private matchToken: string | undefined;
   private delay: number;
   private openTimeoutMs: number;
   private openedAt = Date.now();
@@ -63,6 +70,10 @@ export class NetDriver {
   private seed = 1;
   private lastHelloAt = 0;
   private helloRetryMs: number;
+  /** Ready gate: the match starts only after BOTH sides press ready. */
+  private localReady = false;
+  private peerReady = false;
+  private startedEmitted = false;
   /** Edge buttons accumulate here until staged into exactly one tick. */
   private edgeAcc = { pass: false, through: false, cross: false, shootPressed: false, shootReleased: false, switchPlayer: false };
   /** Consecutive stalled frames before the link is declared dead. */
@@ -73,6 +84,7 @@ export class NetDriver {
     this.myTeam = opts.host ? 0 : 1;
     this.teamIndex = opts.teamIndex ?? 0;
     this.duration = opts.duration ?? 180;
+    this.matchToken = opts.matchToken;
     this.delay = opts.delay ?? 3;
     this.openTimeoutMs = opts.openTimeoutMs ?? 20000;
     this.helloRetryMs = opts.helloRetryMs ?? 500;
@@ -108,7 +120,32 @@ export class NetDriver {
     this.sendControl({
       t: 'hello', proto: NET_PROTO, seedPart: this.hostPart,
       clientId: this.clientId, teamIndex: this.teamIndex, duration: this.duration,
+      ...(this.matchToken ? { matchToken: this.matchToken } : {}),
     });
+  }
+
+  /** Both sides presented a room token but they differ: wrong room, refuse. */
+  private checkToken(peerToken: string | undefined): boolean {
+    if (this.matchToken && peerToken && peerToken !== this.matchToken) {
+      this.fail('room mismatch');
+      return false;
+    }
+    return true;
+  }
+
+  /** The match starts only after both sides press ready (see setReady). */
+  private maybeStart() {
+    if (this.session && this.localReady && this.peerReady && !this.startedEmitted) {
+      this.startedEmitted = true;
+      this.emit({ type: 'started', seed: this.seed, myTeam: this.myTeam });
+    }
+  }
+
+  /** Local user pressed READY: tell the peer and start if they already did. */
+  setReady() {
+    this.localReady = true;
+    if (this.session) this.sendControl({ t: 'ready' });
+    this.maybeStart();
   }
 
   private onData(raw: Uint8Array) {
@@ -127,6 +164,7 @@ export class NetDriver {
     if (!m || typeof m !== 'object') return;
     if (m.t === 'hello' && this.myTeam === 0 && this.state === 'handshake') {
       if (m.proto !== NET_PROTO) { this.fail('net proto mismatch'); return; }
+      if (!this.checkToken(m.matchToken)) return;
       try {
         const w = answerHello(this.hostPart, {
           t: 'hello', proto: m.proto, seedPart: m.seedPart, clientId: m.clientId,
@@ -134,22 +172,30 @@ export class NetDriver {
         this.sendControl({
           t: 'welcome', proto: NET_PROTO, seed: w.seed, yourTeam: 1,
           teamIndex: this.teamIndex, duration: this.duration,
+          ...(this.matchToken ? { matchToken: this.matchToken } : {}),
         });
         this.begin(w.seed);
       } catch (e) { this.fail(e instanceof Error ? e.message : 'handshake failed'); }
     } else if (m.t === 'welcome' && this.myTeam === 1 && this.state === 'handshake') {
       if (m.proto !== NET_PROTO) { this.fail('net proto mismatch'); return; }
+      if (!this.checkToken(m.matchToken)) return;
       this.teamIndex = m.teamIndex; this.duration = m.duration;
-      this.sendControl({ t: 'ready' });
       this.begin(m.seed);
+      if (this.localReady) this.sendControl({ t: 'ready' });
+      this.maybeStart();
     } else if (m.t === 'hello' && this.myTeam === 0 && this.session && this.state === 'playing') {
       // Duplicate hello (guest never got our welcome): resend it verbatim.
       this.sendControl({
         t: 'welcome', proto: NET_PROTO, seed: this.seed, yourTeam: 1,
         teamIndex: this.teamIndex, duration: this.duration,
+        ...(this.matchToken ? { matchToken: this.matchToken } : {}),
       });
     } else if (!this.session) {
       return;
+    } else if (m.t === 'ready') {
+      this.peerReady = true;
+      this.emit({ type: 'peerReady' });
+      this.maybeStart();
     } else if (m.t === 'pause') {
       this.session.engine.state.paused = true;
       this.emit({ type: 'peerPaused', paused: true });
@@ -175,7 +221,8 @@ export class NetDriver {
     this.flushed = 0;
     this.lastDesyncs = 0;
     this.state = 'playing';
-    this.emit({ type: 'started', seed, myTeam: this.myTeam });
+    this.emit({ type: 'connected' });
+    this.maybeStart();
   }
 
   private fail(message: string) {

@@ -51,11 +51,13 @@ The lens tracks the ball tightly near the sidelines and keeps play above the bot
 
 ## Play online (P2P lockstep)
 
-From the title screen choose **ONLINE MATCH**. One friend hosts (**CREATE ROOM**), shares the room code (any chat app), the other pastes it (**JOIN ROOM**) and sends the answer back. No account, no server in the match path — browsers talk directly over WebRTC.
+From the title screen choose **ONLINE MATCH**. One friend hosts (**CREATE ROOM**) and reads out the 6-letter code; the other types it (**JOIN ROOM**) and lands directly in the room — then **both press I'M READY** and kick off. No SDP copy-paste, no account. A tiny signal server only introduces the two browsers (room code + SDP relay); the match itself runs directly over WebRTC.
 
 - Host is team 1 with your club/length settings; joiner is team 2. Same keyboard/touch controls, same assist rules.
+- Sessions are isolated: rooms live 2h, joins are rate-limited, SDP relays only between room members, and both sides bind the handshake to the room token — a stranger can never land in your match.
 - Pause, half-time (host drives) and state hashes stay in sync; short skew heals automatically.
-- If a player drops or quits, their team falls back to AI and the match continues. Rematch = new room (custom leagues arrive next).
+- If a player drops or quits, their team falls back to AI and the match continues. Rematch = new room.
+- Server address lives under LEAGUE → SERVER (default `http://127.0.0.1:8080`).
 
 ## Match rules
 
