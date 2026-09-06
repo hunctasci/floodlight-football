@@ -43,6 +43,11 @@ export class LockstepSession {
     this.local.set(this.tick + this.delay, encodeInput(frame));
   }
 
+  /** Stage (or overwrite) my bytes for an absolute tick. Driver only. */
+  stageLocal(tick: number, bytes: Uint8Array) {
+    this.local.set(tick, bytes);
+  }
+
   /** Store a peer input for an absolute tick. Prunes acknowledged history. */
   receiveRemote(tick: number, bytes: Uint8Array) {
     this.remote.set(tick, bytes);
@@ -54,27 +59,59 @@ export class LockstepSession {
   /** Record the peer's state hash for a tick; counts desyncs against ours. */
   receiveHash(tick: number, h: number) {
     this.peerHashes.set(tick, h);
-    const snap = this.snaps.get(tick);
-    if (snap !== undefined) {
-      // Re-hash the historical state without disturbing the live sim.
-      const live = this.engine.snapshot();
-      this.engine.restore(snap);
-      const mine = this.engine.hash();
-      this.engine.restore(live);
-      if (mine === h) this.lastAgreeTick = Math.max(this.lastAgreeTick, tick);
-      else this.desyncs++;
-    } else if (tick === this.tick) {
-      // Quiescent live point (both peers stepped the same ticks): compare now.
-      if (this.hash() === h) this.lastAgreeTick = Math.max(this.lastAgreeTick, tick);
-      else this.desyncs++;
+    const mine = this.hashAt(tick);
+    if (mine === null) {
+      if (tick === this.tick && this.hash() === h) {
+        // Quiescent live point (both peers stepped the same ticks): compare now.
+        this.lastAgreeTick = Math.max(this.lastAgreeTick, tick);
+      } else if (tick === this.tick) {
+        this.desyncs++;
+      }
+      return;
     }
+    if (mine === h) this.lastAgreeTick = Math.max(this.lastAgreeTick, tick);
+    else this.desyncs++;
+  }
+
+  /** Hash of a snapshotted tick without disturbing live state. */
+  hashAt(tick: number): number | null {
+    const snap = this.snaps.get(tick);
+    if (!snap) return null;
+    const live = this.engine.snapshot();
+    this.engine.restore(snap);
+    const h = this.engine.hash();
+    this.engine.restore(live);
+    return h;
+  }
+
+  /** Clone of a snapshotted tick for host recovery packets. */
+  snapshotAt(tick: number): EngineSnapshot | null {
+    const snap = this.snaps.get(tick);
+    return snap ? structuredClone(snap) : null;
+  }
+
+  /** Queued local bytes for an absolute tick (driver pump). */
+  queuedLocal(tick: number): Uint8Array | undefined {
+    return this.local.get(tick);
+  }
+
+  /** True when this tick cannot run for lack of peer bytes (link may be dead). */
+  missingRemote(): boolean {
+    if (this.engine.state.remoteTeam === null) return false;
+    const r = (this.myTeam === 1 ? this.local : this.remote).get(this.tick);
+    return !r;
   }
 
   /** Advance one tick when both inputs are present; false = stalled on network. */
   step(): boolean {
     const l = (this.myTeam === 0 ? this.local : this.remote).get(this.tick);
-    const r = (this.myTeam === 1 ? this.local : this.remote).get(this.tick);
-    if (!l || !r) return false;
+    let r = (this.myTeam === 1 ? this.local : this.remote).get(this.tick);
+    if (!l) return false;
+    if (!r) {
+      // Peer gone (dropPeer): their team is AI-driven, feed idle.
+      if (this.engine.state.remoteTeam !== null) return false;
+      r = encodeInput(EMPTY_INPUT);
+    }
     if (this.tick % HASH_EVERY === 0) this.snaps.set(this.tick, this.engine.snapshot());
     this.engine.update(1 / 60, decodeInput(l), decodeInput(r));
     this.lastEvents = this.engine.events.splice(0);
