@@ -33,6 +33,35 @@ export function computeCamera(mode: CameraMode, aspect: number, focusX: number, 
   };
 }
 
+/** Smoothstep easing shared by all cinematics (0→0, 1→1, monotonic). */
+export function easeInOut(k: number): number {
+  const c = Math.min(1, Math.max(0, k));
+  return c * c * (3 - 2 * c);
+}
+
+/** Follow focus from ball + controlled player, clamped so the lens never leaves the stadium. */
+export function followFocus(ballX: number, ballZ: number, cpX: number, cpZ: number): { x: number; z: number } {
+  return {
+    x: THREE.MathUtils.clamp(ballX * .8 + cpX * .2, -36, 36),
+    z: THREE.MathUtils.clamp(ballZ * .85 + cpZ * .15, -22, 22),
+  };
+}
+
+/** Goal-cinematic end pose: low behind the scored goal, looking at the mouth. */
+export function goalCineEnd(side: number, ballZ: number): { pos: THREE.Vector3; look: THREE.Vector3 } {
+  const s = side >= 0 ? 1 : -1;
+  const bz = THREE.MathUtils.clamp(ballZ * .4, -8, 8);
+  return {
+    pos: new THREE.Vector3(s * (FIELD.halfLength + 13), 6.5, bz + (ballZ >= 0 ? 9 : -9)),
+    look: new THREE.Vector3(s * (FIELD.halfLength - 2), 1.2, 0),
+  };
+}
+
+/** Menu showcase orbit position for an angle (constant radius/height). */
+export function menuOrbitPos(angle: number): THREE.Vector3 {
+  return new THREE.Vector3(Math.sin(angle) * 58, 26, Math.cos(angle) * 58);
+}
+
 type Cine = { type: 'goal' | 'intro'; t: number; dur: number; side: number; fromPos: THREE.Vector3; fromLook: THREE.Vector3 } | null;
 
 /** Deliberately chunky, inexpensive match renderer.  All art is made from geometry. */
@@ -194,9 +223,8 @@ export class GameRenderer {
   /** Follow target: tracks the ball tightly so sidelines stay near frame centre. */
   private followFrame(state: MatchState): CameraFrame {
     const ball = state.ball, cp = state.players[state.controlled];
-    const focusX = THREE.MathUtils.clamp(ball.x * .8 + (cp?.x || 0) * .2, -36, 36);
-    const focusZ = THREE.MathUtils.clamp(ball.z * .85 + (cp?.z || 0) * .15, -22, 22);
-    return computeCamera(this.cameraMode, this.camera.aspect, focusX, focusZ);
+    const f = followFocus(ball.x, ball.z, cp?.x || 0, cp?.z || 0);
+    return computeCamera(this.cameraMode, this.camera.aspect, f.x, f.z);
   }
 
   private applyFrame(frame: CameraFrame, dt: number, stiff = false) {
@@ -212,11 +240,9 @@ export class GameRenderer {
   private updateGoalCine(state: MatchState, dt: number) {
     const c = this.cine; if (!c) return;
     c.t += dt;
-    const k = Math.min(1, c.t / c.dur), ease = k * k * (3 - 2 * k);
-    const bz = THREE.MathUtils.clamp(state.ball.z * .4, -8, 8);
-    const endPos = new THREE.Vector3(c.side * (FIELD.halfLength + 13), 6.5, bz + (state.ball.z >= 0 ? 9 : -9));
-    const endLook = new THREE.Vector3(c.side * (FIELD.halfLength - 2), 1.2, 0);
-    const pos = c.fromPos.clone().lerp(endPos, ease), look = c.fromLook.clone().lerp(endLook, ease);
+    const ease = easeInOut(c.t / c.dur);
+    const end = goalCineEnd(c.side, state.ball.z);
+    const pos = c.fromPos.clone().lerp(end.pos, ease), look = c.fromLook.clone().lerp(end.look, ease);
     if (this.camera.fov !== 38) { this.camera.fov = 38; this.camera.updateProjectionMatrix(); }
     this.camPos.lerp(pos, 1 - Math.exp(-dt * 8)); this.camLook.lerp(look, 1 - Math.exp(-dt * 8));
     if (c.t >= c.dur) this.cine = null;
@@ -227,7 +253,7 @@ export class GameRenderer {
     // Kickoff taken early cancels the sweep straight into the follow cam.
     if (state.phase !== 'kickoff') { this.cine = null; return; }
     c.t += dt;
-    const k = Math.min(1, c.t / c.dur), ease = k * k * (3 - 2 * k);
+    const ease = easeInOut(c.t / c.dur);
     const end = this.followFrame(state);
     const high = new THREE.Vector3(0, 58, -6);
     const pos = high.lerp(end.pos, ease);
@@ -252,7 +278,7 @@ export class GameRenderer {
       // Title/team backdrop: slow showcase orbit around the stadium.
       this.cine = null; this.menuAngle += dt * .07;
       if (this.camera.fov !== 42) { this.camera.fov = 42; this.camera.updateProjectionMatrix(); }
-      const pos = new THREE.Vector3(Math.sin(this.menuAngle) * 58, 26, Math.cos(this.menuAngle) * 58);
+      const pos = menuOrbitPos(this.menuAngle);
       this.camPos.lerp(pos, 1 - Math.exp(-dt * 2)); this.camLook.lerp(new THREE.Vector3(0, 1, 0), 1 - Math.exp(-dt * 2));
     } else if (this.cine?.type === 'goal') this.updateGoalCine(state, dt);
     else if (this.cine?.type === 'intro') this.updateIntroCine(state, dt);

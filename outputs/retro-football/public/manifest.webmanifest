@@ -1,0 +1,16 @@
+{
+  "name": "Retro Football — Saturday Cup",
+  "short_name": "Retro Football",
+  "description": "Arcade 11v11 football: arrows or touch, FIFA-style actions, local and online-ready.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#101b31",
+  "theme_color": "#101b31",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
