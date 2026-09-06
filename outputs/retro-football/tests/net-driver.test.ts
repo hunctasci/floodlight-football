@@ -144,3 +144,39 @@ test('handshake timeout errors when the peer never opens', () => {
   assert.ok(d.events.some((e) => e.type === 'error'));
   assert.equal(d.state, 'closed');
 });
+
+test('host-driven half-time converges via broadcast plus resync healing', () => {
+  const [ta, tb] = LoopbackTransport.pair();
+  const host = new NetDriver(ta, { host: true, duration: 20 });
+  const guest = new NetDriver(tb, { host: false, duration: 20 });
+  ta.open(); tb.open();
+  assert.ok(host.session && guest.session);
+  // Fast-forward both to half-time; take restarts on the taker's side.
+  const kick = (d: typeof host): object => {
+    const r = d.session!.engine.state.restart;
+    if (!r) return {};
+    return r.team === d.myTeam ? { pass: true, x: d.myTeam === 0 ? 1 : -1, z: 0 } : {};
+  };
+  for (let f = 0; f < 60 * 30 && host.session!.engine.state.phase !== 'halftime'; f++) {
+    host.frame({ ...EMPTY_INPUT, ...kick(host) });
+    guest.frame({ ...EMPTY_INPUT, ...kick(guest) });
+  }
+  assert.equal(host.session!.engine.state.phase, 'halftime');
+  assert.equal(guest.session!.engine.state.phase, 'halftime');
+  // Host continues immediately; guest follows a few frames later via packet.
+  host.session!.engine.continueHalf();
+  host.broadcastHalf();
+  for (let f = 0; f < 5; f++) {
+    host.frame({ ...EMPTY_INPUT });
+    guest.frame({ ...EMPTY_INPUT });
+  }
+  assert.equal(guest.session!.engine.state.phase, 'kickoff', 'guest left halftime via broadcast');
+  assert.deepEqual(guest.session!.engine.state.attack, [-1, 1]);
+  // Short-term skew heals: keep pumping (taking restarts), hashes must agree again.
+  for (let f = 0; f < 600; f++) {
+    host.frame({ ...EMPTY_INPUT, ...kick(host) });
+    guest.frame({ ...EMPTY_INPUT, ...kick(guest) });
+  }
+  assert.equal(host.session!.hash(), guest.session!.hash(), 'post-half states converge');
+  host.close(); guest.close();
+});

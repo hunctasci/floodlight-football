@@ -15,7 +15,8 @@ export type ControlMsg =
   | { t: 'pause' }
   | { t: 'resume' }
   | { t: 'quit' }
-  | { t: 'resync-request'; tick: number };
+  | { t: 'resync-request'; tick: number }
+  | { t: 'continue-half' };
 
 export type DriverState = 'handshake' | 'playing' | 'closed';
 
@@ -158,6 +159,10 @@ export class NetDriver {
     } else if (m.t === 'quit') {
       this.emit({ type: 'peerQuit' });
       this.session.engine.dropPeer();
+    } else if (m.t === 'continue-half') {
+      // Host drives half-time flow; resync heals the few ticks of skew.
+      const e = this.session.engine;
+      if (e.state.phase === 'halftime') e.continueHalf();
     } else if (m.t === 'resync-request') {
       const snap = this.session.snapshotAt(m.tick);
       if (snap) this.transport.send(encodeSnapshotPacket(m.tick, JSON.stringify(snap)));
@@ -285,6 +290,12 @@ export class NetDriver {
     if (!s || this.state !== 'playing') return;
     s.engine.state.paused = paused;
     this.sendControl(paused ? { t: 'pause' } : { t: 'resume' });
+  }
+
+  /** Host calls this when continuing from half-time; guests follow the packet. */
+  broadcastHalf() {
+    if (!this.session || this.state !== 'playing') return;
+    this.sendControl({ t: 'continue-half' });
   }
 
   quit() {

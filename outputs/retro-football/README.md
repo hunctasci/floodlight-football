@@ -49,11 +49,19 @@ Press **C** during a match to cycle three lenses (the active one is shown top-ri
 
 The lens tracks the ball tightly near the sidelines and keeps play above the bottom HUD strip, on portrait, ultrawide and high-DPI windows alike. Goals trigger a letterboxed low sweep behind the net, kickoff starts with a high stadium sweep, and menus, pause, halftime and full time use a slow showcase orbit. All replays are camera-only: the simulation underneath never changes.
 
+## Play online (P2P lockstep)
+
+From the title screen choose **ONLINE MATCH**. One friend hosts (**CREATE ROOM**), shares the room code (any chat app), the other pastes it (**JOIN ROOM**) and sends the answer back. No account, no server in the match path — browsers talk directly over WebRTC.
+
+- Host is team 1 with your club/length settings; joiner is team 2. Same keyboard/touch controls, same assist rules.
+- Pause, half-time (host drives) and state hashes stay in sync; short skew heals automatically.
+- If a player drops or quits, their team falls back to AI and the match continues. Rematch = new room (custom leagues arrive next).
+
 ## Match rules
 
 Goals, saves, interceptions, rebounds, kickoffs, throw-ins, corners, goal kicks, halftime, second half and full time are included. The final screen offers another match or the main menu. Pausing or moving away from the browser stops the match.
 
-This is deliberately arcade football: no offside, fouls, penalties, substitutions or extra time. Draws stand. One human team plays against the computer; input is keyboard on desktop and touch on mobile. A browser with WebGL support is required. No accounts, downloads of game assets, or network services are used during play.
+This is deliberately arcade football: no offside, fouls, penalties, substitutions or extra time. Draws stand. Locally one human team plays against the computer (or two humans online); input is keyboard on desktop and touch on mobile. A browser with WebGL support is required. No accounts, downloads of game assets, or central match servers are used during play.
 
 ## Mobile & touch
 
