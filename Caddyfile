@@ -1,6 +1,7 @@
 # DOMAIN=example.com docker compose up -d  (TLS automatic; localhost by default)
 {$DOMAIN:localhost} {
-  handle /socket/* {
+  # Exact /socket (WS handshake has no trailing slash) plus anything under it.
+  handle /socket* {
     reverse_proxy server:8080
   }
   # /api/* lands here in F4b (leagues, results, leaderboard).

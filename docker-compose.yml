@@ -16,7 +16,7 @@ services:
       redis:
         condition: service_started
       postgres:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
     expose:
       - 8080
@@ -35,6 +35,11 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U retro -d retro"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
     expose:
       - 5432
