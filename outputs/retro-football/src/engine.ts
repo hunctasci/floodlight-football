@@ -12,6 +12,16 @@ const distance = (a: Vec, b: Vec) => length(a.x - b.x, a.z - b.z);
 const direction = (x: number, z: number): Vec => { const d = length(x, z); return d > .001 ? { x: x / d, z: z / d } : { x: 0, z: 0 }; };
 const other = (t: TeamId) => (1 - t) as TeamId;
 
+/** Full deterministic snapshot: state plus every RNG/private field the sim reads. */
+export interface EngineSnapshot {
+  state: MatchState; seed: number; charge: number; chargingPlayer: number | null;
+  receiver: number | null; receivePoint: Vec; receiveUntil: number;
+  possessionGrace: number; keeperHold: [number, number]; keeperReact: [number, number];
+  previousBall: { x: number; y: number; z: number }; scorer: TeamId; idleTime: number;
+  peerReceiver: number | null; peerReceivePoint: Vec; peerReceiveUntil: number;
+  peerCharge: number; peerChargingPlayer: number | null;
+}
+
 /** Fixed-step arcade simulation. Coordinates are metres; x runs along the pitch. */
 export class MatchEngine {
   state: MatchState;
@@ -28,6 +38,13 @@ export class MatchEngine {
   private previousBall = { x: 0, z: 0, y: R };
   private scorer: TeamId = 0;
   private idleTime = 0;
+  // Peer's (second human) in-flight state. Mirrors receiver/receivePoint/
+  // receiveUntil/charge above; included in snapshots and hashes.
+  private peerReceiver: number | null = null;
+  private peerReceivePoint: Vec = { x: 0, z: 0 };
+  private peerReceiveUntil = 0;
+  private peerCharge = 0;
+  private peerChargingPlayer: number | null = null;
 
   constructor(teamIndex = 0, halfDuration = 180, seed = 1) {
     this.seed = seed >>> 0 || 1;
@@ -42,10 +59,94 @@ export class MatchEngine {
     }
     this.state = { players, ball: { x: 0, z: 0, y: R, vx: 0, vy: 0, vz: 0, owner: null, lastTouch: 0, lock: 0, lastKicker: null, flight: 'roll' },
       teams: [TEAMS[teamIndex % 4], TEAMS[(teamIndex + 1) % 4]], humanTeam: 0, controlled: 10,
+      remoteTeam: null, peerControlled: -1, peerTarget: null,
       phase: 'kickoff', phaseTime: 0, half: 1, elapsed: 0, halfDuration, score: [0, 0], attack: [1, -1],
       restart: null, paused: false, message: 'KICK OFF', messageTime: 2, charge: 0, targetPlayer: null, time: 0,
       stats: { shots: [0, 0], saves: [0, 0], passes: [0, 0], tackles: [0, 0], possession: [0, 0] } };
     this.kickoff(0);
+  }
+  /** Attach a second human to a team (online peer). That team stops being AI-driven. */
+  setRemoteTeam(t: TeamId) {
+    if (t === this.state.humanTeam) throw new Error('remote team must differ from human team');
+    this.state.remoteTeam = t;
+    this.state.peerControlled = t * 11 + 10;
+    this.state.peerTarget = null;
+  }
+  /** Per-side control slots: local human uses state fields, peer uses peer fields. */
+  private getControlled(t: TeamId) { return t === this.state.humanTeam ? this.state.controlled : this.state.peerControlled; }
+  private setControlled(t: TeamId, id: number) {
+    if (t === this.state.humanTeam) this.state.controlled = id;
+    else if (t === this.state.remoteTeam) this.state.peerControlled = id;
+  }
+  private setTarget(t: TeamId, id: number | null) {
+    if (t === this.state.humanTeam) this.state.targetPlayer = id;
+    else if (t === this.state.remoteTeam) this.state.peerTarget = id;
+  }
+  private setReceiver(t: TeamId, id: number | null, point?: Vec, until?: number) {
+    // Side UI/target slots. The shared in-flight triple (receiver/receivePoint/
+    // receiveUntil, used by AI chase + ball magnet) is maintained separately.
+    if (t === this.state.humanTeam) {
+      this.state.targetPlayer = id;
+    } else if (t === this.state.remoteTeam) {
+      this.peerReceiver = id; this.state.peerTarget = id;
+      if (id !== null && point && until !== undefined) { this.peerReceivePoint = point; this.peerReceiveUntil = until; }
+    }
+  }
+  private clearReceiver(t: TeamId) { this.setReceiver(t, null); }
+  private liveReceiver(id: number | null, until: number) { return id !== null && until > this.state.time; }
+  private isLiveReceiver(id: number) {
+    return (this.liveReceiver(this.receiver, this.receiveUntil) && id === this.receiver) ||
+      (this.liveReceiver(this.peerReceiver, this.peerReceiveUntil) && id === this.peerReceiver);
+  }
+  private isHumanControlled(id: number) { return id === this.state.controlled || id === this.state.peerControlled; }
+
+  /** Deep, allocation-safe snapshot for rollback netcode and replays. */
+  snapshot(): EngineSnapshot {
+    return {
+      state: structuredClone(this.state), seed: this.seed,
+      charge: this.charge, chargingPlayer: this.chargingPlayer,
+      receiver: this.receiver, receivePoint: { ...this.receivePoint }, receiveUntil: this.receiveUntil,
+      possessionGrace: this.possessionGrace, keeperHold: [...this.keeperHold] as [number, number],
+      keeperReact: [...this.keeperReact] as [number, number], previousBall: { ...this.previousBall },
+      scorer: this.scorer, idleTime: this.idleTime,
+      peerReceiver: this.peerReceiver, peerReceivePoint: { ...this.peerReceivePoint },
+      peerReceiveUntil: this.peerReceiveUntil, peerCharge: this.peerCharge,
+      peerChargingPlayer: this.peerChargingPlayer,
+    };
+  }
+  restore(snap: EngineSnapshot) {
+    this.state = structuredClone(snap.state); this.seed = snap.seed;
+    this.charge = snap.charge; this.chargingPlayer = snap.chargingPlayer;
+    this.receiver = snap.receiver; this.receivePoint = { ...snap.receivePoint }; this.receiveUntil = snap.receiveUntil;
+    this.possessionGrace = snap.possessionGrace; this.keeperHold = [...snap.keeperHold]; this.keeperReact = [...snap.keeperReact];
+    this.previousBall = { ...snap.previousBall }; this.scorer = snap.scorer; this.idleTime = snap.idleTime;
+    this.peerReceiver = snap.peerReceiver; this.peerReceivePoint = { ...snap.peerReceivePoint };
+    this.peerReceiveUntil = snap.peerReceiveUntil; this.peerCharge = snap.peerCharge;
+    this.peerChargingPlayer = snap.peerChargingPlayer; this.events = [];
+  }
+  /** FNV-1a over quantized sim fields. Same inputs + seed must hash equal on any peer. */
+  hash(): number {
+    let h = 0x811c9dc5;
+    const mix = (n: number) => { h ^= (n | 0); h = Math.imul(h, 0x01000193); };
+    const q = (v: number) => Math.round(v * 1000);
+    const acts = { idle: 0, run: 1, kick: 2, tackle: 3, dive: 4 };
+    for (const p of this.state.players) {
+      mix(p.id); mix(q(p.x)); mix(q(p.z)); mix(q(p.vx)); mix(q(p.vz));
+      mix(q(p.facingX)); mix(q(p.facingZ)); mix(q(p.stamina)); mix(q(p.cooldown));
+      mix(q(p.actionTime)); mix(q(p.think)); mix(acts[p.action]);
+    }
+    const b = this.state.ball;
+    mix(q(b.x)); mix(q(b.y)); mix(q(b.z)); mix(q(b.vx)); mix(q(b.vy)); mix(q(b.vz));
+    mix(b.owner ?? -1); mix(b.lastTouch); mix(q(b.lock)); mix(b.lastKicker ?? -1);
+    mix({ roll: 0, pass: 1, through: 2, cross: 3, shot: 4 }[b.flight]);
+    const s = this.state;
+    mix(s.score[0]); mix(s.score[1]); mix(s.half); mix(q(s.elapsed)); mix(q(s.time));
+    mix(s.phase.length + s.phase.charCodeAt(0)); mix(s.attack[0]); mix(s.controlled); mix(s.peerControlled);
+    mix(this.seed); mix(q(this.possessionGrace)); mix(this.receiver ?? -1); mix(q(this.receiveUntil));
+    mix(this.peerReceiver ?? -1); mix(q(this.peerReceiveUntil)); mix(q(this.charge));
+    mix(this.chargingPlayer ?? -1); mix(q(this.peerCharge)); mix(this.peerChargingPlayer ?? -1);
+    mix(q(this.keeperHold[0])); mix(q(this.keeperHold[1])); mix(this.scorer);
+    return h >>> 0;
   }
   private random() { this.seed = (this.seed * 1664525 + 1013904223) >>> 0; return this.seed / 4294967296; }
   private team(t: TeamId) { return this.state.players.slice(t * 11, t * 11 + 11); }
@@ -56,7 +157,7 @@ export class MatchEngine {
     return best;
   }
 
-  update(dt: number, input: InputFrame = EMPTY_INPUT) {
+  update(dt: number, input: InputFrame = EMPTY_INPUT, peerInput: InputFrame = EMPTY_INPUT) {
     this.events = [];
     const s = this.state;
     if (s.paused || s.phase === 'halftime' || s.phase === 'fulltime') return;
@@ -68,14 +169,17 @@ export class MatchEngine {
       if (p.actionTime <= 0) p.action = length(p.vx, p.vz) > .5 ? 'run' : 'idle';
     }
     if (s.phase === 'goal') { s.phaseTime += dt; if (s.phaseTime > 2.7) this.kickoff(other(this.scorer)); return; }
-    if (s.phase !== 'playing') { this.takeRestart(dt, input); return; }
+    if (s.phase !== 'playing') { this.takeRestart(dt, input, peerInput); return; }
     s.elapsed = Math.min(s.halfDuration, s.elapsed + dt);
     if (s.elapsed >= s.halfDuration) { this.endHalf(); return; }
     const oldOwner = this.owner(); if (oldOwner) s.stats.possession[oldOwner.team] += dt;
-    this.selectControl(input);
-    this.moveHuman(dt, input);
-    this.updateAI(dt, input);
-    this.humanActions(dt, input);
+    this.selectControlSide(input, s.humanTeam);
+    if (s.remoteTeam !== null) this.selectControlSide(peerInput, s.remoteTeam);
+    this.moveHumanSide(dt, input, s.humanTeam);
+    if (s.remoteTeam !== null) this.moveHumanSide(dt, peerInput, s.remoteTeam);
+    this.updateAI(dt, input, peerInput);
+    this.humanActionsSide(dt, input, s.humanTeam);
+    if (s.remoteTeam !== null) this.humanActionsSide(dt, peerInput, s.remoteTeam);
     this.separatePlayers();
     this.integrateBall(dt);
     if (this.checkLines()) return;
@@ -83,18 +187,18 @@ export class MatchEngine {
     this.recover(dt);
   }
 
-  private selectControl(input: InputFrame) {
+  private selectControlSide(input: InputFrame, team: TeamId) {
     const s = this.state, owner = this.owner();
-    if (owner?.team === s.humanTeam && !owner.keeper) { s.controlled = owner.id; return; }
-    if (s.players[s.controlled].keeper) s.controlled = this.nearest(s.humanTeam, s.ball).id;
-    if (input.switchPlayer && owner?.team !== s.humanTeam) {
-      const a = s.attack[s.humanTeam]; let best = s.controlled, value = -Infinity;
-      for (const p of this.team(s.humanTeam)) if (!p.keeper) {
+    if (owner?.team === team && !owner.keeper) { this.setControlled(team, owner.id); return; }
+    if (s.players[this.getControlled(team)].keeper) this.setControlled(team, this.nearest(team, s.ball).id);
+    if (input.switchPlayer && owner?.team !== team) {
+      const a = s.attack[team]; let best = this.getControlled(team), value = -Infinity;
+      for (const p of this.team(team)) if (!p.keeper) {
         const future = { x: s.ball.x + s.ball.vx * .18, z: s.ball.z + s.ball.vz * .18 };
         const v = -distance(p, future) + clamp((s.ball.x - p.x) * a, -8, 8) * .14;
         if (v > value) { value = v; best = p.id; }
       }
-      s.controlled = best;
+      this.setControlled(team, best);
     }
   }
   private steer(p: Player, x: number, z: number, sprint: boolean, dt: number, speedOverride?: number) {
@@ -112,15 +216,18 @@ export class MatchEngine {
     p.x = clamp(p.x + p.vx * dt, -L + .55, L - .55); p.z = clamp(p.z + p.vz * dt, -W + .5, W - .5);
     p.stamina = clamp(p.stamina + (sprint && moving ? -.11 : .12) * dt, 0, 1);
   }
-  private moveHuman(dt: number, i: InputFrame) {
-    const s = this.state, p = s.players[s.controlled], b = s.ball;
+  private moveHumanSide(dt: number, i: InputFrame, team: TeamId) {
+    const s = this.state, p = s.players[this.getControlled(team)], b = s.ball;
     if (p.keeper) return;
-    const receiverActive = this.receiver === p.id && this.receiveUntil > s.time && b.owner === null;
+    const rec = team === s.humanTeam ? this.receiver : this.peerReceiver;
+    const rpoint = team === s.humanTeam ? this.receivePoint : this.peerReceivePoint;
+    const runtil = team === s.humanTeam ? this.receiveUntil : this.peerReceiveUntil;
+    const receiverActive = rec === p.id && runtil > s.time && b.owner === null;
     if (receiverActive) {
       // FIFA-style assisted run: receiver is magnetised to the ball / meet point.
       const isSpaceBall = b.flight === 'through' || b.flight === 'cross';
       const target = isSpaceBall
-        ? this.receivePoint
+        ? rpoint
         : { x: b.x + b.vx * .12, z: b.z + b.vz * .12 };
       const dx = target.x - p.x, dz = target.z - p.z, dist = length(dx, dz);
       const auto = direction(dx, dz);
@@ -168,27 +275,38 @@ export class MatchEngine {
       this.steer(p, 0, 0, false, dt);
     } else this.steer(p, 0, 0, false, dt);
   }
-  private updateAI(dt: number, input: InputFrame) {
+  private updateAI(dt: number, input: InputFrame, peerInput: InputFrame = EMPTY_INPUT) {
     const s = this.state, b = s.ball;
     // If a pass/cross/through is in flight for team t, that receiver owns the
     // chase — teammates hold shape instead of crowding the same ball.
     const activeReceiverTeam: (TeamId | null)[] = [null, null];
-    if (this.receiver !== null && this.receiveUntil > s.time && b.owner === null) {
-      const rp = s.players[this.receiver];
+    if (this.liveReceiver(this.receiver, this.receiveUntil) && b.owner === null) {
+      const rp = s.players[this.receiver as number];
+      if (rp) activeReceiverTeam[rp.team] = rp.team;
+    }
+    if (this.liveReceiver(this.peerReceiver, this.peerReceiveUntil) && b.owner === null) {
+      const rp = s.players[this.peerReceiver as number];
       if (rp) activeReceiverTeam[rp.team] = rp.team;
     }
     for (const t of [0, 1] as TeamId[]) {
       const owner = this.owner(), owns = owner ? owner.team === t : b.lastTouch === t;
-      const a = s.attack[t], chaser = this.nearest(t, { x: b.x + b.vx * .16, z: b.z + b.vz * .16 }, !owner && distance(s.players[s.controlled], b) > 3 ? s.controlled : -1);
+      const frame = t === s.humanTeam ? input : t === s.remoteTeam ? peerInput : EMPTY_INPUT;
+      const excl = !owner
+        ? (distance(s.players[s.controlled], b) > 3 ? s.controlled
+          : (s.remoteTeam !== null && distance(s.players[s.peerControlled], b) > 3 ? s.peerControlled : -1))
+        : -1;
+      const a = s.attack[t], chaser = this.nearest(t, { x: b.x + b.vx * .16, z: b.z + b.vz * .16 }, excl);
       const cover = this.nearest(t, b, chaser.id);
       for (const p of this.team(t)) {
-        if (p.keeper) { this.goalkeeper(p, dt, input); continue; }
-        if (p.id === s.controlled) continue;
+        if (p.keeper) { this.goalkeeper(p, dt, frame); continue; }
+        if (this.isHumanControlled(p.id)) continue;
         if (b.owner === p.id) { this.aiCarrier(p, dt); continue; }
         const role = p.id % 11;
         let tx = p.homeX + a * (clamp(b.x * a * .45, -13, 17) + (owns ? 6 : -2)), tz = p.homeZ + clamp(b.z * .2, -5, 5);
         p.aiState = owns ? 'SUPPORT' : 'DEFEND';
-        if (this.receiver === p.id && this.receiveUntil > s.time && b.owner === null) { tx = this.receivePoint.x; tz = this.receivePoint.z; p.aiState = 'CHASE'; }
+        const lr = this.liveReceiver(this.receiver, this.receiveUntil) && this.receiver === p.id;
+        const pr = this.liveReceiver(this.peerReceiver, this.peerReceiveUntil) && this.peerReceiver === p.id;
+        if ((lr || pr) && b.owner === null) { const rp = lr ? this.receivePoint : this.peerReceivePoint; tx = rp.x; tz = rp.z; p.aiState = 'CHASE'; }
         else if (activeReceiverTeam[t] !== null) {
           // Teammate is meeting the pass — stay in support shape, but the
           // closest defender still goalside-marks instead of ball-watching.
@@ -251,7 +369,7 @@ export class MatchEngine {
         const dx = q.x - p.x, dz = q.z - p.z, d = length(dx, dz);
         if (d < 2.0) { const n = d > .001 ? d : 1; q.x = p.x + dx / n * 2.0; q.z = p.z + dz / n * 2.0; }
       }
-      const human = p.team === s.humanTeam;
+      const human = p.team === s.humanTeam || p.team === s.remoteTeam;
       const aim = human && length(input.x, input.z) > .1 ? direction(input.x, input.z) : direction(a, 0);
       let pressure = Infinity;
       for (const q of this.team(other(p.team))) if (!q.keeper) pressure = Math.min(pressure, distance(q, p));
@@ -311,23 +429,27 @@ export class MatchEngine {
     this.steer(p, tx - p.x, tz - p.z, false, dt, Math.min(speed, d * 6));
   }
 
-  private humanActions(dt: number, i: InputFrame) {
-    const s = this.state, p = s.players[s.controlled], owner = this.owner();
+  private humanActionsSide(dt: number, i: InputFrame, team: TeamId) {
+    const peer = team !== this.state.humanTeam;
+    const s = this.state, p = s.players[this.getControlled(team)], owner = this.owner();
     // Kaleci topu elinde tutarken tuşlar kaleciye aittir; sahadaki oyuncu dalmaz.
-    if (owner && owner.keeper && owner.team === s.humanTeam) { this.cancelShot(); return; }
+    if (owner && owner.keeper && owner.team === team) { this.cancelShot(peer); return; }
     const raw = length(i.x, i.z) > .05 ? direction(i.x, i.z) : direction(p.facingX, p.facingZ);
+    const charge = peer ? this.peerCharge : this.charge;
+    const charging = peer ? this.peerChargingPlayer : this.chargingPlayer;
+    const setCharge = (v: number) => { if (peer) this.peerCharge = v; else { this.charge = v; s.charge = v; } };
+    const setCharging = (v: number | null) => { if (peer) this.peerChargingPlayer = v; else this.chargingPlayer = v; };
     if (owner?.id === p.id) {
-      if (i.pass) { this.pass(p, this.bestTarget(p, raw, false), false, i.sprint); this.cancelShot(); return; }
-      if (i.through) { this.pass(p, this.bestTarget(p, raw, true), true); this.cancelShot(); return; }
-      if (i.cross) { this.cross(p, raw); this.cancelShot(); return; }
-      if (i.shootPressed) { this.charge = 0; this.chargingPlayer = p.id; }
-      if (i.shootHeld && this.chargingPlayer === p.id) this.charge = Math.min(.55, this.charge + dt);
-      s.charge = this.charge;
-      if ((i.shootReleased && this.chargingPlayer === p.id) || (i.shootPressed && !i.shootHeld) || (this.chargingPlayer === p.id && this.charge >= .55)) {
-        this.shoot(p, raw, this.charge); this.cancelShot();
+      if (i.pass) { this.pass(p, this.bestTarget(p, raw, false), false, i.sprint); this.cancelShot(peer); return; }
+      if (i.through) { this.pass(p, this.bestTarget(p, raw, true), true); this.cancelShot(peer); return; }
+      if (i.cross) { this.cross(p, raw); this.cancelShot(peer); return; }
+      if (i.shootPressed) { setCharge(0); setCharging(p.id); }
+      if (i.shootHeld && charging === p.id) setCharge(Math.min(.55, charge + dt));
+      if ((i.shootReleased && charging === p.id) || (i.shootPressed && !i.shootHeld) || (charging === p.id && charge >= .55)) {
+        this.shoot(p, raw, charge); this.cancelShot(peer);
       }
     } else {
-      this.cancelShot();
+      this.cancelShot(peer);
       if (i.shootPressed && !owner && distance(p, s.ball) < 2.4 && s.ball.y < 2.6) {
         this.shoot(p, raw, .15); s.message = s.ball.y > 1.25 ? 'HEADER!' : 'FIRST TIME!'; s.messageTime = .7;
       }
@@ -336,7 +458,10 @@ export class MatchEngine {
       else if (i.shootPressed) this.tackle(p, true);
     }
   }
-  private cancelShot() { this.charge = 0; this.chargingPlayer = null; this.state.charge = 0; }
+  private cancelShot(peer = false) {
+    if (peer) { this.peerCharge = 0; this.peerChargingPlayer = null; }
+    else { this.charge = 0; this.chargingPlayer = null; this.state.charge = 0; }
+  }
   private bestTarget(p: Player, aim: Vec, through: boolean): Player | null {
     let target: Player | null = null, best = -Infinity;
     const foes = this.team(other(p.team));
@@ -367,7 +492,8 @@ export class MatchEngine {
     const speed = driven ? clamp(24 + d * .3, 26, 32) : through ? clamp(23 + d * .15, 25, 29) : clamp(15 + d * .36, 19, 27);
     this.kick(p, direction(tx - s.ball.x, tz - s.ball.z), speed, through ? .65 : .2, through ? 'through' : 'pass');
     this.receiver = q.id; this.receivePoint = { x: tx, z: tz }; this.receiveUntil = s.time + 2.7;
-    if (p.team === s.humanTeam) { s.controlled = q.id; s.targetPlayer = q.id; }
+    this.setReceiver(p.team, q.id, { x: tx, z: tz }, s.time + 2.7);
+    this.setControlled(p.team, q.id);
     s.stats.passes[p.team]++;
   }
   private cross(p: Player, aim?: Vec) {
@@ -381,7 +507,8 @@ export class MatchEngine {
     const d = distance(s.ball, { x: tx, z: tz }), flightTime = clamp(d / 20, 1.0, 1.8);
     this.kick(p, direction(tx - s.ball.x, tz - s.ball.z), d / flightTime * 1.07, 9 * flightTime, 'cross');
     this.receiver = target.id; this.receivePoint = { x: tx, z: tz }; this.receiveUntil = s.time + flightTime + 1.5;
-    if (p.team === s.humanTeam) { s.targetPlayer = target.id; s.controlled = target.id; }
+    this.setReceiver(p.team, target.id, { x: tx, z: tz }, s.time + flightTime + 1.5);
+    this.setControlled(p.team, target.id);
   }
   /** Kaleci uzun topu: nişan yönündeki en uygun arkadaş hedeflenir, top havadan yumuşak iner. */
   private keeperKick(p: Player, aim: Vec) {
@@ -398,7 +525,8 @@ export class MatchEngine {
     this.kick(p, direction(tx - s.ball.x, tz - s.ball.z), dd / ft * 1.07, 8 * ft, 'cross');
     const rec = target ?? this.nearest(p.team, { x: tx, z: tz }, p.id);
     this.receiver = rec.id; this.receivePoint = { x: tx, z: tz }; this.receiveUntil = s.time + ft + 1.5;
-    if (p.team === s.humanTeam) { s.controlled = rec.id; s.targetPlayer = rec.id; }
+    this.setReceiver(p.team, rec.id, { x: tx, z: tz }, s.time + ft + 1.5);
+    this.setControlled(p.team, rec.id);
   }
   private shoot(p: Player, aim: Vec, charge: number) {
     const s = this.state, a = s.attack[p.team], dx = a * L - s.ball.x;
@@ -415,7 +543,7 @@ export class MatchEngine {
     const b = this.state.ball;
     b.owner = null; b.lock = .12; b.lastTouch = p.team; b.lastKicker = p.id; b.vx = d.x * speed; b.vz = d.z * speed; b.vy = vy; b.flight = flight;
     p.cooldown = .25; p.action = 'kick'; p.actionTime = .25;
-    this.receiver = null; this.state.targetPlayer = null; this.possessionGrace = 0;
+    this.receiver = null; this.clearReceiver(p.team); this.possessionGrace = 0;
     this.events.push({ type: flight === 'shot' ? 'shot' : 'kick', team: p.team, power: speed });
     if (flight === 'shot') this.state.stats.shots[p.team]++;
   }
@@ -430,7 +558,7 @@ export class MatchEngine {
     if (distance(p, owner) < reach && facing > -.15 && this.random() < (slide ? .8 : .86)) {
       b.owner = null; b.lock = .14; b.lastTouch = p.team; b.lastKicker = owner.id;
       b.vx = p.facingX * (slide ? 7.5 : 5.5); b.vz = p.facingZ * (slide ? 7.5 : 5.5); b.vy = .65; b.flight = 'roll';
-      owner.cooldown = .5; this.receiver = null;
+      owner.cooldown = .5; this.receiver = null; this.clearReceiver(owner.team);
       this.state.stats.tackles[p.team]++; this.events.push({ type: 'tackle', team: p.team });
     }
   }
@@ -508,19 +636,22 @@ export class MatchEngine {
     }
     if (b.y > 1.05) return;
     // FIFA tarzı mıknatıs: pasın alıcısı topu daha geniş alanda tek dokunuşla alır.
-    const receiverLive = this.receiver !== null && this.receiveUntil > s.time;
+    const recvLive = this.liveReceiver(this.receiver, this.receiveUntil);
+    const peerLive = this.liveReceiver(this.peerReceiver, this.peerReceiveUntil);
     let best: Player | null = null, bestScore = Infinity;
     for (const p of s.players) if (!p.keeper && !(p.id === b.lastKicker && p.cooldown > 0)) {
-      const limit = receiverLive && p.id === this.receiver ? TUNING.receiverRadius : TUNING.controlRadius;
+      const isRecv = (recvLive && p.id === this.receiver) || (peerLive && p.id === this.peerReceiver);
+      const limit = isRecv ? TUNING.receiverRadius : TUNING.controlRadius;
       const q = distance(p, b);
       if (q >= limit) continue;
       // Alıcıya hafif öncelik: aynı topa iki kişi giderse pasın hedefi alır.
-      const score = q * (receiverLive && p.id === this.receiver ? .75 : 1);
+      const score = q * (isRecv ? .75 : 1);
       if (score < bestScore) { bestScore = score; best = p; }
     }
     if (best) {
       const fastShot = b.flight === 'shot' && length(b.vx, b.vz) > 19;
-      if (fastShot && best.team !== b.lastTouch && best.id !== this.receiver) {
+      const bestRecv = (recvLive && best.id === this.receiver) || (peerLive && best.id === this.peerReceiver);
+      if (fastShot && best.team !== b.lastTouch && !bestRecv) {
         b.vx *= -.28; b.vz += (this.random() - .5) * 7; b.vy = 1.4; b.lock = .18; b.lastTouch = best.team; b.flight = 'roll';
       } else this.claim(best);
     }
@@ -531,9 +662,11 @@ export class MatchEngine {
     b.owner = p.id; b.lastTouch = p.team; b.flight = 'roll';
     b.x = p.x + p.facingX * .8; b.z = p.z + p.facingZ * .8; b.y = R;
     b.vx = p.vx * .3; b.vz = p.vz * .3; b.vy = 0;
-    this.possessionGrace = p.keeper ? .6 : .45; p.think = Math.max(p.think, .5); this.receiver = null; this.state.targetPlayer = null;
+    this.possessionGrace = p.keeper ? .6 : .45; p.think = Math.max(p.think, .5);
+    const s = this.state;
+    this.receiver = null; this.peerReceiver = null; s.targetPlayer = null; s.peerTarget = null;
     if (p.keeper) this.keeperHold[p.team] = 0;
-    else if (p.team === this.state.humanTeam) this.state.controlled = p.id;
+    else this.setControlled(p.team, p.id);
   }
 
   private checkLines() {
@@ -563,7 +696,7 @@ export class MatchEngine {
   private placeRestart(r: Restart) {
     const s = this.state, a = s.attack[r.team], b = s.ball, p = s.players[r.taker];
     Object.assign(b, { x: r.x, z: r.z, y: R, vx: 0, vy: 0, vz: 0, owner: null, lock: .15, lastTouch: r.team, flight: 'roll' });
-    this.receiver = null; s.targetPlayer = null; this.cancelShot();
+    this.receiver = null; this.peerReceiver = null; s.targetPlayer = null; s.peerTarget = null; this.cancelShot();
     for (const q of s.players) { q.vx = q.vz = 0; q.cooldown = 0; }
     p.x = r.x - a * .65; p.z = r.z; p.facingX = a; p.facingZ = 0;
     if (s.phase === 'throwin') { p.z = Math.sign(r.z) * (W + .45); p.facingX = 0; p.facingZ = -Math.sign(r.z); }
@@ -583,34 +716,39 @@ export class MatchEngine {
       this.team(other(r.team)).filter(q => !q.keeper).slice(0, 5).forEach((q, i) => { q.x = a * (L - 5 - (i % 3) * 3); q.z = (i - 2) * 3 + 1; });
     }
     for (const q of this.team(other(r.team))) if (!q.keeper && distance(q, b) < 6) { const d = direction(q.x - b.x || -a, q.z - b.z || 1); q.x = clamp(b.x + d.x * 6, -L + 1, L - 1); q.z = clamp(b.z + d.z * 6, -W + 1, W - 1); }
-    if (r.team === s.humanTeam) s.controlled = p.id;
+    this.setControlled(r.team, p.id);
   }
-  private takeRestart(dt: number, i: InputFrame) {
+  private takeRestart(dt: number, i: InputFrame, peer: InputFrame = EMPTY_INPUT) {
     const s = this.state, r = s.restart; if (!r) return;
     r.wait -= dt; if (r.wait > 0) return;
-    const human = r.team === s.humanTeam, p = s.players[r.taker], a = s.attack[r.team], phase = s.phase;
-    if (human && !(i.pass || i.cross || i.through || i.shootPressed)) return;
+    const human = r.team === s.humanTeam || r.team === s.remoteTeam;
+    const f = r.team === s.humanTeam ? i : r.team === s.remoteTeam ? peer : EMPTY_INPUT;
+    const p = s.players[r.taker], a = s.attack[r.team], phase = s.phase;
+    if (human && !(f.pass || f.cross || f.through || f.shootPressed)) return;
     if (!human && r.wait > -.7) return;
-    const aim = length(i.x, i.z) > .1 && human ? direction(i.x, i.z) : direction(a, 0);
+    const aim = length(f.x, f.z) > .1 && human ? direction(f.x, f.z) : direction(a, 0);
     if (phase === 'corner') {
-      if (i.pass && human) {
+      if (f.pass && human) {
         const q = this.nearest(r.team, { x: r.x - a * 8, z: r.z - Math.sign(r.z) * 6 }, p.id);
         q.x = r.x - a * 8; q.z = r.z - Math.sign(r.z) * 6; this.pass(p, q, false);
       } else this.cross(p);
     } else if (phase === 'throwin') {
       const inward = -Math.sign(r.z);
-      const d = direction(human && (i.x || i.z) ? i.x : a * .5, inward * Math.max(.55, Math.abs(human ? i.z : 1)));
+      const d = direction(human && (f.x || f.z) ? f.x : a * .5, inward * Math.max(.55, Math.abs(human ? f.z : 1)));
       const point = { x: clamp(r.x + d.x * 9, -L + 4, L - 4), z: r.z + d.z * 9 };
       const q = this.nearest(r.team, point, p.id);
-      this.kick(p, d, 13.5, 4.5, 'pass'); this.receiver = q.id; this.receivePoint = point; this.receiveUntil = s.time + 2;
-      if (human) { s.controlled = q.id; s.targetPlayer = q.id; }
-    } else if (phase === 'goalkick' && (i.shootPressed || i.cross) && human) {
+      this.kick(p, d, 13.5, 4.5, 'pass');
+      this.receiver = q.id; this.receivePoint = point; this.receiveUntil = s.time + 2;
+      this.setReceiver(r.team, q.id, point, s.time + 2);
+      this.setControlled(r.team, q.id);
+    } else if (phase === 'goalkick' && (f.shootPressed || f.cross) && human) {
       this.kick(p, direction(a, aim.z * .6), 29, 7, 'cross');
-      s.controlled = this.nearest(r.team, { x: r.x + a * 24, z: 0 }).id;
-    } else this.pass(p, this.bestTarget(p, phase === 'kickoff' && !(human && (i.x || i.z)) ? direction(-a * .3, 1) : aim, i.through), !!i.through);
+      this.setControlled(r.team, this.nearest(r.team, { x: r.x + a * 24, z: 0 }).id);
+    } else this.pass(p, this.bestTarget(p, phase === 'kickoff' && !(human && (f.x || f.z)) ? direction(-a * .3, 1) : aim, f.through), !!f.through);
     p.x = clamp(p.x, -L + .6, L - .6); p.z = clamp(p.z, -W + .6, W - .6);
     s.phase = 'playing'; s.restart = null; s.message = ''; s.messageTime = 0;
-    if (s.players[s.controlled].keeper) s.controlled = this.nearest(s.humanTeam, s.ball).id;
+    const ctrl = this.getControlled(r.team);
+    if (ctrl >= 0 && s.players[ctrl].keeper) this.setControlled(r.team, this.nearest(r.team, s.ball).id);
   }
   private kickoff(t: TeamId) {
     const s = this.state; this.resetPositions(); s.phase = 'kickoff'; s.phaseTime = 0;
@@ -644,5 +782,6 @@ export class MatchEngine {
       this.receiver = p.id; this.receivePoint = { x: b.x, z: b.z }; this.receiveUntil = s.time + 3; this.idleTime = 0;
     }
     if (this.receiveUntil < s.time) { this.receiver = null; s.targetPlayer = null; }
+    if (this.peerReceiveUntil < s.time) { this.peerReceiver = null; s.peerTarget = null; }
   }
 }

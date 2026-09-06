@@ -20,6 +20,8 @@ export interface Restart { team: TeamId; taker: number; x: number; z: number; wa
 export interface MatchStats { shots: [number, number]; saves: [number, number]; passes: [number, number]; tackles: [number, number]; possession: [number, number] }
 export interface MatchState {
   players: Player[]; ball: Ball; teams: [Team, Team]; humanTeam: TeamId; controlled: number;
+  /** Second human (online peer). Null = AI controls that team, as in local play. */
+  remoteTeam: TeamId | null; peerControlled: number; peerTarget: number | null;
   phase: Phase; phaseTime: number; half: 1 | 2; elapsed: number; halfDuration: number;
   score: [number, number]; attack: [number, number]; restart: Restart | null; paused: boolean;
   message: string; messageTime: number; charge: number; targetPlayer: number | null; time: number; stats: MatchStats;
