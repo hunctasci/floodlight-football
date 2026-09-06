@@ -233,7 +233,11 @@ export class GameRenderer {
     const crowdCols = ['#f8cc54', '#ec5a61', '#5fcddd', '#f3ede0', '#514b91', '#ff9a3d', '#7ee08a']; const box = new THREE.BoxGeometry(1.05, .72, .55);
     // Seven instanced colour blocks give the crowd a lively, modern mosaic without hundreds of draw calls.
     const fanPositions: THREE.Vector3[][] = crowdCols.map(() => []);
-    for (const z of [-36, 36]) {
+    // Only the far stand is built: every camera preset sits on +z looking
+    // toward -z, so a near-side stand would stand between the camera and
+    // the near touchline and hide players in low angles (close-up).
+    // The low ad boards stay on both sides; they never block play.
+    for (const z of [-36]) {
       const stand = new THREE.Mesh(new THREE.BoxGeometry(104, 9, 11), concrete); stand.position.set(0, 4.2, z); this.scene.add(stand);
       // Roof lip shading the top rows.
       const roof = new THREE.Mesh(new THREE.BoxGeometry(106, .5, 13), new THREE.MeshStandardMaterial({ color: '#1d3346', roughness: 1, flatShading: true }));
