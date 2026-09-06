@@ -1,0 +1,14 @@
+{
+  "name": "retro-football-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "dev:game": "npm run dev --workspace=retro-football",
+    "dev:server": "npm run dev --workspace=@retro/server"
+  },
+  "engines": { "node": "^20.19.0 || >=22.12.0" }
+}

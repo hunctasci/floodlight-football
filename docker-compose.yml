@@ -1,0 +1,57 @@
+# Local parity + single-VPS production topology.
+# Postgres runs idle until F4b wires leagues/results; included now so the
+# topology (and volumes/backups) is settled once.
+services:
+  server:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    environment:
+      PORT: 8080
+      REDIS_URL: redis://redis:6379
+      ROOM_TTL_SEC: 7200
+      LOG_LEVEL: info
+    depends_on:
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    expose:
+      - 8080
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    expose:
+      - 6379
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: retro
+      POSTGRES_USER: retro
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-in-production}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    expose:
+      - 5432
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      # Production game build (run `npm run build --workspace=retro-football` first).
+      - ./apps/game/dist:/srv/game:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  caddy-data:
+  caddy-config:

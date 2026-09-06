@@ -1,0 +1,14 @@
+# DOMAIN=example.com docker compose up -d  (TLS automatic; localhost by default)
+{$DOMAIN:localhost} {
+  handle /socket/* {
+    reverse_proxy server:8080
+  }
+  # /api/* lands here in F4b (leagues, results, leaderboard).
+  handle /api/* {
+    reverse_proxy server:8080
+  }
+  handle {
+    root * /srv/game
+    file_server
+  }
+}
