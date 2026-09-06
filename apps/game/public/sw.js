@@ -1,6 +1,8 @@
-/* Retro Football service worker: cache-first for same-origin GET (app shell +
- * assets). Match traffic is unaffected (game is local-first; netcode later). */
-const VERSION = 'retro-football-v1';
+/* Retro Football service worker.
+ * Navigation (the app shell) is network-first so new deploys reach players
+ * on the next visit; hashed assets are immutable and stay cache-first.
+ * Match traffic is unaffected (local-first sim, P2P netcode). */
+const VERSION = 'retro-football-v2';
 const CORE = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -16,6 +18,17 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const { request } = e;
   if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
+  if (request.mode === 'navigate') {
+    // App shell: fresh deploy wins, cached copy is the offline fallback.
+    e.respondWith(
+      fetch(request).then((res) => {
+        const copy = res.clone();
+        caches.open(VERSION).then((c) => c.put(request, copy));
+        return res;
+      }).catch(() => caches.match(request).then((hit) => hit || caches.match('/index.html'))),
+    );
+    return;
+  }
   e.respondWith(
     caches.match(request).then(
       (hit) => hit || fetch(request).then((res) => {
