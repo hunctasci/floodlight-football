@@ -1,0 +1,2642 @@
+[
+  {
+    "seed": 1,
+    "seconds": 389,
+    "score": [
+      5,
+      2
+    ],
+    "stats": {
+      "shots": [
+        18,
+        7
+      ],
+      "saves": [
+        53,
+        17
+      ],
+      "passes": [
+        91,
+        48
+      ],
+      "tackles": [
+        68,
+        33
+      ],
+      "possession": [
+        131.79999999999703,
+        113.29999999999485
+      ]
+    },
+    "phases": {
+      "kickoff": 9.600000000000056,
+      "playing": 360.00000000000125,
+      "goal": 19.01666666666687
+    },
+    "events": {
+      "kick": 139,
+      "shot": 25,
+      "save": 70,
+      "tackle": 101,
+      "goal": 7,
+      "goal-shot": 5,
+      "whistle": 9,
+      "goal-roll": 2
+    },
+    "maxOwner": 4.683333333333322,
+    "maxIdle": 0.4833333333333333,
+    "final": "fulltime",
+    "hist": [
+      {
+        "clock": 0,
+        "half": 1,
+        "phase": "kickoff",
+        "score": "0-0",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "0-0"
+      },
+      {
+        "clock": 9,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          -16,
+          0
+        ],
+        "owner": null,
+        "shots": "0-0"
+      },
+      {
+        "clock": 19,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          -44,
+          -2
+        ],
+        "owner": 0,
+        "shots": "0-1"
+      },
+      {
+        "clock": 26,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-1",
+        "ball": [
+          -5,
+          -5
+        ],
+        "owner": null,
+        "shots": "0-2"
+      },
+      {
+        "clock": 36,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-1",
+        "ball": [
+          35,
+          -6
+        ],
+        "owner": null,
+        "shots": "0-2"
+      },
+      {
+        "clock": 46,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-1",
+        "ball": [
+          -44,
+          1
+        ],
+        "owner": 0,
+        "shots": "0-3"
+      },
+      {
+        "clock": 56,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-1",
+        "ball": [
+          -44,
+          2
+        ],
+        "owner": 0,
+        "shots": "0-3"
+      },
+      {
+        "clock": 66,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-1",
+        "ball": [
+          -44,
+          2
+        ],
+        "owner": 0,
+        "shots": "0-3"
+      },
+      {
+        "clock": 76,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-1",
+        "ball": [
+          -44,
+          0
+        ],
+        "owner": 0,
+        "shots": "0-3"
+      },
+      {
+        "clock": 86,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-1",
+        "ball": [
+          -44,
+          1
+        ],
+        "owner": 0,
+        "shots": "0-3"
+      },
+      {
+        "clock": 93,
+        "half": 1,
+        "phase": "goal",
+        "score": "0-2",
+        "ball": [
+          -47,
+          0
+        ],
+        "owner": null,
+        "shots": "0-3"
+      },
+      {
+        "clock": 103,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-2",
+        "ball": [
+          -11,
+          5
+        ],
+        "owner": null,
+        "shots": "1-3"
+      },
+      {
+        "clock": 113,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-2",
+        "ball": [
+          16,
+          0
+        ],
+        "owner": 17,
+        "shots": "1-3"
+      },
+      {
+        "clock": 123,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-2",
+        "ball": [
+          -3,
+          -4
+        ],
+        "owner": 17,
+        "shots": "2-3"
+      },
+      {
+        "clock": 133,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-2",
+        "ball": [
+          -31,
+          -2
+        ],
+        "owner": null,
+        "shots": "2-5"
+      },
+      {
+        "clock": 143,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-2",
+        "ball": [
+          29,
+          0
+        ],
+        "owner": 3,
+        "shots": "2-5"
+      },
+      {
+        "clock": 149,
+        "half": 1,
+        "phase": "kickoff",
+        "score": "1-2",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "4-5"
+      },
+      {
+        "clock": 159,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-2",
+        "ball": [
+          -3,
+          -2
+        ],
+        "owner": null,
+        "shots": "4-5"
+      },
+      {
+        "clock": 169,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-2",
+        "ball": [
+          13,
+          -6
+        ],
+        "owner": 17,
+        "shots": "5-5"
+      },
+      {
+        "clock": 179,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-2",
+        "ball": [
+          18,
+          3
+        ],
+        "owner": 18,
+        "shots": "6-5"
+      },
+      {
+        "clock": 7,
+        "half": 2,
+        "phase": "playing",
+        "score": "1-2",
+        "ball": [
+          23,
+          1
+        ],
+        "owner": null,
+        "shots": "6-5"
+      },
+      {
+        "clock": 17,
+        "half": 2,
+        "phase": "goal",
+        "score": "2-2",
+        "ball": [
+          -47,
+          1
+        ],
+        "owner": null,
+        "shots": "8-5"
+      },
+      {
+        "clock": 23,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          -27,
+          -5
+        ],
+        "owner": null,
+        "shots": "8-5"
+      },
+      {
+        "clock": 33,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          6,
+          1
+        ],
+        "owner": null,
+        "shots": "9-5"
+      },
+      {
+        "clock": 43,
+        "half": 2,
+        "phase": "goal",
+        "score": "3-2",
+        "ball": [
+          -47,
+          0
+        ],
+        "owner": null,
+        "shots": "11-5"
+      },
+      {
+        "clock": 49,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          -26,
+          -6
+        ],
+        "owner": null,
+        "shots": "11-5"
+      },
+      {
+        "clock": 59,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          32,
+          -2
+        ],
+        "owner": null,
+        "shots": "12-6"
+      },
+      {
+        "clock": 69,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          -11,
+          -1
+        ],
+        "owner": null,
+        "shots": "12-6"
+      },
+      {
+        "clock": 79,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          4,
+          2
+        ],
+        "owner": null,
+        "shots": "12-6"
+      },
+      {
+        "clock": 89,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          17,
+          1
+        ],
+        "owner": null,
+        "shots": "12-7"
+      },
+      {
+        "clock": 99,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          -3,
+          2
+        ],
+        "owner": null,
+        "shots": "12-7"
+      },
+      {
+        "clock": 109,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          -37,
+          6
+        ],
+        "owner": 14,
+        "shots": "12-7"
+      },
+      {
+        "clock": 119,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          0,
+          2
+        ],
+        "owner": null,
+        "shots": "12-7"
+      },
+      {
+        "clock": 128,
+        "half": 2,
+        "phase": "goal",
+        "score": "4-2",
+        "ball": [
+          -47,
+          0
+        ],
+        "owner": null,
+        "shots": "14-7"
+      },
+      {
+        "clock": 135,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-2",
+        "ball": [
+          -27,
+          -5
+        ],
+        "owner": null,
+        "shots": "14-7"
+      },
+      {
+        "clock": 141,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-2",
+        "ball": [
+          11,
+          2
+        ],
+        "owner": null,
+        "shots": "16-7"
+      },
+      {
+        "clock": 151,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-2",
+        "ball": [
+          -2,
+          -1
+        ],
+        "owner": 17,
+        "shots": "16-7"
+      },
+      {
+        "clock": 161,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-2",
+        "ball": [
+          0,
+          -3
+        ],
+        "owner": null,
+        "shots": "17-7"
+      },
+      {
+        "clock": 171,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-2",
+        "ball": [
+          -26,
+          -3
+        ],
+        "owner": 17,
+        "shots": "17-7"
+      }
+    ]
+  },
+  {
+    "seed": 42,
+    "seconds": 397,
+    "score": [
+      7,
+      2
+    ],
+    "stats": {
+      "shots": [
+        22,
+        6
+      ],
+      "saves": [
+        15,
+        14
+      ],
+      "passes": [
+        60,
+        48
+      ],
+      "tackles": [
+        93,
+        43
+      ],
+      "possession": [
+        112.53333333332823,
+        134.78333333333273
+      ]
+    },
+    "phases": {
+      "kickoff": 12.200000000000186,
+      "playing": 360.00000000000125,
+      "goal": 24.449999999999893
+    },
+    "events": {
+      "kick": 108,
+      "tackle": 136,
+      "shot": 28,
+      "save": 29,
+      "goal": 9,
+      "goal-shot": 7,
+      "whistle": 11,
+      "goal-roll": 2
+    },
+    "maxOwner": 6.299999999999983,
+    "maxIdle": 0.6666666666666671,
+    "final": "fulltime",
+    "hist": [
+      {
+        "clock": 0,
+        "half": 1,
+        "phase": "kickoff",
+        "score": "0-0",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "0-0"
+      },
+      {
+        "clock": 9,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          32,
+          3
+        ],
+        "owner": null,
+        "shots": "2-0"
+      },
+      {
+        "clock": 19,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          -5,
+          0
+        ],
+        "owner": null,
+        "shots": "2-0"
+      },
+      {
+        "clock": 29,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          14,
+          3
+        ],
+        "owner": 14,
+        "shots": "3-0"
+      },
+      {
+        "clock": 39,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          37,
+          -6
+        ],
+        "owner": null,
+        "shots": "3-0"
+      },
+      {
+        "clock": 45,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          8,
+          1
+        ],
+        "owner": null,
+        "shots": "4-0"
+      },
+      {
+        "clock": 55,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          -16,
+          0
+        ],
+        "owner": null,
+        "shots": "4-0"
+      },
+      {
+        "clock": 62,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-1",
+        "ball": [
+          -8,
+          -19
+        ],
+        "owner": null,
+        "shots": "4-2"
+      },
+      {
+        "clock": 72,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-1",
+        "ball": [
+          -31,
+          1
+        ],
+        "owner": 21,
+        "shots": "4-2"
+      },
+      {
+        "clock": 82,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-1",
+        "ball": [
+          16,
+          0
+        ],
+        "owner": null,
+        "shots": "4-2"
+      },
+      {
+        "clock": 92,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-1",
+        "ball": [
+          38,
+          -5
+        ],
+        "owner": 13,
+        "shots": "5-2"
+      },
+      {
+        "clock": 98,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          7,
+          1
+        ],
+        "owner": null,
+        "shots": "7-2"
+      },
+      {
+        "clock": 108,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          29,
+          1
+        ],
+        "owner": 10,
+        "shots": "7-2"
+      },
+      {
+        "clock": 118,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          -39,
+          1
+        ],
+        "owner": null,
+        "shots": "8-3"
+      },
+      {
+        "clock": 128,
+        "half": 1,
+        "phase": "goal",
+        "score": "2-2",
+        "ball": [
+          -47,
+          1
+        ],
+        "owner": null,
+        "shots": "8-3"
+      },
+      {
+        "clock": 135,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          13,
+          1
+        ],
+        "owner": null,
+        "shots": "8-3"
+      },
+      {
+        "clock": 141,
+        "half": 1,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          -8,
+          3
+        ],
+        "owner": 21,
+        "shots": "9-3"
+      },
+      {
+        "clock": 151,
+        "half": 1,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          9,
+          2
+        ],
+        "owner": null,
+        "shots": "9-3"
+      },
+      {
+        "clock": 161,
+        "half": 1,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          11,
+          3
+        ],
+        "owner": 14,
+        "shots": "9-3"
+      },
+      {
+        "clock": 171,
+        "half": 1,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          10,
+          -3
+        ],
+        "owner": 17,
+        "shots": "9-4"
+      },
+      {
+        "clock": 0,
+        "half": 2,
+        "phase": "kickoff",
+        "score": "3-2",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "9-5"
+      },
+      {
+        "clock": 9,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          -16,
+          1
+        ],
+        "owner": null,
+        "shots": "9-5"
+      },
+      {
+        "clock": 19,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          -5,
+          2
+        ],
+        "owner": null,
+        "shots": "10-5"
+      },
+      {
+        "clock": 25,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-2",
+        "ball": [
+          -2,
+          1
+        ],
+        "owner": 20,
+        "shots": "12-5"
+      },
+      {
+        "clock": 35,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-2",
+        "ball": [
+          -14,
+          1
+        ],
+        "owner": 18,
+        "shots": "12-5"
+      },
+      {
+        "clock": 45,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-2",
+        "ball": [
+          -33,
+          -4
+        ],
+        "owner": 13,
+        "shots": "13-5"
+      },
+      {
+        "clock": 55,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-2",
+        "ball": [
+          -23,
+          -6
+        ],
+        "owner": null,
+        "shots": "16-5"
+      },
+      {
+        "clock": 65,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-2",
+        "ball": [
+          -31,
+          -1
+        ],
+        "owner": 9,
+        "shots": "16-5"
+      },
+      {
+        "clock": 71,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-2",
+        "ball": [
+          1,
+          1
+        ],
+        "owner": null,
+        "shots": "18-5"
+      },
+      {
+        "clock": 81,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-2",
+        "ball": [
+          -19,
+          0
+        ],
+        "owner": null,
+        "shots": "18-5"
+      },
+      {
+        "clock": 87,
+        "half": 2,
+        "phase": "playing",
+        "score": "6-2",
+        "ball": [
+          22,
+          3
+        ],
+        "owner": null,
+        "shots": "19-5"
+      },
+      {
+        "clock": 97,
+        "half": 2,
+        "phase": "playing",
+        "score": "6-2",
+        "ball": [
+          21,
+          -1
+        ],
+        "owner": null,
+        "shots": "19-5"
+      },
+      {
+        "clock": 107,
+        "half": 2,
+        "phase": "playing",
+        "score": "6-2",
+        "ball": [
+          1,
+          0
+        ],
+        "owner": null,
+        "shots": "19-5"
+      },
+      {
+        "clock": 114,
+        "half": 2,
+        "phase": "kickoff",
+        "score": "7-2",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "20-5"
+      },
+      {
+        "clock": 123,
+        "half": 2,
+        "phase": "playing",
+        "score": "7-2",
+        "ball": [
+          -37,
+          -8
+        ],
+        "owner": 13,
+        "shots": "20-5"
+      },
+      {
+        "clock": 133,
+        "half": 2,
+        "phase": "playing",
+        "score": "7-2",
+        "ball": [
+          -27,
+          0
+        ],
+        "owner": 10,
+        "shots": "20-5"
+      },
+      {
+        "clock": 143,
+        "half": 2,
+        "phase": "playing",
+        "score": "7-2",
+        "ball": [
+          -28,
+          0
+        ],
+        "owner": null,
+        "shots": "21-5"
+      },
+      {
+        "clock": 153,
+        "half": 2,
+        "phase": "playing",
+        "score": "7-2",
+        "ball": [
+          -39,
+          2
+        ],
+        "owner": 10,
+        "shots": "22-5"
+      },
+      {
+        "clock": 163,
+        "half": 2,
+        "phase": "playing",
+        "score": "7-2",
+        "ball": [
+          31,
+          -6
+        ],
+        "owner": 20,
+        "shots": "22-5"
+      },
+      {
+        "clock": 173,
+        "half": 2,
+        "phase": "playing",
+        "score": "7-2",
+        "ball": [
+          21,
+          -2
+        ],
+        "owner": null,
+        "shots": "22-6"
+      }
+    ]
+  },
+  {
+    "seed": 9182,
+    "seconds": 404,
+    "score": [
+      8,
+      3
+    ],
+    "stats": {
+      "shots": [
+        28,
+        5
+      ],
+      "saves": [
+        27,
+        21
+      ],
+      "passes": [
+        64,
+        52
+      ],
+      "tackles": [
+        82,
+        36
+      ],
+      "possession": [
+        118.49999999999456,
+        123.43333333332761
+      ]
+    },
+    "phases": {
+      "kickoff": 14.10000000000028,
+      "playing": 360.00000000000125,
+      "goal": 29.883333333332917
+    },
+    "events": {
+      "kick": 116,
+      "tackle": 118,
+      "shot": 33,
+      "save": 48,
+      "goal": 11,
+      "goal-shot": 8,
+      "whistle": 13,
+      "goal-roll": 3
+    },
+    "maxOwner": 4.216666666666657,
+    "maxIdle": 0.4833333333333333,
+    "final": "fulltime",
+    "hist": [
+      {
+        "clock": 0,
+        "half": 1,
+        "phase": "kickoff",
+        "score": "0-0",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "0-0"
+      },
+      {
+        "clock": 9,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          32,
+          3
+        ],
+        "owner": 10,
+        "shots": "1-0"
+      },
+      {
+        "clock": 19,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          -3,
+          1
+        ],
+        "owner": null,
+        "shots": "3-0"
+      },
+      {
+        "clock": 27,
+        "half": 1,
+        "phase": "goal",
+        "score": "1-0",
+        "ball": [
+          47,
+          0
+        ],
+        "owner": null,
+        "shots": "5-0"
+      },
+      {
+        "clock": 35,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          35,
+          -6
+        ],
+        "owner": null,
+        "shots": "5-0"
+      },
+      {
+        "clock": 45,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          8,
+          -5
+        ],
+        "owner": 17,
+        "shots": "6-0"
+      },
+      {
+        "clock": 55,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          2,
+          -2
+        ],
+        "owner": null,
+        "shots": "6-1"
+      },
+      {
+        "clock": 65,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          18,
+          7
+        ],
+        "owner": 18,
+        "shots": "7-1"
+      },
+      {
+        "clock": 75,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          34,
+          3
+        ],
+        "owner": 10,
+        "shots": "8-1"
+      },
+      {
+        "clock": 85,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          -38,
+          6
+        ],
+        "owner": 21,
+        "shots": "9-1"
+      },
+      {
+        "clock": 92,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-1",
+        "ball": [
+          28,
+          -5
+        ],
+        "owner": null,
+        "shots": "9-2"
+      },
+      {
+        "clock": 102,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-1",
+        "ball": [
+          -43,
+          0
+        ],
+        "owner": 0,
+        "shots": "9-3"
+      },
+      {
+        "clock": 112,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-1",
+        "ball": [
+          -44,
+          1
+        ],
+        "owner": 0,
+        "shots": "9-3"
+      },
+      {
+        "clock": 122,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-1",
+        "ball": [
+          -44,
+          2
+        ],
+        "owner": 0,
+        "shots": "9-3"
+      },
+      {
+        "clock": 132,
+        "half": 1,
+        "phase": "goal",
+        "score": "1-2",
+        "ball": [
+          -47,
+          -1
+        ],
+        "owner": null,
+        "shots": "9-3"
+      },
+      {
+        "clock": 139,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-2",
+        "ball": [
+          -3,
+          1
+        ],
+        "owner": null,
+        "shots": "9-3"
+      },
+      {
+        "clock": 147,
+        "half": 1,
+        "phase": "goal",
+        "score": "2-2",
+        "ball": [
+          47,
+          -1
+        ],
+        "owner": null,
+        "shots": "12-3"
+      },
+      {
+        "clock": 155,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          -20,
+          1
+        ],
+        "owner": null,
+        "shots": "12-3"
+      },
+      {
+        "clock": 165,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          18,
+          3
+        ],
+        "owner": null,
+        "shots": "13-3"
+      },
+      {
+        "clock": 175,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          5,
+          -2
+        ],
+        "owner": null,
+        "shots": "13-3"
+      },
+      {
+        "clock": 3,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          12,
+          3
+        ],
+        "owner": null,
+        "shots": "13-3"
+      },
+      {
+        "clock": 13,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          24,
+          4
+        ],
+        "owner": 21,
+        "shots": "13-4"
+      },
+      {
+        "clock": 20,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-3",
+        "ball": [
+          7,
+          -4
+        ],
+        "owner": null,
+        "shots": "13-5"
+      },
+      {
+        "clock": 30,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-3",
+        "ball": [
+          -24,
+          0
+        ],
+        "owner": 17,
+        "shots": "13-5"
+      },
+      {
+        "clock": 40,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-3",
+        "ball": [
+          -24,
+          0
+        ],
+        "owner": 5,
+        "shots": "13-5"
+      },
+      {
+        "clock": 50,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-3",
+        "ball": [
+          -17,
+          -7
+        ],
+        "owner": 17,
+        "shots": "14-5"
+      },
+      {
+        "clock": 60,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-3",
+        "ball": [
+          -36,
+          3
+        ],
+        "owner": null,
+        "shots": "15-5"
+      },
+      {
+        "clock": 70,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-3",
+        "ball": [
+          0,
+          3
+        ],
+        "owner": 18,
+        "shots": "15-5"
+      },
+      {
+        "clock": 80,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-3",
+        "ball": [
+          -39,
+          1
+        ],
+        "owner": 10,
+        "shots": "16-5"
+      },
+      {
+        "clock": 86,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-3",
+        "ball": [
+          -23,
+          0
+        ],
+        "owner": null,
+        "shots": "17-5"
+      },
+      {
+        "clock": 96,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-3",
+        "ball": [
+          11,
+          2
+        ],
+        "owner": null,
+        "shots": "18-5"
+      },
+      {
+        "clock": 106,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-3",
+        "ball": [
+          -1,
+          0
+        ],
+        "owner": null,
+        "shots": "18-5"
+      },
+      {
+        "clock": 116,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-3",
+        "ball": [
+          -44,
+          0
+        ],
+        "owner": 9,
+        "shots": "21-5"
+      },
+      {
+        "clock": 122,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-3",
+        "ball": [
+          -6,
+          0
+        ],
+        "owner": null,
+        "shots": "22-5"
+      },
+      {
+        "clock": 128,
+        "half": 2,
+        "phase": "kickoff",
+        "score": "5-3",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "24-5"
+      },
+      {
+        "clock": 138,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-3",
+        "ball": [
+          -21,
+          1
+        ],
+        "owner": 18,
+        "shots": "24-5"
+      },
+      {
+        "clock": 147,
+        "half": 2,
+        "phase": "goal",
+        "score": "6-3",
+        "ball": [
+          -47,
+          0
+        ],
+        "owner": null,
+        "shots": "25-5"
+      },
+      {
+        "clock": 154,
+        "half": 2,
+        "phase": "playing",
+        "score": "6-3",
+        "ball": [
+          -21,
+          4
+        ],
+        "owner": null,
+        "shots": "25-5"
+      },
+      {
+        "clock": 160,
+        "half": 2,
+        "phase": "playing",
+        "score": "7-3",
+        "ball": [
+          10,
+          2
+        ],
+        "owner": 21,
+        "shots": "27-5"
+      },
+      {
+        "clock": 170,
+        "half": 2,
+        "phase": "playing",
+        "score": "7-3",
+        "ball": [
+          -8,
+          -2
+        ],
+        "owner": 17,
+        "shots": "27-5"
+      },
+      {
+        "clock": 176,
+        "half": 2,
+        "phase": "kickoff",
+        "score": "8-3",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "28-5"
+      }
+    ]
+  },
+  {
+    "seed": 2026,
+    "seconds": 389,
+    "score": [
+      6,
+      1
+    ],
+    "stats": {
+      "shots": [
+        20,
+        7
+      ],
+      "saves": [
+        13,
+        11
+      ],
+      "passes": [
+        59,
+        50
+      ],
+      "tackles": [
+        88,
+        46
+      ],
+      "possession": [
+        103.33333333332875,
+        134.58333333333258
+      ]
+    },
+    "phases": {
+      "kickoff": 10.300000000000091,
+      "playing": 360.00000000000125,
+      "goal": 19.01666666666687
+    },
+    "events": {
+      "kick": 109,
+      "tackle": 134,
+      "shot": 27,
+      "save": 24,
+      "goal": 7,
+      "goal-shot": 7,
+      "whistle": 9
+    },
+    "maxOwner": 5.966666666666651,
+    "maxIdle": 0.35,
+    "final": "fulltime",
+    "hist": [
+      {
+        "clock": 0,
+        "half": 1,
+        "phase": "kickoff",
+        "score": "0-0",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "0-0"
+      },
+      {
+        "clock": 9,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          18,
+          -3
+        ],
+        "owner": null,
+        "shots": "2-0"
+      },
+      {
+        "clock": 19,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          44,
+          1
+        ],
+        "owner": 11,
+        "shots": "3-0"
+      },
+      {
+        "clock": 29,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          -3,
+          -1
+        ],
+        "owner": null,
+        "shots": "3-0"
+      },
+      {
+        "clock": 36,
+        "half": 1,
+        "phase": "kickoff",
+        "score": "1-0",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "4-0"
+      },
+      {
+        "clock": 45,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          -40,
+          -4
+        ],
+        "owner": null,
+        "shots": "4-1"
+      },
+      {
+        "clock": 55,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          -4,
+          -1
+        ],
+        "owner": null,
+        "shots": "4-1"
+      },
+      {
+        "clock": 64,
+        "half": 1,
+        "phase": "goal",
+        "score": "2-0",
+        "ball": [
+          47,
+          0
+        ],
+        "owner": null,
+        "shots": "6-1"
+      },
+      {
+        "clock": 71,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-0",
+        "ball": [
+          -38,
+          0
+        ],
+        "owner": null,
+        "shots": "6-2"
+      },
+      {
+        "clock": 81,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-0",
+        "ball": [
+          -44,
+          0
+        ],
+        "owner": 0,
+        "shots": "6-3"
+      },
+      {
+        "clock": 90,
+        "half": 1,
+        "phase": "goal",
+        "score": "2-1",
+        "ball": [
+          -47,
+          -3
+        ],
+        "owner": null,
+        "shots": "6-4"
+      },
+      {
+        "clock": 98,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          -38,
+          6
+        ],
+        "owner": null,
+        "shots": "6-4"
+      },
+      {
+        "clock": 108,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          6,
+          2
+        ],
+        "owner": null,
+        "shots": "6-4"
+      },
+      {
+        "clock": 118,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          0,
+          3
+        ],
+        "owner": 18,
+        "shots": "7-4"
+      },
+      {
+        "clock": 128,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          28,
+          -4
+        ],
+        "owner": null,
+        "shots": "8-4"
+      },
+      {
+        "clock": 138,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          -38,
+          -4
+        ],
+        "owner": null,
+        "shots": "8-5"
+      },
+      {
+        "clock": 146,
+        "half": 1,
+        "phase": "goal",
+        "score": "3-1",
+        "ball": [
+          47,
+          -1
+        ],
+        "owner": null,
+        "shots": "10-5"
+      },
+      {
+        "clock": 154,
+        "half": 1,
+        "phase": "playing",
+        "score": "3-1",
+        "ball": [
+          39,
+          -1
+        ],
+        "owner": 13,
+        "shots": "11-5"
+      },
+      {
+        "clock": 164,
+        "half": 1,
+        "phase": "playing",
+        "score": "3-1",
+        "ball": [
+          -42,
+          1
+        ],
+        "owner": null,
+        "shots": "11-6"
+      },
+      {
+        "clock": 174,
+        "half": 1,
+        "phase": "playing",
+        "score": "3-1",
+        "ball": [
+          4,
+          2
+        ],
+        "owner": 21,
+        "shots": "11-6"
+      },
+      {
+        "clock": 3,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-1",
+        "ball": [
+          1,
+          0
+        ],
+        "owner": 20,
+        "shots": "11-6"
+      },
+      {
+        "clock": 13,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-1",
+        "ball": [
+          -3,
+          0
+        ],
+        "owner": null,
+        "shots": "11-6"
+      },
+      {
+        "clock": 19,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-1",
+        "ball": [
+          7,
+          2
+        ],
+        "owner": null,
+        "shots": "12-6"
+      },
+      {
+        "clock": 29,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-1",
+        "ball": [
+          5,
+          2
+        ],
+        "owner": null,
+        "shots": "12-6"
+      },
+      {
+        "clock": 39,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-1",
+        "ball": [
+          -6,
+          5
+        ],
+        "owner": 18,
+        "shots": "14-6"
+      },
+      {
+        "clock": 49,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-1",
+        "ball": [
+          0,
+          -2
+        ],
+        "owner": null,
+        "shots": "14-6"
+      },
+      {
+        "clock": 59,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-1",
+        "ball": [
+          -18,
+          -3
+        ],
+        "owner": 13,
+        "shots": "15-6"
+      },
+      {
+        "clock": 67,
+        "half": 2,
+        "phase": "goal",
+        "score": "5-1",
+        "ball": [
+          -47,
+          0
+        ],
+        "owner": null,
+        "shots": "17-6"
+      },
+      {
+        "clock": 75,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-1",
+        "ball": [
+          -27,
+          -5
+        ],
+        "owner": null,
+        "shots": "17-6"
+      },
+      {
+        "clock": 85,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-1",
+        "ball": [
+          6,
+          -1
+        ],
+        "owner": 17,
+        "shots": "18-6"
+      },
+      {
+        "clock": 95,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-1",
+        "ball": [
+          -37,
+          -3
+        ],
+        "owner": null,
+        "shots": "19-6"
+      },
+      {
+        "clock": 105,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-1",
+        "ball": [
+          -29,
+          5
+        ],
+        "owner": null,
+        "shots": "19-6"
+      },
+      {
+        "clock": 115,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-1",
+        "ball": [
+          34,
+          -4
+        ],
+        "owner": null,
+        "shots": "19-6"
+      },
+      {
+        "clock": 125,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-1",
+        "ball": [
+          -25,
+          -1
+        ],
+        "owner": 10,
+        "shots": "19-6"
+      },
+      {
+        "clock": 135,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-1",
+        "ball": [
+          39,
+          4
+        ],
+        "owner": null,
+        "shots": "19-7"
+      },
+      {
+        "clock": 145,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-1",
+        "ball": [
+          -12,
+          2
+        ],
+        "owner": null,
+        "shots": "19-7"
+      },
+      {
+        "clock": 151,
+        "half": 2,
+        "phase": "kickoff",
+        "score": "6-1",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "20-7"
+      },
+      {
+        "clock": 161,
+        "half": 2,
+        "phase": "playing",
+        "score": "6-1",
+        "ball": [
+          -34,
+          -8
+        ],
+        "owner": null,
+        "shots": "20-7"
+      },
+      {
+        "clock": 171,
+        "half": 2,
+        "phase": "playing",
+        "score": "6-1",
+        "ball": [
+          8,
+          3
+        ],
+        "owner": 17,
+        "shots": "20-7"
+      }
+    ]
+  },
+  {
+    "seed": 999,
+    "seconds": 400,
+    "score": [
+      6,
+      4
+    ],
+    "stats": {
+      "shots": [
+        16,
+        7
+      ],
+      "saves": [
+        28,
+        12
+      ],
+      "passes": [
+        75,
+        41
+      ],
+      "tackles": [
+        92,
+        51
+      ],
+      "possession": [
+        121.01666666666108,
+        118.9166666666612
+      ]
+    },
+    "phases": {
+      "kickoff": 12.10000000000018,
+      "playing": 360.00000000000125,
+      "goal": 27.166666666666405,
+      "throwin": 0.5666666666666668
+    },
+    "events": {
+      "kick": 117,
+      "tackle": 143,
+      "shot": 23,
+      "save": 40,
+      "goal": 10,
+      "goal-shot": 7,
+      "whistle": 12,
+      "goal-roll": 3,
+      "post": 1,
+      "restart": 1
+    },
+    "maxOwner": 6.883333333333314,
+    "maxIdle": 0.4833333333333333,
+    "final": "fulltime",
+    "hist": [
+      {
+        "clock": 0,
+        "half": 1,
+        "phase": "kickoff",
+        "score": "0-0",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "0-0"
+      },
+      {
+        "clock": 9,
+        "half": 1,
+        "phase": "playing",
+        "score": "0-0",
+        "ball": [
+          17,
+          0
+        ],
+        "owner": null,
+        "shots": "0-0"
+      },
+      {
+        "clock": 15,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          -2,
+          4
+        ],
+        "owner": 20,
+        "shots": "2-0"
+      },
+      {
+        "clock": 25,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          6,
+          -1
+        ],
+        "owner": null,
+        "shots": "2-0"
+      },
+      {
+        "clock": 35,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          16,
+          4
+        ],
+        "owner": null,
+        "shots": "2-0"
+      },
+      {
+        "clock": 45,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          -5,
+          -1
+        ],
+        "owner": null,
+        "shots": "3-0"
+      },
+      {
+        "clock": 55,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          17,
+          3
+        ],
+        "owner": 18,
+        "shots": "4-0"
+      },
+      {
+        "clock": 65,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          32,
+          -5
+        ],
+        "owner": null,
+        "shots": "4-0"
+      },
+      {
+        "clock": 75,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          -6,
+          0
+        ],
+        "owner": null,
+        "shots": "4-0"
+      },
+      {
+        "clock": 85,
+        "half": 1,
+        "phase": "playing",
+        "score": "1-0",
+        "ball": [
+          -6,
+          0
+        ],
+        "owner": null,
+        "shots": "4-0"
+      },
+      {
+        "clock": 91,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-0",
+        "ball": [
+          -6,
+          1
+        ],
+        "owner": 20,
+        "shots": "5-0"
+      },
+      {
+        "clock": 101,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-0",
+        "ball": [
+          15,
+          0
+        ],
+        "owner": null,
+        "shots": "5-0"
+      },
+      {
+        "clock": 111,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-0",
+        "ball": [
+          -19,
+          7
+        ],
+        "owner": 21,
+        "shots": "5-0"
+      },
+      {
+        "clock": 121,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-0",
+        "ball": [
+          -46,
+          3
+        ],
+        "owner": 21,
+        "shots": "5-1"
+      },
+      {
+        "clock": 128,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          20,
+          0
+        ],
+        "owner": null,
+        "shots": "5-1"
+      },
+      {
+        "clock": 138,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          4,
+          1
+        ],
+        "owner": null,
+        "shots": "6-1"
+      },
+      {
+        "clock": 148,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          -40,
+          5
+        ],
+        "owner": null,
+        "shots": "6-2"
+      },
+      {
+        "clock": 158,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-1",
+        "ball": [
+          -44,
+          2
+        ],
+        "owner": 0,
+        "shots": "6-2"
+      },
+      {
+        "clock": 165,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          -6,
+          -13
+        ],
+        "owner": null,
+        "shots": "6-2"
+      },
+      {
+        "clock": 175,
+        "half": 1,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          37,
+          6
+        ],
+        "owner": 14,
+        "shots": "6-2"
+      },
+      {
+        "clock": 3,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          -3,
+          1
+        ],
+        "owner": 20,
+        "shots": "7-2"
+      },
+      {
+        "clock": 13,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          -26,
+          -1
+        ],
+        "owner": 18,
+        "shots": "7-2"
+      },
+      {
+        "clock": 23,
+        "half": 2,
+        "phase": "playing",
+        "score": "2-2",
+        "ball": [
+          -33,
+          -3
+        ],
+        "owner": null,
+        "shots": "9-2"
+      },
+      {
+        "clock": 29,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-2",
+        "ball": [
+          18,
+          0
+        ],
+        "owner": 20,
+        "shots": "10-2"
+      },
+      {
+        "clock": 36,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-3",
+        "ball": [
+          -8,
+          -1
+        ],
+        "owner": null,
+        "shots": "10-3"
+      },
+      {
+        "clock": 46,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-3",
+        "ball": [
+          -37,
+          6
+        ],
+        "owner": null,
+        "shots": "11-3"
+      },
+      {
+        "clock": 56,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-3",
+        "ball": [
+          18,
+          -4
+        ],
+        "owner": 14,
+        "shots": "11-3"
+      },
+      {
+        "clock": 66,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-3",
+        "ball": [
+          36,
+          -2
+        ],
+        "owner": null,
+        "shots": "11-3"
+      },
+      {
+        "clock": 76,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-3",
+        "ball": [
+          41,
+          -1
+        ],
+        "owner": 20,
+        "shots": "11-3"
+      },
+      {
+        "clock": 83,
+        "half": 2,
+        "phase": "kickoff",
+        "score": "3-4",
+        "ball": [
+          0,
+          0
+        ],
+        "owner": null,
+        "shots": "11-4"
+      },
+      {
+        "clock": 93,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-4",
+        "ball": [
+          -9,
+          -4
+        ],
+        "owner": 17,
+        "shots": "11-4"
+      },
+      {
+        "clock": 103,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-4",
+        "ball": [
+          44,
+          1
+        ],
+        "owner": 0,
+        "shots": "11-5"
+      },
+      {
+        "clock": 112,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-4",
+        "ball": [
+          25,
+          -2
+        ],
+        "owner": null,
+        "shots": "11-6"
+      },
+      {
+        "clock": 122,
+        "half": 2,
+        "phase": "playing",
+        "score": "3-4",
+        "ball": [
+          -26,
+          -1
+        ],
+        "owner": 10,
+        "shots": "11-6"
+      },
+      {
+        "clock": 128,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-4",
+        "ball": [
+          -7,
+          -7
+        ],
+        "owner": 17,
+        "shots": "12-6"
+      },
+      {
+        "clock": 138,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-4",
+        "ball": [
+          21,
+          0
+        ],
+        "owner": null,
+        "shots": "12-7"
+      },
+      {
+        "clock": 148,
+        "half": 2,
+        "phase": "playing",
+        "score": "4-4",
+        "ball": [
+          -37,
+          -1
+        ],
+        "owner": 9,
+        "shots": "13-7"
+      },
+      {
+        "clock": 154,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-4",
+        "ball": [
+          2,
+          -3
+        ],
+        "owner": null,
+        "shots": "14-7"
+      },
+      {
+        "clock": 164,
+        "half": 2,
+        "phase": "playing",
+        "score": "5-4",
+        "ball": [
+          -26,
+          -1
+        ],
+        "owner": 17,
+        "shots": "14-7"
+      },
+      {
+        "clock": 173,
+        "half": 2,
+        "phase": "goal",
+        "score": "6-4",
+        "ball": [
+          -47,
+          1
+        ],
+        "owner": null,
+        "shots": "16-7"
+      }
+    ]
+  }
+]
