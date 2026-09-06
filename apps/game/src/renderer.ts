@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FIELD, MatchState, Player } from './types';
+import { FIELD, MatchState, Player, TeamId } from './types';
 
 type Avatar = { root: THREE.Group; body: THREE.Mesh; head: THREE.Mesh; legL: THREE.Mesh; legR: THREE.Mesh; armL: THREE.Mesh; armR: THREE.Mesh; shadow: THREE.Mesh; kit: THREE.Color; trim: THREE.Color; keeper: boolean; kitParts: THREE.Mesh[]; trimParts: THREE.Mesh[] };
 
@@ -62,14 +62,57 @@ export function followFocus(ballX: number, ballZ: number, cpX: number, cpZ: numb
   };
 }
 
-/** Goal-cinematic end pose: low behind the scored goal, looking at the mouth. */
-export function goalCineEnd(side: number, ballZ: number): { pos: THREE.Vector3; look: THREE.Vector3 } {
+export type GoalCineVariant = 0 | 1 | 2;
+
+/**
+ * Goal-cinematic variety picker: pure function of where the goal went in,
+ * so the same goal frames identically on both lockstep peers and in tests.
+ */
+export function goalCineVariant(side: number, ballX: number, ballZ: number): GoalCineVariant {
+  const k = Math.abs(Math.floor(ballX) + Math.floor(ballZ) * 3 + (side >= 0 ? 1 : 0));
+  return (k % 3) as GoalCineVariant;
+}
+
+/**
+ * Goal-cinematic end poses. All three park INSIDE the stadium bowl — behind
+ * the net but short of the end stands, low at the corner, or low on the
+ * (stand-free) near touchline — so the lens never travels through concrete.
+ */
+export function goalCineShot(variant: GoalCineVariant, side: number, ballX: number, ballZ: number): { pos: THREE.Vector3; look: THREE.Vector3 } {
   const s = side >= 0 ? 1 : -1;
   const bz = THREE.MathUtils.clamp(ballZ * .4, -8, 8);
+  const cz = ballZ >= 0 ? 1 : -1;
+  if (variant === 1) {
+    return {
+      pos: new THREE.Vector3(s * 38, 3.4, cz * 26),
+      look: new THREE.Vector3(s * (FIELD.halfLength - 2), 1.5, 0),
+    };
+  }
+  if (variant === 2) {
+    return {
+      pos: new THREE.Vector3(THREE.MathUtils.clamp(ballX * .4, -20, 20), 4.2, 24),
+      look: new THREE.Vector3(s * (FIELD.halfLength - 2), 1.2, 0),
+    };
+  }
   return {
-    pos: new THREE.Vector3(s * (FIELD.halfLength + 13), 6.5, bz + (ballZ >= 0 ? 9 : -9)),
+    pos: new THREE.Vector3(s * (FIELD.halfLength + 3), 5.5, bz + cz * 7),
     look: new THREE.Vector3(s * (FIELD.halfLength - 2), 1.2, 0),
   };
+}
+
+/**
+ * Which team just scored, read from the scoreboard delta (null = no goal).
+ * The renderer tracks this itself so celebrations need no engine changes.
+ */
+export function scorerTeam(prev: readonly number[], score: readonly number[]): TeamId | null {
+  if (score[0] > prev[0]) return 0;
+  if (score[1] > prev[1]) return 1;
+  return null;
+}
+
+/** Celebration move per player: 0 jump with arms up, 1 spin, 2 lean-back. Keepers always jump. */
+export function celebrationMove(playerIndex: number, keeper: boolean): 0 | 1 | 2 {
+  return keeper ? 0 : (playerIndex % 3) as 0 | 1 | 2;
 }
 
 /** Menu showcase orbit position for an angle (constant radius/height). */
@@ -77,7 +120,7 @@ export function menuOrbitPos(angle: number): THREE.Vector3 {
   return new THREE.Vector3(Math.sin(angle) * 58, 26, Math.cos(angle) * 58);
 }
 
-type Cine = { type: 'goal' | 'intro'; t: number; dur: number; side: number; fromPos: THREE.Vector3; fromLook: THREE.Vector3 } | null;
+type Cine = { type: 'goal' | 'intro'; t: number; dur: number; side: number; variant: GoalCineVariant; fromPos: THREE.Vector3; fromLook: THREE.Vector3 } | null;
 
 /** Classic pentagon ball skin painted once onto a shared canvas texture. */
 let ballSkin: THREE.CanvasTexture | null = null;
@@ -123,6 +166,10 @@ export class GameRenderer {
   private cameraMode: CameraMode = 'broadcast';
   private lastPhase = '';
   private cine: Cine = null;
+  // Goal-celebration tracking: scoreboard delta reveals the scoring team,
+  // whose outfield players celebrate for the whole goal phase (visual only).
+  private lastScore: [number, number] = [0, 0];
+  private celeTeam: TeamId | null = null;
   private menuAngle = 0;
   private endAngle = 0;
 
@@ -321,14 +368,43 @@ export class GameRenderer {
   }
 
   private startCine(state: MatchState, type: 'goal' | 'intro', dur: number) {
-    this.cine = { type, t: 0, dur, side: Math.sign(state.ball.x) || 1, fromPos: this.camPos.clone(), fromLook: this.camLook.clone() };
+    const side = Math.sign(state.ball.x) || 1;
+    this.cine = {
+      type, t: 0, dur, side,
+      variant: type === 'goal' ? goalCineVariant(side, state.ball.x, state.ball.z) : 0,
+      fromPos: this.camPos.clone(), fromLook: this.camLook.clone(),
+    };
+  }
+
+  /** Goal-phase celebration pose for scoring-team players (visual only). */
+  private celebrate(a: Avatar, i: number, p: Player, state: MatchState) {
+    // Spread arms reset every frame: only the spinner holds them out.
+    a.armL.rotation.z = 0; a.armR.rotation.z = 0;
+    if (state.phase !== 'goal' || this.celeTeam === null || p.team !== this.celeTeam) return;
+    const move = celebrationMove(i, p.keeper);
+    a.legL.rotation.x = 0; a.legR.rotation.x = 0;
+    if (move === 0) {
+      // Jump with both arms up.
+      a.root.position.y = Math.abs(Math.sin(this.clock * 7 + i * 1.3)) * .75;
+      a.armL.rotation.x = -2.5; a.armR.rotation.x = -2.5;
+    } else if (move === 1) {
+      // Spin with arms spread wide.
+      a.root.rotation.y += (this.clock * 4.5 + i) % (Math.PI * 2);
+      a.armL.rotation.x = 0; a.armR.rotation.x = 0;
+      a.armL.rotation.z = 1.5; a.armR.rotation.z = -1.5;
+    } else {
+      // Lean-back knee-slide stance with a bounce.
+      a.root.position.y = Math.abs(Math.sin(this.clock * 5 + i)) * .18;
+      a.root.rotation.x = -.45;
+      a.armL.rotation.x = -2.2; a.armR.rotation.x = -2.2;
+    }
   }
 
   private updateGoalCine(state: MatchState, dt: number) {
     const c = this.cine; if (!c) return;
     c.t += dt;
     const ease = easeInOut(c.t / c.dur);
-    const end = goalCineEnd(c.side, state.ball.z);
+    const end = goalCineShot(c.variant, c.side, state.ball.x, state.ball.z);
     const pos = c.fromPos.clone().lerp(end.pos, ease), look = c.fromLook.clone().lerp(end.look, ease);
     if (this.camera.fov !== 38) { this.camera.fov = 38; this.camera.updateProjectionMatrix(); }
     this.camPos.lerp(pos, 1 - Math.exp(-dt * 8)); this.camLook.lerp(look, 1 - Math.exp(-dt * 8));
@@ -342,7 +418,8 @@ export class GameRenderer {
     c.t += dt;
     const ease = easeInOut(c.t / c.dur);
     const end = this.followFrame(state);
-    const high = new THREE.Vector3(0, 58, -6);
+    // Kickoff sweep starts over one end so consecutive matches open differently.
+    const high = new THREE.Vector3(c.side * 18, 58, -6);
     const pos = high.lerp(end.pos, ease);
     if (this.camera.fov !== end.fov) { this.camera.fov = end.fov; this.camera.updateProjectionMatrix(); }
     this.camPos.lerp(pos, 1 - Math.exp(-dt * 6)); this.camLook.lerp(end.look, 1 - Math.exp(-dt * 6));
@@ -351,9 +428,13 @@ export class GameRenderer {
 
   render(state: MatchState, dt: number, menu = false) {
     this.clock += Math.min(dt,.05); this.ensureAvatars(state);
+    if (state.score[0] !== this.lastScore[0] || state.score[1] !== this.lastScore[1]) {
+      this.celeTeam = scorerTeam(this.lastScore, state.score);
+      this.lastScore = [state.score[0], state.score[1]];
+    }
     const ball = state.ball; if(ball.flight==='shot'&&this.lastFlight!=='shot')this.shake=.22;this.lastFlight=ball.flight;this.shake=Math.max(0,this.shake-dt*.9);
     this.ball.position.set(ball.x, Math.max(.25,ball.y), ball.z); this.ball.rotation.x += ball.vz * dt * 2; this.ball.rotation.z -= ball.vx * dt * 2; this.ballShadow.position.set(ball.x,.015,ball.z); this.ballShadow.scale.setScalar(1 + Math.min(1,ball.y)*.45);
-    state.players.forEach((p,i) => { const a=this.avatars[i], speed=Math.hypot(p.vx,p.vz); a.root.position.set(p.x,0,p.z); a.root.rotation.set(0,Math.atan2(p.facingX,p.facingZ),0); const run=p.action==='run'||speed>1; const swing=run?Math.sin(this.clock*(8+speed*1.5)+i)*Math.min(.85,.22+speed*.12):0; a.legL.rotation.x=swing;a.legR.rotation.x=-swing;a.armL.rotation.x=-swing*.72;a.armR.rotation.x=swing*.72; if(p.action==='kick'){a.legR.rotation.x=-1.35*Math.min(1,p.actionTime*9)} if(p.action==='tackle'){a.root.rotation.z=.32*Math.sin(Math.min(1,p.actionTime*5))} if(p.action==='dive'){a.root.rotation.z=p.facingZ*.95;a.root.rotation.x=-p.facingX*.55;a.root.position.y=.26} else a.root.position.y=0; a.shadow.position.set(p.x,.015,p.z); a.shadow.scale.setScalar(p.action==='dive'?1.45:1); });
+    state.players.forEach((p,i) => { const a=this.avatars[i], speed=Math.hypot(p.vx,p.vz); a.root.position.set(p.x,0,p.z); a.root.rotation.set(0,Math.atan2(p.facingX,p.facingZ),0); const run=p.action==='run'||speed>1; const swing=run?Math.sin(this.clock*(8+speed*1.5)+i)*Math.min(.85,.22+speed*.12):0; a.legL.rotation.x=swing;a.legR.rotation.x=-swing;a.armL.rotation.x=-swing*.72;a.armR.rotation.x=swing*.72; if(p.action==='kick'){a.legR.rotation.x=-1.35*Math.min(1,p.actionTime*9)} if(p.action==='tackle'){a.root.rotation.z=.32*Math.sin(Math.min(1,p.actionTime*5))} if(p.action==='dive'){a.root.rotation.z=p.facingZ*.95;a.root.rotation.x=-p.facingX*.55;a.root.position.y=.26} else a.root.position.y=0; this.celebrate(a,i,p,state); a.shadow.position.set(p.x,.015,p.z); a.shadow.scale.setScalar(p.action==='dive'?1.45:1); });
     const cp=state.players[this.followId ?? state.controlled]; if(cp){this.marker.visible=!menu;this.arrow.visible=!menu;this.marker.position.set(cp.x,.03,cp.z);this.arrow.position.set(cp.x,2.65+Math.sin(this.clock*5)*.08,cp.z);this.arrow.rotation.x=Math.PI;}
     const tid=this.followTargetId ?? state.targetPlayer;const tp=tid===null?null:state.players[tid];this.target.visible=!!tp&&!menu;if(tp)this.target.position.set(tp.x,.04,tp.z);
     if (state.phase !== this.lastPhase) {

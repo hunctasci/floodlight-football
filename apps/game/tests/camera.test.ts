@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { CAMERA_MODES, computeCamera, easeInOut, followFocus, goalCineEnd, menuOrbitPos, type CameraMode } from '../src/renderer.ts';
+import { CAMERA_MODES, celebrationMove, computeCamera, easeInOut, followFocus, goalCineShot, goalCineVariant, menuOrbitPos, scorerTeam, type CameraMode, type GoalCineVariant } from '../src/renderer.ts';
 import { FIELD } from '../src/types.ts';
 
 const ASPECTS = [0.5, 0.75, 1.33, 1.78, 2.4];
@@ -120,20 +120,41 @@ test('menu orbit holds constant radius and height', () => {
   }
 });
 
-test('goal cinematic parks behind the scored goal and frames the mouth', () => {
-  for (const side of [1, -1]) for (const ballZ of [-29, -8, 0, 8, 29]) {
-    const end = goalCineEnd(side, ballZ);
-    assert.ok(Math.abs(end.pos.x) === FIELD.halfLength + 13, `behind goal x=${end.pos.x}`);
-    assert.ok(Math.sign(end.pos.x) === side, 'correct end of the pitch');
-    assert.equal(end.pos.y, 6.5);
-    assert.ok(Math.sign(end.pos.z) === Math.sign(ballZ || 1), `z offset follows play (z=${end.pos.z})`);
-    assert.ok(Math.abs(end.pos.z) <= 17, `stays near the box (z=${end.pos.z})`);
-    assert.deepEqual([end.look.x, end.look.y, end.look.z], [side * (FIELD.halfLength - 2), 1.2, 0]);
+test('goal cinematic shots stay inside the bowl and frame the mouth', () => {
+  const variants: GoalCineVariant[] = [0, 1, 2];
+  for (const variant of variants) for (const side of [1, -1]) for (const ballX of [-40, -10, 10, 40]) for (const ballZ of [-29, -8, 0, 8, 29]) {
+    const end = goalCineShot(variant, side, ballX, ballZ);
+    const s = side >= 0 ? 1 : -1;
+    // Inside the bowl: short of the end stands (|x|<50), clear of the far
+    // stand (z>-30), low enough to feel close (y<=8).
+    assert.ok(Math.abs(end.pos.x) <= 49.5, `v=${variant} x=${end.pos.x}`);
+    assert.ok(end.pos.z >= -27 && end.pos.z <= 27, `v=${variant} z=${end.pos.z}`);
+    assert.ok(end.pos.y >= 2 && end.pos.y <= 8, `v=${variant} y=${end.pos.y}`);
     // The mouth must project inside the frame from the end pose (fov 38).
     const cam = new THREE.PerspectiveCamera(38, 16 / 9, 0.1, 500);
     cam.position.copy(end.pos); cam.lookAt(end.look); cam.updateMatrixWorld();
-    const mouth = new THREE.Vector3(side * FIELD.halfLength, 1.4, 0).project(cam);
-    assert.ok(Math.abs(mouth.x) < 0.8 && mouth.y > -0.8 && mouth.y < 0.8,
-      `side=${side} ballZ=${ballZ} mouth at (${mouth.x.toFixed(2)},${mouth.y.toFixed(2)})`);
+    const mouth = new THREE.Vector3(s * FIELD.halfLength, 1.4, 0).project(cam);
+    assert.ok(Math.abs(mouth.x) < 0.9 && mouth.y > -0.9 && mouth.y < 0.9,
+      `v=${variant} side=${side} ball=(${ballX},${ballZ}) mouth at (${mouth.x.toFixed(2)},${mouth.y.toFixed(2)})`);
   }
+});
+
+test('goal cinematic variant picker is deterministic and uses all three', () => {
+  assert.equal(goalCineVariant(1, 10, 5), goalCineVariant(1, 10, 5));
+  const seen = new Set<GoalCineVariant>();
+  for (let x = -45; x <= 45; x += 3) for (let z = -28; z <= 28; z += 3) {
+    const v = goalCineVariant(x >= 0 ? 1 : -1, x, z);
+    assert.ok(v === 0 || v === 1 || v === 2);
+    seen.add(v);
+  }
+  assert.deepEqual([...seen].sort(), [0, 1, 2]);
+});
+
+test('scorerTeam reads the scoreboard delta; celebration moves vary', () => {
+  assert.equal(scorerTeam([0, 0], [1, 0]), 0);
+  assert.equal(scorerTeam([1, 0], [1, 1]), 1);
+  assert.equal(scorerTeam([2, 1], [2, 1]), null);
+  assert.equal(scorerTeam([0, 0], [0, 0]), null);
+  assert.equal(celebrationMove(3, true), 0, 'keepers always jump');
+  assert.deepEqual([0, 1, 2, 3, 4, 5].map((i) => celebrationMove(i, false)), [0, 1, 2, 0, 1, 2]);
 });
