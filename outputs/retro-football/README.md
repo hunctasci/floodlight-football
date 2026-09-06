@@ -1,6 +1,6 @@
 # Retro Football — Saturday Cup
 
-A complete local, single-player, keyboard football game. Four fictional clubs, 11 versus 11, original low-poly stadium and synthesized sound.
+A complete local, single-player football game for **desktop and mobile**. Four fictional clubs, 11 versus 11, original low-poly stadium and synthesized sound.
 
 ## Play
 
@@ -53,7 +53,15 @@ The lens tracks the ball tightly near the sidelines and keeps play above the bot
 
 Goals, saves, interceptions, rebounds, kickoffs, throw-ins, corners, goal kicks, halftime, second half and full time are included. The final screen offers another match or the main menu. Pausing or moving away from the browser stops the match.
 
-This is deliberately arcade football: no offside, fouls, penalties, substitutions or extra time. Draws stand. One human team plays against the computer; input is keyboard only. A desktop browser with WebGL support is required. No accounts, downloads of game assets, or network services are used during play.
+This is deliberately arcade football: no offside, fouls, penalties, substitutions or extra time. Draws stand. One human team plays against the computer; input is keyboard on desktop and touch on mobile. A browser with WebGL support is required. No accounts, downloads of game assets, or network services are used during play.
+
+## Mobile & touch
+
+On touch devices the same simulation runs with on-screen controls: a **left virtual stick** (move/aim, analog) and buttons for **PASS, THRU, CROSS, SHOOT** (hold for power), **SPRINT** (hold; SPRINT+PASS = driven pass), **SWITCH**, **CAM** and **PAUSE**. Menus get a ▲▼◀▶ + OK/BACK pad. Play in landscape for the full broadcast view.
+
+## Install as an app (PWA)
+
+The production build is installable: open the hosted address on your phone, then **Add to Home Screen**. It launches fullscreen and works offline (app shell + assets are cached; match traffic is local-first).
 
 ## Checks and build
 
