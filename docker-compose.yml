@@ -20,6 +20,10 @@ services:
     restart: unless-stopped
     expose:
       - 8080
+    # Published for the vite dev page (http://127.0.0.1:5173), which has no
+    # backend on its own origin. The Caddy-served game uses same-origin.
+    ports:
+      - 127.0.0.1:8080:8080
 
   redis:
     image: redis:7-alpine
