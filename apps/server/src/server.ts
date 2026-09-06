@@ -1,10 +1,15 @@
 import { createServer as createHttp, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { WebSocketServer, WebSocket, type RawData } from 'ws';
-import { HealthSchema, parseClientMsg, type ClientMsg, type ServerMsg } from '@retro/protocol';
+import {
+  CreateLeagueSchema, FixtureSchema, HealthSchema, JoinLeagueSchema, LeagueSchema,
+  ResolveResultSchema, StartLeagueSchema, SubmitResultSchema,
+  parseClientMsg, type ClientMsg, type ServerMsg,
+} from '@retro/protocol';
 import type { ServerConfig } from './config.js';
 import type { Logger } from './log.js';
 import { RoomError, RoomManager } from './rooms.js';
 import type { RoomStore } from './store.js';
+import { LeagueError, LeagueManager, type LeagueStore } from './leagues.js';
 
 interface Peer {
   ws: WebSocket;
@@ -24,19 +29,42 @@ const text = (res: ServerResponse, code: number, body: string, origin: string) =
   res.writeHead(code, {
     'content-type': 'application/json',
     'access-control-allow-origin': origin,
+    'access-control-allow-methods': 'GET, POST, OPTIONS',
+    'access-control-allow-headers': 'content-type',
     'cache-control': 'no-store',
   });
   res.end(body);
 };
+
+const readJson = (req: IncomingMessage, limit: number): Promise<unknown> => new Promise((res, rej) => {
+  let size = 0;
+  const chunks: Buffer[] = [];
+  req.on('data', (c: Buffer) => {
+    size += c.length;
+    if (size > limit) { rej(new Error('body too large')); req.destroy(); return; }
+    chunks.push(c);
+  });
+  req.on('end', () => {
+    try { res(JSON.parse(Buffer.concat(chunks).toString('utf8') || 'null')); }
+    catch { rej(new Error('malformed JSON')); }
+  });
+  req.on('error', rej);
+});
+
+const leagueStatus = (code: LeagueError['code']): number =>
+  code === 'NOT_FOUND' ? 404 : code === 'FORBIDDEN' || code === 'NOT_MEMBER' ? 403
+  : code === 'BAD_STATE' ? 409 : 503;
 
 export function createApp(
   store: RoomStore,
   config: ServerConfig,
   log: Logger,
   redisUp: () => boolean | Promise<boolean>,
+  leagues?: LeagueStore,
 ): AppHandles {
   const startedAt = Date.now();
   const manager = new RoomManager(store, { ttlSec: config.roomTtlSec });
+  const leagueMgr = leagues ? new LeagueManager(leagues) : null;
   const peers = new Map<WebSocket, Peer>();
   const byClient = new Map<string, WebSocket>();
 
@@ -46,18 +74,83 @@ export function createApp(
   const fail = (ws: WebSocket, message: string) => send(ws, { t: 'error', message });
 
   const http = createHttp(async (req, res) => {
-    if (req.method === 'GET' && req.url?.split('?')[0] === '/healthz') {
+    const origin = config.clientOrigin;
+    if (req.method === 'OPTIONS') { text(res, 204, '', origin); return; }
+    const path = req.url?.split('?')[0] ?? '/';
+    if (req.method === 'GET' && path === '/healthz') {
       const up = await redisUp();
       const body = HealthSchema.parse({
         status: 'ok',
         uptimeSec: Math.floor((Date.now() - startedAt) / 1000),
         redis: up ? 'up' : 'down',
       });
-      text(res, 200, JSON.stringify(body), config.clientOrigin);
+      text(res, 200, JSON.stringify(body), origin);
       return;
     }
-    text(res, 404, JSON.stringify({ error: 'not found' }), config.clientOrigin);
+    if (path.startsWith('/api/')) {
+      await handleLeagueApi(req, res, path, origin);
+      return;
+    }
+    text(res, 404, JSON.stringify({ error: 'not found' }), origin);
   });
+
+  const noLeagues = (res: ServerResponse, origin: string) =>
+    text(res, 503, JSON.stringify({ error: 'leagues unavailable' }), origin);
+
+  /** F4b league REST API. Output DTOs are re-validated before sending. */
+  const handleLeagueApi = async (req: IncomingMessage, res: ServerResponse, path: string, origin: string) => {
+    if (!leagueMgr) { noLeagues(res, origin); return; }
+    const fail = (code: number, message: string) => text(res, code, JSON.stringify({ error: message }), origin);
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+      || req.socket.remoteAddress || 'unknown';
+    try {
+      if (req.method === 'POST' && path === '/api/leagues') {
+        if (!(await store.allow(`rl:league:${ip}`, config.leaguePerMin, 60))) return fail(429, 'rate limited, slow down');
+        const body = CreateLeagueSchema.safeParse(await readJson(req, config.maxPayloadBytes));
+        if (!body.success) return fail(400, 'invalid body');
+        const { id, code } = await leagueMgr.create(body.data.name.trim(), body.data.clientId, body.data.displayName.trim());
+        return text(res, 201, JSON.stringify({ id, code }), origin);
+      }
+      if (req.method === 'POST' && path === '/api/leagues/join') {
+        if (!(await store.allow(`rl:league:${ip}`, config.leaguePerMin, 60))) return fail(429, 'rate limited, slow down');
+        const body = JoinLeagueSchema.safeParse(await readJson(req, config.maxPayloadBytes));
+        if (!body.success) return fail(400, 'invalid body');
+        const league = await leagueMgr.join(body.data.code, body.data.clientId, body.data.displayName.trim());
+        return text(res, 200, JSON.stringify({ id: league.id, code: league.code }), origin);
+      }
+      const leagueGet = path.match(/^\/api\/leagues\/([A-Za-z0-9]{6})$/);
+      if (req.method === 'GET' && leagueGet) {
+        const dto = await leagueMgr.getLeague(leagueGet[1]);
+        return text(res, 200, JSON.stringify(LeagueSchema.parse(dto)), origin);
+      }
+      const start = path.match(/^\/api\/leagues\/([0-9a-f-]{36})\/start$/i);
+      if (req.method === 'POST' && start) {
+        const body = StartLeagueSchema.safeParse(await readJson(req, config.maxPayloadBytes));
+        if (!body.success) return fail(400, 'invalid body');
+        const rows = await leagueMgr.start(start[1], body.data.clientId);
+        return text(res, 200, JSON.stringify({ fixtures: rows.map((f) => FixtureSchema.parse(f)) }), origin);
+      }
+      const submit = path.match(/^\/api\/fixtures\/([0-9a-f-]{36})\/submit$/i);
+      if (req.method === 'POST' && submit) {
+        const body = SubmitResultSchema.safeParse(await readJson(req, config.maxPayloadBytes));
+        if (!body.success) return fail(400, 'invalid body');
+        const f = await leagueMgr.submit(submit[1], body.data.clientId, body.data.homeScore, body.data.awayScore, body.data.matchToken);
+        return text(res, 200, JSON.stringify({ fixture: FixtureSchema.parse(f) }), origin);
+      }
+      const resolve = path.match(/^\/api\/fixtures\/([0-9a-f-]{36})\/resolve$/i);
+      if (req.method === 'POST' && resolve) {
+        const body = ResolveResultSchema.safeParse(await readJson(req, config.maxPayloadBytes));
+        if (!body.success) return fail(400, 'invalid body');
+        const f = await leagueMgr.resolve(resolve[1], body.data.clientId, body.data.homeScore, body.data.awayScore);
+        return text(res, 200, JSON.stringify({ fixture: FixtureSchema.parse(f) }), origin);
+      }
+      return fail(404, 'not found');
+    } catch (e) {
+      if (e instanceof LeagueError) return fail(leagueStatus(e.code), e.message);
+      log.error({ err: e }, 'league api failed');
+      return fail(500, 'internal error');
+    }
+  };
 
   const wss = new WebSocketServer({ server: http, path: '/socket', maxPayload: config.maxPayloadBytes });
 

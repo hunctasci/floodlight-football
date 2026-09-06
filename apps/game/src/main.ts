@@ -6,8 +6,15 @@ import { MatchAudio } from './audio';
 import { createTouchState, touchDown, touchUp, setStick, releaseStick, clearTouchEdges, resetTouch, TOUCH_BUTTONS, TOUCH_MENU } from './touch';
 import { NetDriver } from './net/driver';
 import { RTCTransport } from './net/transport';
+import { makeClientId } from './net/signal';
+import {
+  LeagueApi, LeagueApiError, getClientId, getDisplayName, getLeagueCode, getServerUrl,
+  normalizeCode, parseScore, setDisplayName, setLeagueCode, setServerUrl, tableLine,
+  type Fixture, type League,
+} from './league';
 
-type Screen = 'title'|'team'|'match'|'pause'|'half'|'full'|'online'|'netcreate'|'netjoin';
+type Screen = 'title'|'team'|'match'|'pause'|'half'|'full'|'online'|'netcreate'|'netjoin'
+  |'league'|'leaguecreate'|'leaguejoin'|'leagueserver'|'leagueview'|'leaguesubmit'|'leagueresolve'|'leaguescore';
 const app=document.querySelector<HTMLDivElement>('#app')!;
 const renderer=new GameRenderer(app); const audio=new MatchAudio();
 const flowTest=import.meta.env.DEV&&new URLSearchParams(location.search).has('test');
@@ -17,6 +24,28 @@ let net: NetDriver | null = null;
 let viewTeam: TeamId = 0;
 let netCode = '', netStatus = '', netBusy = false;
 let netOffer: RTCTransport | null = null;
+// League (F4b REST) state. Null data = not loaded yet; msg surfaces API errors.
+let leagueData: League | null = null, leagueMsg = '', leagueBusy = false;
+let leagueActions: string[] = [], leaguePick: Fixture[] = [];
+let scoreFixture: Fixture | null = null, scoreMode: 'submit'|'resolve' = 'submit';
+const leagueApi = () => new LeagueApi(getServerUrl());
+const leagueName = (id: string) => leagueData?.members.find((m) => m.clientId === id)?.displayName.toUpperCase() || '???';
+const myOpenFixtures = (): Fixture[] => {
+  const me = getClientId();
+  return (leagueData?.fixtures ?? []).filter((f) =>
+    leagueData?.status === 'active' && f.status !== 'confirmed'
+    && (f.homeClientId === me || f.awayClientId === me));
+};
+async function refreshLeague(silent = false) {
+  const code = getLeagueCode();
+  if (!code) { leagueData = null; if (!silent) { leagueMsg = 'NO LEAGUE SAVED — CREATE OR JOIN ONE'; menuDirty = true; } return; }
+  leagueBusy = true; if (!silent) menuDirty = true;
+  try {
+    leagueData = await leagueApi().getLeague(code);
+    leagueMsg = '';
+  } catch (e) { leagueMsg = e instanceof LeagueApiError ? e.message : 'LEAGUE LOAD FAILED'; }
+  leagueBusy = false; menuDirty = true;
+}
 const down=new Set<string>(), pressed=new Set<string>(), released=new Set<string>(); let shootWasDown=false;
 const touch=createTouchState();
 const isTouchDevice=matchMedia('(pointer: coarse)').matches||'ontouchstart' in window;
@@ -138,12 +167,43 @@ function wireMenuItems() {
   if (code && code.readOnly) code.onclick = () => { code.focus(); code.select(); };
 }
 function menu(){ if(!menuDirty)return; menuDirty=false;
-  if(screen==='title') { const items=['PLAY MATCH','ONLINE MATCH']; panel(`<div class="eyebrow">ARCADE FOOTBALL · 1998</div><div class="title">RETRO<br>FOOTBALL</div><div class="subtitle">SATURDAY CUP</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">${isTouchDevice ? 'TOUCH READY · TAP OK' : 'KEYBOARD ONLY · PRESS ENTER'}<br>ARROWS TO MOVE · S PASS · W THROUGH · A CROSS · D SHOOT · C CAMERA${isTouchDevice ? '<br>OR LEFT STICK + BUTTONS' : ''}</div>`); wireMenuItems(); return; }
+  if(screen==='title') { const items=['PLAY MATCH','ONLINE MATCH','LEAGUE']; panel(`<div class="eyebrow">ARCADE FOOTBALL · 1998</div><div class="title">RETRO<br>FOOTBALL</div><div class="subtitle">SATURDAY CUP</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">${isTouchDevice ? 'TOUCH READY · TAP OK' : 'KEYBOARD ONLY · PRESS ENTER'}<br>ARROWS TO MOVE · S PASS · W THROUGH · A CROSS · D SHOOT · C CAMERA${isTouchDevice ? '<br>OR LEFT STICK + BUTTONS' : ''}</div>`); wireMenuItems(); return; }
   if(screen==='team') { const t=TEAMS[teamIndex],o=TEAMS[(teamIndex+1)%TEAMS.length]; panel(`<div class="eyebrow">CHOOSE YOUR CLUB</div><div class="title" style="font-size:34px">SATURDAY CUP</div><div class="team-row"><div class="team-card active"><div class="team-swatch" style="background:${t.color}"></div>${t.name}<br><small>${t.city}</small></div><div class="team-card"><div class="team-swatch" style="background:${o.color}"></div>${o.name}<br><small>OPPONENT</small></div></div><div class="menu-item selected">${duration/60} MINUTE HALVES</div><div class="hint">← / → CHANGE TEAM · ↑ / ↓ CHANGE LENGTH<br>ENTER KICK OFF · ESC BACK</div>`); return; }
   if(screen==='pause') { const items=['RESUME','RESTART MATCH','MAIN MENU']; panel(`<div class="eyebrow">MATCH PAUSED</div><div class="title" style="font-size:38px">PAUSE</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">ARROWS MOVE · E/SHIFT SPRINT · S PASS/TACKLE · W THROUGH · A CROSS · D SHOOT/SLIDE<br>Q/SPACE SWITCH · C CAMERA (${renderer.cameraLabel()}) · ↑ / ↓ SELECT · ENTER CONFIRM · ESC RESUME</div>`); return; }
   if(screen==='online') { const items=['CREATE ROOM','JOIN ROOM','BACK']; panel(`<div class="eyebrow">PLAY ONLINE · P2P LOCKSTEP</div><div class="title" style="font-size:38px">ONLINE</div><div class="subtitle">${TEAMS[teamIndex].short} · ${duration/60} MIN HALVES</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">FRIEND HOSTS, SHARES A CODE, BOTH PLAY<br>USES YOUR TEAM + LENGTH SETTINGS · ↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
   if(screen==='netcreate') { panel(`<div class="eyebrow">HOST A ROOM · YOU ARE TEAM 1</div><div class="title" style="font-size:38px">ROOM CODE</div><div class="subtitle">${netStatus || '…'}</div>${netCode?`<textarea class="netcode" readonly rows="4">${netCode}</textarea><div class="hint">SEND THIS CODE TO YOUR FRIEND</div><textarea class="netpaste" id="netpaste" rows="4" placeholder="PASTE THEIR ANSWER HERE"></textarea><div class="menu-item netbtn" data-act="connect">▶ CONNECT</div>`:''}<div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
   if(screen==='netjoin') { panel(`<div class="eyebrow">JOIN A ROOM · YOU ARE TEAM 2</div><div class="title" style="font-size:38px">JOIN</div><div class="subtitle">${netStatus || '…'}</div>${netCode?`<textarea class="netcode" readonly rows="4">${netCode}</textarea><div class="hint">SEND THIS ANSWER BACK, THEN WAIT</div>`:''}<textarea class="netpaste" id="netpaste" rows="4" placeholder="PASTE THEIR ROOM CODE HERE"></textarea><div class="menu-item netbtn" data-act="connect">▶ CONNECT</div><div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
+  if(screen==='league') { const items=['OPEN LEAGUE','CREATE LEAGUE','JOIN LEAGUE','SERVER','BACK']; const saved=getLeagueCode(); panel(`<div class="eyebrow">FRIEND LEAGUES · ROUND ROBIN</div><div class="title" style="font-size:38px">LEAGUE</div><div class="subtitle">${saved ? 'SAVED CODE ' + saved : getServerUrl()}</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
+  if(screen==='leaguecreate') { panel(`<div class="eyebrow">START A FRIEND LEAGUE</div><div class="title" style="font-size:34px">CREATE</div><textarea class="netpaste" id="lgname" rows="2" placeholder="LEAGUE NAME"></textarea><textarea class="netpaste" id="lgwho" rows="1" placeholder="YOUR NICKNAME">${getDisplayName()}</textarea><div class="menu-item netbtn" data-act="do-create">▶ CREATE LEAGUE</div><div class="menu-item netbtn" data-act="back">▶ BACK</div><div class="subtitle">${leagueMsg}</div>`); return; }
+  if(screen==='leaguejoin') { panel(`<div class="eyebrow">JOIN WITH A 6-LETTER CODE</div><div class="title" style="font-size:34px">JOIN</div><textarea class="netpaste" id="lgcode" rows="1" placeholder="LEAGUE CODE"></textarea><textarea class="netpaste" id="lgwho" rows="1" placeholder="YOUR NICKNAME">${getDisplayName()}</textarea><div class="menu-item netbtn" data-act="do-join">▶ JOIN LEAGUE</div><div class="menu-item netbtn" data-act="back">▶ BACK</div><div class="subtitle">${leagueMsg}</div>`); return; }
+  if(screen==='leagueserver') { panel(`<div class="eyebrow">WHERE THE LEAGUE SERVER LIVES</div><div class="title" style="font-size:34px">SERVER</div><textarea class="netpaste" id="lgurl" rows="1">${getServerUrl()}</textarea><div class="menu-item netbtn" data-act="save-server">▶ SAVE</div><div class="menu-item netbtn" data-act="back">▶ BACK</div><div class="subtitle">${leagueMsg}</div>`); return; }
+  if(screen==='leagueview') {
+    leagueActions = ['REFRESH'];
+    if (leagueData && leagueData.createdBy === getClientId() && leagueData.status === 'lobby' && leagueData.members.length >= 2) leagueActions.push('START SEASON');
+    if (myOpenFixtures().length > 0) leagueActions.push('SUBMIT SCORE');
+    if (leagueData && leagueData.createdBy === getClientId() && leagueData.fixtures.some((f) => f.status === 'disputed')) leagueActions.push('RESOLVE DISPUTES');
+    leagueActions.push('BACK');
+    const L = leagueData;
+    const fxLine = (f: Fixture) => {
+      const score = f.status === 'confirmed' ? ` ${f.homeScore}-${f.awayScore} ✓` : f.status === 'disputed' ? ' ⚠ DISPUTED' : ' · OPEN';
+      return `<div class="statline"><span>R${f.round} ${leagueName(f.homeClientId)} v ${leagueName(f.awayClientId)}${score}</span></div>`;
+    };
+    const table = (L?.standings ?? []).map((r, i) => `<div class="statline"><span>${tableLine(i + 1, r.displayName, r.played, r.points, r.goalsFor, r.goalsAgainst)}</span></div>`).join('');
+    panel(`<div class="eyebrow">CODE ${L?.code ?? '…'} · ${(L?.status ?? '').toUpperCase()} · ${L?.members.length ?? 0} PLAYERS</div><div class="title" style="font-size:32px">${(L?.name ?? 'LEAGUE').toUpperCase()}</div>${L ? L.fixtures.map(fxLine).join('') : `<div class="subtitle">${leagueBusy ? 'LOADING…' : leagueMsg}</div>`}${table}${leagueActions.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}${leagueMsg && L ? `<div class="subtitle">${leagueMsg}</div>` : ''}<div class="hint">PLAY THE MATCH FIRST — THEN BOTH SIDES SUBMIT THE SCORE HERE</div>`); return;
+  }
+  if(screen==='leaguesubmit'||screen==='leagueresolve') {
+    const resolving = screen === 'leagueresolve';
+    leaguePick = resolving
+      ? (leagueData?.fixtures ?? []).filter((f) => f.status === 'disputed')
+      : myOpenFixtures();
+    const label = (f: Fixture) => `R${f.round} ${leagueName(f.homeClientId)} ${f.status === 'confirmed' ? `${f.homeScore}-${f.awayScore}` : 'v'} ${leagueName(f.awayClientId)}${f.status === 'disputed' ? ' ⚠' : ''}`;
+    panel(`<div class="eyebrow">${resolving ? 'CREATOR RULING' : 'PICK YOUR FIXTURE'}</div><div class="title" style="font-size:34px">${resolving ? 'RESOLVE' : 'SUBMIT'}</div>${leaguePick.length === 0 ? '<div class="subtitle">NOTHING TO DO HERE</div>' : ''}${leaguePick.map((f,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${label(f)}</div>`).join('')}<div class="menu-item ${menuIndex===leaguePick.length?'selected':''}" data-mi="${leaguePick.length}">${menuIndex===leaguePick.length?'▶ ':''}BACK</div><div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return;
+  }
+  if(screen==='leaguescore') {
+    const f = scoreFixture;
+    const label = f ? `R${f.round} ${leagueName(f.homeClientId)} v ${leagueName(f.awayClientId)}` : '…';
+    panel(`<div class="eyebrow">${scoreMode === 'resolve' ? 'CREATOR RULING — FINAL SCORE' : 'WHAT WAS THE FINAL SCORE?'}</div><div class="title" style="font-size:30px">${label}</div><div class="score-row"><div><div class="hint">${f ? leagueName(f.homeClientId) : 'HOME'}</div><textarea class="netpaste scorebox" id="scoreH" rows="1" placeholder="0"></textarea></div><div><div class="hint">${f ? leagueName(f.awayClientId) : 'AWAY'}</div><textarea class="netpaste scorebox" id="scoreA" rows="1" placeholder="0"></textarea></div></div><div class="menu-item netbtn" data-act="do-score">▶ ${scoreMode === 'resolve' ? 'CONFIRM RULING' : 'SEND SCORE'}</div><div class="menu-item netbtn" data-act="back">▶ BACK</div><div class="subtitle">${leagueMsg}</div><div class="hint">BOTH SIDES SUBMIT · MATCHING SCORES CONFIRM · CLASHES GO TO THE CREATOR</div>`); return;
+  }
   const s=engine.state,items=['PLAY AGAIN','MAIN MENU']; panel(`<div class="eyebrow">SATURDAY CUP · FINAL SCORE</div><div class="title" style="font-size:42px">FULL TIME</div><div class="subtitle">${s.teams[0].short} ${s.score[0]} – ${s.score[1]} ${s.teams[1].short}</div><div class="statline"><span>SHOTS<strong>${s.stats.shots[0]}–${s.stats.shots[1]}</strong></span><span>SAVES<strong>${s.stats.saves[0]}–${s.stats.saves[1]}</strong></span></div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM</div>`);
 }
 function pastedCode(): string {
@@ -208,8 +268,69 @@ async function joinWithOffer() {
   } catch { netStatus = 'BAD ROOM CODE'; }
   netBusy = false; menuDirty = true;
 }
+function areaVal(id: string): string {
+  return (ui.querySelector<HTMLTextAreaElement>(`#${id}`)?.value || '').trim();
+}
+async function doLeagueCreate() {
+  if (leagueBusy) return;
+  const name = areaVal('lgname'), who = areaVal('lgwho');
+  if (!name || !who) { leagueMsg = 'NAME + NICKNAME NEEDED'; menuDirty = true; return; }
+  leagueBusy = true; leagueMsg = 'CREATING…'; menuDirty = true;
+  try {
+    const { code } = await leagueApi().createLeague(name.slice(0, 48), getClientId(), who.slice(0, 24));
+    setDisplayName(who.slice(0, 24)); setLeagueCode(code);
+    leagueMsg = ''; await refreshLeague(true);
+    screen = 'leagueview'; menuIndex = 0;
+  } catch (e) { leagueMsg = e instanceof LeagueApiError ? e.message : 'CREATE FAILED'; }
+  leagueBusy = false; menuDirty = true;
+}
+async function doLeagueJoin() {
+  if (leagueBusy) return;
+  const code = normalizeCode(areaVal('lgcode')), who = areaVal('lgwho');
+  if (!code) { leagueMsg = 'BAD CODE — 6 LETTERS, NO 0/O/1/I'; menuDirty = true; return; }
+  if (!who) { leagueMsg = 'NICKNAME NEEDED'; menuDirty = true; return; }
+  leagueBusy = true; leagueMsg = 'JOINING…'; menuDirty = true;
+  try {
+    await leagueApi().joinLeague(code, getClientId(), who.slice(0, 24));
+    setDisplayName(who.slice(0, 24)); setLeagueCode(code);
+    leagueMsg = ''; await refreshLeague(true);
+    screen = 'leagueview'; menuIndex = 0;
+  } catch (e) { leagueMsg = e instanceof LeagueApiError ? e.message : 'JOIN FAILED'; }
+  leagueBusy = false; menuDirty = true;
+}
+async function doLeagueStart() {
+  if (leagueBusy || !leagueData) return;
+  leagueBusy = true; leagueMsg = 'DRAWING FIXTURES…'; menuDirty = true;
+  try {
+    await leagueApi().startLeague(leagueData.id, getClientId());
+    await refreshLeague(true);
+  } catch (e) { leagueMsg = e instanceof LeagueApiError ? e.message : 'START FAILED'; }
+  leagueBusy = false; menuIndex = 0; menuDirty = true;
+}
+async function doLeagueScore() {
+  if (leagueBusy || !scoreFixture) return;
+  const hs = parseScore(areaVal('scoreH')), as = parseScore(areaVal('scoreA'));
+  if (hs === null || as === null) { leagueMsg = 'SCORES 0-99 ONLY'; menuDirty = true; return; }
+  leagueBusy = true; leagueMsg = 'SENDING…'; menuDirty = true;
+  try {
+    if (scoreMode === 'resolve') {
+      await leagueApi().resolveResult(scoreFixture.id, getClientId(), hs, as);
+    } else {
+      // No room token for a manually reported score: fresh random audit id per
+      // submission. Agreement of both sides is the real check (ADR-004).
+      await leagueApi().submitResult(scoreFixture.id, getClientId(), hs, as, makeClientId() + makeClientId());
+    }
+    await refreshLeague(true);
+    screen = scoreMode === 'resolve' ? 'leagueresolve' : 'leaguesubmit'; menuIndex = 0;
+  } catch (e) { leagueMsg = e instanceof LeagueApiError ? e.message : 'SUBMIT FAILED'; }
+  leagueBusy = false; menuDirty = true;
+}
 function handleMenuEnter(act?: string) {
-  if (screen === 'title') screen = menuIndex === 0 ? 'team' : 'online';
+  if (screen === 'title') {
+    if (menuIndex === 0) screen = 'team';
+    else if (menuIndex === 1) screen = 'online';
+    else { screen = 'league'; menuIndex = 0; leagueMsg = ''; }
+  }
   else if (screen === 'team') launch();
   else if (screen === 'online') {
     if (menuIndex === 0) { screen = 'netcreate'; menuIndex = 0; netCode = ''; netStatus = ''; startCreate(); }
@@ -221,6 +342,48 @@ function handleMenuEnter(act?: string) {
   }
   else if (screen === 'netjoin') {
     if (act === 'cancel') cancelNet(); else joinWithOffer();
+  }
+  else if (screen === 'league') {
+    if (menuIndex === 0) { screen = 'leagueview'; menuIndex = 0; leagueMsg = ''; refreshLeague(); }
+    else if (menuIndex === 1) { screen = 'leaguecreate'; leagueMsg = ''; }
+    else if (menuIndex === 2) { screen = 'leaguejoin'; leagueMsg = ''; }
+    else if (menuIndex === 3) { screen = 'leagueserver'; leagueMsg = ''; }
+    else screen = 'title';
+    menuIndex = 0;
+  }
+  else if (screen === 'leaguecreate' || screen === 'leaguejoin') {
+    if (act === 'back') { screen = 'league'; menuIndex = 0; }
+    else if (screen === 'leaguecreate') doLeagueCreate();
+    else doLeagueJoin();
+  }
+  else if (screen === 'leagueserver') {
+    if (act === 'back') { screen = 'league'; menuIndex = 0; }
+    else {
+      const url = areaVal('lgurl').replace(/\/+$/, '');
+      if (!/^https?:\/\/.+/.test(url)) leagueMsg = 'URL MUST START WITH HTTP(S)';
+      else { setServerUrl(url); leagueMsg = 'SAVED'; screen = 'league'; menuIndex = 0; }
+    }
+  }
+  else if (screen === 'leagueview') {
+    const a = leagueActions[menuIndex] ?? 'BACK';
+    if (a === 'REFRESH') refreshLeague();
+    else if (a === 'START SEASON') doLeagueStart();
+    else if (a === 'SUBMIT SCORE') { screen = 'leaguesubmit'; menuIndex = 0; }
+    else if (a === 'RESOLVE DISPUTES') { screen = 'leagueresolve'; menuIndex = 0; }
+    else { screen = 'league'; menuIndex = 0; }
+  }
+  else if (screen === 'leaguesubmit' || screen === 'leagueresolve') {
+    if (menuIndex >= leaguePick.length) screen = 'leagueview';
+    else {
+      scoreFixture = leaguePick[menuIndex];
+      scoreMode = screen === 'leagueresolve' ? 'resolve' : 'submit';
+      leagueMsg = ''; screen = 'leaguescore';
+    }
+    menuIndex = 0;
+  }
+  else if (screen === 'leaguescore') {
+    if (act === 'back') { screen = scoreMode === 'resolve' ? 'leagueresolve' : 'leaguesubmit'; menuIndex = 0; }
+    else doLeagueScore();
   }
   else if (screen === 'pause') {
     if (menuIndex === 0) resumePlay();
@@ -237,7 +400,7 @@ function handleMenuEnter(act?: string) {
   }
   menuDirty = true;
 }
-function handleMenu(){if(pressed.size||released.size||touch.pressed.size||touch.released.size)menuDirty=true;if(hit('KeyM')){muted=audio.toggle();consume('KeyM')}if(screen==='match'){if(hit('Escape')){consume('Escape');openPause()}if(hit('KeyC')){camNote=renderer.cycleCamera();camNoteAt=performance.now();consume('KeyC')}return}const confirm=hit('Enter');if(confirm)consume('Enter');if(screen==='title'){if(hit('KeyW')||hit('ArrowUp')||hit('KeyS')||hit('ArrowDown'))menuIndex=1-menuIndex;if(hit('Escape'))menuIndex=0;if(confirm)handleMenuEnter()}else if(screen==='team'){if(hit('KeyA')||hit('ArrowLeft'))teamIndex=(teamIndex+3)%4;if(hit('KeyD')||hit('ArrowRight'))teamIndex=(teamIndex+1)%4;if(hit('KeyW')||hit('ArrowUp'))duration=duration===180?600:duration===300?180:300;if(hit('KeyS')||hit('ArrowDown'))duration=duration===180?300:duration===300?600:180;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='online'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='netcreate'||screen==='netjoin'){if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter();}else if(screen==='pause'){if(hit('Escape'))resumePlay();if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}else if(screen==='half'){if(confirm)handleMenuEnter()}else if(screen==='full'){if(hit('KeyW')||hit('ArrowUp')||hit('KeyS')||hit('ArrowDown'))menuIndex=1-menuIndex;if(confirm)handleMenuEnter()}menu();}
+function handleMenu(){if(pressed.size||released.size||touch.pressed.size||touch.released.size)menuDirty=true;if(hit('KeyM')){muted=audio.toggle();consume('KeyM')}if(screen==='match'){if(hit('Escape')){consume('Escape');openPause()}if(hit('KeyC')){camNote=renderer.cycleCamera();camNoteAt=performance.now();consume('KeyC')}return}const confirm=hit('Enter');if(confirm)consume('Enter');const up=hit('KeyW')||hit('ArrowUp'),dn=hit('KeyS')||hit('ArrowDown');if(screen==='title'){if(up||dn)menuIndex=(menuIndex+(up?2:1))%3;if(hit('Escape'))menuIndex=0;if(confirm)handleMenuEnter()}else if(screen==='team'){if(hit('KeyA')||hit('ArrowLeft'))teamIndex=(teamIndex+3)%4;if(hit('KeyD')||hit('ArrowRight'))teamIndex=(teamIndex+1)%4;if(hit('KeyW')||hit('ArrowUp'))duration=duration===180?600:duration===300?180:300;if(hit('KeyS')||hit('ArrowDown'))duration=duration===180?300:duration===300?600:180;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='online'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='netcreate'||screen==='netjoin'){if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter();}else if(screen==='league'){if(up)menuIndex=(menuIndex+4)%5;if(dn)menuIndex=(menuIndex+1)%5;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='leaguecreate'||screen==='leaguejoin'||screen==='leagueserver'){if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leagueview'){const n=Math.max(1,leagueActions.length);if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguesubmit'||screen==='leagueresolve'){const n=leaguePick.length+1;if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='leagueview';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguescore'){if(hit('Escape')){screen=scoreMode==='resolve'?'leagueresolve':'leaguesubmit';menuIndex=0}else if(confirm)handleMenuEnter()}else if(screen==='pause'){if(hit('Escape'))resumePlay();if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}else if(screen==='half'){if(confirm)handleMenuEnter()}else if(screen==='full'){if(hit('KeyW')||hit('ArrowUp')||hit('KeyS')||hit('ArrowDown'))menuIndex=1-menuIndex;if(confirm)handleMenuEnter()}menu();}
 function frame(now:number){const raw=Math.min(.1,(now-last)/1000);last=now;let stepped=false;if(screen==='match'){handleMenu();if(screen==='match'){if(net&&net.session){net.poll();const f=input();net.frame(f);stepped=true;for(const e of net.session.lastEvents)audio.event(e);renderer.setFollow(engine.controlOf(viewTeam),engine.targetOf(viewTeam));}else{acc+=raw;let first=true;while(acc>=1/60){const f=input();if(!first){f.pass=false;f.through=false;f.cross=false;f.shootPressed=false;f.shootReleased=false;f.switchPlayer=false}engine.update(1/60,f);for(const e of engine.events.splice(0))audio.event(e);first=false;stepped=true;acc-=1/60}}const s=engine.state;if(s.phase==='halftime'){screen='half';menuDirty=true;audio.event({type:'whistle'})}if(s.phase==='fulltime'){screen='full';menuIndex=0;menuDirty=true;audio.event({type:'whistle'})}renderer.render(s,raw);const cine=renderer.inCinematic();barTop.classList.toggle('on',cine);barBottom.classList.toggle('on',cine);if(now-hudAt>66){hud(s);hudAt=now}}}else {renderer.render(engine.state,raw,screen==='title'||screen==='team');barTop.classList.remove('on');barBottom.classList.remove('on');handleMenu()}updateTouchVisibility();if(import.meta.env.DEV&&now-devStatusAt>100){const s=engine.state,p=s.players[s.controlled],b=s.ball;document.body.dataset.match=JSON.stringify({phase:s.phase,screen,half:s.half,elapsed:s.elapsed,time:s.time,score:s.score,controlled:s.controlled,player:{x:p?.x,z:p?.z,vx:p?.vx,vz:p?.vz},ball:{x:b.x,z:b.z,y:b.y,owner:b.owner,flight:b.flight},stats:s.stats});devStatusAt=now}if(screen!=='match'||stepped){pressed.clear();released.clear();clearTouchEdges(touch)}requestAnimationFrame(frame)}
 addEventListener('resize',()=>renderer.resize());
 // PWA: offline app shell in production only (never cache dev iterations).

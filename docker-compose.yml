@@ -9,10 +9,13 @@ services:
     environment:
       PORT: 8080
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgres://retro:${POSTGRES_PASSWORD:-change-me-in-production}@postgres:5432/retro
       ROOM_TTL_SEC: 7200
       LOG_LEVEL: info
     depends_on:
       redis:
+        condition: service_started
+      postgres:
         condition: service_started
     restart: unless-stopped
     expose:

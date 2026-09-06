@@ -20,6 +20,7 @@ COPY --from=build /repo/node_modules ./node_modules
 COPY --from=build /repo/package.json ./
 COPY --from=build /repo/apps/server/package.json ./apps/server/
 COPY --from=build /repo/apps/server/dist ./apps/server/dist
+COPY --from=build /repo/apps/server/drizzle ./apps/server/drizzle
 COPY --from=build /repo/packages/protocol/package.json ./packages/protocol/
 COPY --from=build /repo/packages/protocol/dist ./packages/protocol/dist
 RUN chown -R app:app /srv
