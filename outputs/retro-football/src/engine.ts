@@ -72,6 +72,25 @@ export class MatchEngine {
     this.state.peerControlled = t * 11 + 10;
     this.state.peerTarget = null;
   }
+  /** Peer left / link dead: their team falls back to AI. Control slots reset. */
+  dropPeer() {
+    this.state.remoteTeam = null;
+    this.state.peerControlled = -1;
+    this.state.peerTarget = null;
+    this.peerReceiver = null;
+    this.peerCharge = 0;
+    this.peerChargingPlayer = null;
+  }
+  /** Controlled player id for a team (human side, peer side, or -1 for AI). */
+  controlOf(t: TeamId): number {
+    return t === this.state.humanTeam ? this.state.controlled
+      : t === this.state.remoteTeam ? this.state.peerControlled : -1;
+  }
+  /** Target marker for a team, if any. */
+  targetOf(t: TeamId): number | null {
+    return t === this.state.humanTeam ? this.state.targetPlayer
+      : t === this.state.remoteTeam ? this.state.peerTarget : null;
+  }
   /** Per-side control slots: local human uses state fields, peer uses peer fields. */
   private getControlled(t: TeamId) { return t === this.state.humanTeam ? this.state.controlled : this.state.peerControlled; }
   private setControlled(t: TeamId, id: number) {

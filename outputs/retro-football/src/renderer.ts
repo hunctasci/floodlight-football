@@ -93,6 +93,16 @@ export class GameRenderer {
     return this.cameraMode;
   }
   cameraLabel(): string { return CAMERA_LABELS[this.cameraMode]; }
+  /**
+   * Online view override: follow a specific player/target instead of the
+   * local controlled pair (e.g. team-1 client follows peerControlled).
+   * Pass nulls to return to the default local view.
+   */
+  setFollow(id: number | null, target: number | null) {
+    this.followId = id; this.followTargetId = target;
+  }
+  private followId: number | null = null;
+  private followTargetId: number | null = null;
   /** True while a letterboxed cinematic (goal replay sweep) owns the lens. */
   inCinematic(): boolean { return this.cine?.type === 'goal'; }
 
@@ -222,7 +232,7 @@ export class GameRenderer {
 
   /** Follow target: tracks the ball tightly so sidelines stay near frame centre. */
   private followFrame(state: MatchState): CameraFrame {
-    const ball = state.ball, cp = state.players[state.controlled];
+    const ball = state.ball, cp = state.players[this.followId ?? state.controlled];
     const f = followFocus(ball.x, ball.z, cp?.x || 0, cp?.z || 0);
     return computeCamera(this.cameraMode, this.camera.aspect, f.x, f.z);
   }
@@ -267,8 +277,8 @@ export class GameRenderer {
     const ball = state.ball; if(ball.flight==='shot'&&this.lastFlight!=='shot')this.shake=.22;this.lastFlight=ball.flight;this.shake=Math.max(0,this.shake-dt*.9);
     this.ball.position.set(ball.x, Math.max(.25,ball.y), ball.z); this.ball.rotation.x += ball.vz * dt * 2; this.ball.rotation.z -= ball.vx * dt * 2; this.ballShadow.position.set(ball.x,.015,ball.z); this.ballShadow.scale.setScalar(1 + Math.min(1,ball.y)*.45);
     state.players.forEach((p,i) => { const a=this.avatars[i], speed=Math.hypot(p.vx,p.vz); a.root.position.set(p.x,0,p.z); a.root.rotation.set(0,Math.atan2(p.facingX,p.facingZ),0); const run=p.action==='run'||speed>1; const swing=run?Math.sin(this.clock*(8+speed*1.5)+i)*Math.min(.85,.22+speed*.12):0; a.legL.rotation.x=swing;a.legR.rotation.x=-swing;a.armL.rotation.x=-swing*.72;a.armR.rotation.x=swing*.72; if(p.action==='kick'){a.legR.rotation.x=-1.35*Math.min(1,p.actionTime*9)} if(p.action==='tackle'){a.root.rotation.z=.32*Math.sin(Math.min(1,p.actionTime*5))} if(p.action==='dive'){a.root.rotation.z=p.facingZ*.95;a.root.rotation.x=-p.facingX*.55;a.root.position.y=.26} else a.root.position.y=0; a.shadow.position.set(p.x,.015,p.z); a.shadow.scale.setScalar(p.action==='dive'?1.45:1); });
-    const cp=state.players[state.controlled]; if(cp){this.marker.visible=!menu;this.arrow.visible=!menu;this.marker.position.set(cp.x,.03,cp.z);this.arrow.position.set(cp.x,2.65+Math.sin(this.clock*5)*.08,cp.z);this.arrow.rotation.x=Math.PI;}
-    const tp=state.targetPlayer===null?null:state.players[state.targetPlayer];this.target.visible=!!tp&&!menu;if(tp)this.target.position.set(tp.x,.04,tp.z);
+    const cp=state.players[this.followId ?? state.controlled]; if(cp){this.marker.visible=!menu;this.arrow.visible=!menu;this.marker.position.set(cp.x,.03,cp.z);this.arrow.position.set(cp.x,2.65+Math.sin(this.clock*5)*.08,cp.z);this.arrow.rotation.x=Math.PI;}
+    const tid=this.followTargetId ?? state.targetPlayer;const tp=tid===null?null:state.players[tid];this.target.visible=!!tp&&!menu;if(tp)this.target.position.set(tp.x,.04,tp.z);
     if (state.phase !== this.lastPhase) {
       const prev = this.lastPhase; this.lastPhase = state.phase;
       if (state.phase === 'goal' && prev !== 'goal') this.startCine(state, 'goal', 2.7);
