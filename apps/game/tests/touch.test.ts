@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createTouchState, touchDown, touchUp, setStick, releaseStick, clearTouchEdges, resetTouch, TOUCH_BUTTONS } from '../src/touch.ts';
+import { createTouchState, touchDown, touchUp, setStick, releaseStick, clearTouchEdges, resetTouch, stickSprint, TOUCH_BUTTONS } from '../src/touch.ts';
 
 test('button press fires edge once while held', () => {
   const t = createTouchState();
@@ -44,4 +44,13 @@ test('menu codes round-trip through the same sets', () => {
   resetTouch(t);
   assert.equal(t.down.size, 0); assert.equal(t.pressed.size, 0);
   assert.equal(t.stickX, 0); assert.equal(t.usingTouch, true);
+});
+
+test('analog sprint engages only at the stick rim', () => {
+  const t = createTouchState();
+  setStick(t, 0.45, 0); assert.equal(stickSprint(t), false, 'half pull jogs');
+  setStick(t, 0.6, 0.6); assert.equal(stickSprint(t), false, '0.85 diagonal still jogs');
+  setStick(t, 0, 1); assert.equal(stickSprint(t), true, 'rim push sprints');
+  setStick(t, 3, 4); assert.equal(stickSprint(t), true, 'overdrag clamps to rim, still sprint');
+  releaseStick(t); assert.equal(stickSprint(t), false, 'released stick never sprints');
 });

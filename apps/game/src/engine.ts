@@ -2,7 +2,7 @@ import { EMPTY_INPUT, FIELD, TEAMS, type Ball, type GameEvent, type InputFrame, 
 
 const L = FIELD.halfLength, W = FIELD.halfWidth, R = FIELD.ballRadius;
 export const TUNING = {
-  speed: 7.4, sprint: 10.2, acceleration: 22, deceleration: 29, turn: 17,
+  speed: 7.4, sprint: 10.2, jog: 4.2, acceleration: 22, deceleration: 29, turn: 17,
   pass: 19, through: 25, shot: 28, tackle: 1.9, slideTackle: 2.45, keeperSpeed: 6.8,
   controlRadius: 1.55, receiverRadius: 2.3, keeperReach: 1.7, keeperDiveReach: 2.4,
 };
@@ -238,6 +238,14 @@ export class MatchEngine {
   private moveHumanSide(dt: number, i: InputFrame, team: TeamId) {
     const s = this.state, p = s.players[this.getControlled(team)], b = s.ball;
     if (p.keeper) return;
+    // Analog pace (FIFA Mobile-style): partial stick deflection jogs
+    // proportionally from TUNING.jog up to full speed; full deflection (or
+    // the sprint key) sprints. Full keyboard input has pace 1, so desktop
+    // behavior is byte-identical. Pace derives from the transmitted axes,
+    // so both lockstep peers compute the same speed (no codec change).
+    const pace = clamp(length(i.x, i.z), 0, 1);
+    const jog = TUNING.jog + pace * (TUNING.speed - TUNING.jog);
+    const manual = (x: number, z: number) => this.steer(p, x, z, i.sprint, dt, i.sprint ? undefined : jog);
     const rec = team === s.humanTeam ? this.receiver : this.peerReceiver;
     const rpoint = team === s.humanTeam ? this.receivePoint : this.peerReceivePoint;
     const runtil = team === s.humanTeam ? this.receiveUntil : this.peerReceiveUntil;
@@ -257,7 +265,7 @@ export class MatchEngine {
         if (dist > 1.2 || !(i.x || i.z)) {
           this.steer(p, dx, dz, dist > 3, dt, Math.min(TUNING.speed, dist * 4 + .2));
         } else {
-          this.steer(p, i.x, i.z, i.sprint, dt);
+          manual(i.x, i.z);
         }
       } else if (i.x || i.z) {
         // Ara pası/orta boş alana atılır: manuel yön + otomatik koşu harmanlanır.
@@ -279,11 +287,11 @@ export class MatchEngine {
           const auto = direction(dx, dz), n = length(i.x, i.z) || 1;
           const ux = i.x / n + auto.x * .35, uz = i.z / n + auto.z * .35;
           const m = length(ux, uz) || 1;
-          this.steer(p, ux / m, uz / m, i.sprint, dt);
+          manual(ux / m, uz / m);
           return;
         }
       }
-      this.steer(p, i.x, i.z, i.sprint, dt);
+      manual(i.x, i.z);
     } else if (b.owner === null && b.y < 1.2) {
       // Idle controlled player drifts to a nearby loose ball (modern assist).
       const dx = b.x + b.vx * .1 - p.x, dz = b.z + b.vz * .1 - p.z, dist = length(dx, dz);

@@ -53,6 +53,20 @@ test('movement accelerates responsively, normalizes diagonals, and sprint is fas
   tick(straight.g, 0.35); assert.ok(Math.hypot(p.vx, p.vz) < 1, 'release stops without skating');
 });
 
+test('analog stick pace: partial deflection jogs, full matches keyboard', () => {
+  const run = (x: number, z: number, sprint = false) => {
+    const g = sandbox(); freeBall(g, { x: 40, z: 25, y: FIELD.ballRadius, vx: 0, vy: 0, vz: 0 });
+    tick(g, 1, { x, z, sprint });
+    const p = g.state.players[g.state.controlled];
+    return { dist: Math.hypot(p.x, p.z), stamina: p.stamina };
+  };
+  const full = run(1, 0), half = run(0.45, 0), burst = run(1, 0, true);
+  assert.ok(half.dist < full.dist * 0.85, 'partial stick deflection jogs slower');
+  assert.ok(burst.dist > full.dist * 1.1, 'sprint key still fastest');
+  assert.equal(half.stamina, 1, 'jogging never drains stamina');
+  assert.ok(burst.stamina < 1, 'sprinting drains stamina');
+});
+
 test('assisted pass travels physically and through ball leads into space', () => {
   const perform = (through: boolean) => {
     const g = sandbox(); const s = g.state;

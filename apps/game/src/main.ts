@@ -3,7 +3,7 @@ import { MatchEngine } from './engine';
 import { GameRenderer } from './renderer';
 import { EMPTY_INPUT, TEAMS, type InputFrame, type MatchState, type TeamId } from './types';
 import { MatchAudio } from './audio';
-import { createTouchState, touchDown, touchUp, setStick, releaseStick, clearTouchEdges, resetTouch, TOUCH_BUTTONS, TOUCH_MENU } from './touch';
+import { createTouchState, touchDown, touchUp, setStick, releaseStick, clearTouchEdges, resetTouch, stickSprint, TOUCH_BUTTONS, TOUCH_MENU } from './touch';
 import { NetDriver } from './net/driver';
 import { RTCTransport } from './net/transport';
 import { makeClientId } from './net/signal';
@@ -80,7 +80,8 @@ function closeNet() {
 function openPause(){if(screen==='match'){engine.state.paused=true;if(net)net.setPaused(true);screen='pause';menuIndex=0;menuDirty=true;down.clear();touch.down.clear();}}
 function resumePlay(){screen='match';engine.state.paused=false;if(net)net.setPaused(false);}
 // Telefonda pause butonu yok: skorboard'a dokunmak pauze acar (cihaz uykusu zaten otomatik pauzeliyor).
-ui.addEventListener('click',(e)=>{if(screen==='match'&&(e.target as HTMLElement).closest?.('.scoreboard'))openPause();});
+// Kamera butonu da yok: sol ustteki kamera cipine dokunmak kamerayi degistirir (masaustunde C tusu ayni).
+ui.addEventListener('click',(e)=>{if(screen!=='match')return;const t=(e.target as HTMLElement).closest?.('.scoreboard,.camchip');if(!t)return;if(t.classList.contains('camchip')){camNote=renderer.cycleCamera();camNoteAt=performance.now();menuDirty=true}else openPause();});
 // --- Touch controls (mobile): joystick + buttons emit the same key codes ---
 let touchLayer: HTMLDivElement | null = null, stickZone: HTMLElement | null = null, stickNub: HTMLElement | null = null, menuPad: HTMLElement | null = null, matchPad: HTMLElement | null = null;
 const STICK_R = 56;
@@ -95,8 +96,6 @@ if (isTouchDevice) {
   touchLayer.innerHTML = `
     <div class="stick-zone"><div class="stick-base"><div class="stick-nub"></div></div></div>
     <div class="match-pad">
-      <button class="tbtn small tcam" data-code="KeyC">📷</button>
-      <button class="tbtn tsprint" data-code="KeyE">SPRINT</button>
       <button class="tbtn tswitch" data-code="KeyQ">SWITCH</button>
       <button class="tbtn tpass" data-code="KeyS">PASS</button>
       <button class="tbtn tthru" data-code="KeyW">THRU</button>
@@ -149,7 +148,7 @@ function input():InputFrame {
 // FIFA PC (arrow-keys) layout: arrows move/aim, S pass, W through, A cross/lob, D shoot, E/Shift sprint, Q/Space switch.
 // Legacy J/L/I/K aliases kept so old muscle memory still works.
 // Touch joystick vector is merged in so mobile plays the identical sim.
-let x=(held('ArrowRight')?1:0)-(held('ArrowLeft')?1:0)+touch.stickX,z=(held('ArrowDown')?1:0)-(held('ArrowUp')?1:0)+touch.stickZ;const n=Math.hypot(x,z);if(n>1){x/=n;z/=n}const sh=held('KeyD')||held('KeyK');const out={x,z,sprint:held('ShiftLeft')||held('ShiftRight')||held('KeyE'),pass:hit('KeyS')||hit('KeyJ'),through:hit('KeyW')||hit('KeyL'),cross:hit('KeyA')||hit('KeyI'),shootPressed:hit('KeyD')||hit('KeyK'),shootHeld:sh,shootReleased:released.has('KeyD')||released.has('KeyK')||touch.released.has('KeyD')||(!sh&&shootWasDown),switchPlayer:hit('Space')||hit('KeyQ')};shootWasDown=sh;return out;}
+let x=(held('ArrowRight')?1:0)-(held('ArrowLeft')?1:0)+touch.stickX,z=(held('ArrowDown')?1:0)-(held('ArrowUp')?1:0)+touch.stickZ;const n=Math.hypot(x,z);if(n>1){x/=n;z/=n}const sh=held('KeyD')||held('KeyK');const out={x,z,sprint:held('ShiftLeft')||held('ShiftRight')||held('KeyE')||stickSprint(touch),pass:hit('KeyS')||hit('KeyJ'),through:hit('KeyW')||hit('KeyL'),cross:hit('KeyA')||hit('KeyI'),shootPressed:hit('KeyD')||hit('KeyK'),shootHeld:sh,shootReleased:released.has('KeyD')||released.has('KeyK')||touch.released.has('KeyD')||(!sh&&shootWasDown),switchPlayer:hit('Space')||hit('KeyQ')};shootWasDown=sh;return out;}
 function clock(s:MatchState){const football=Math.min(45,Math.floor(s.elapsed/s.halfDuration*45));return `${s.half===2?45+football:football}'`}
 function drawRadar(s:MatchState,vt:TeamId,ctl:number){const c=radar.getContext('2d')!;c.clearRect(0,0,308,184);c.fillStyle='#1b6b43';c.fillRect(0,0,308,184);c.strokeStyle='#f8efdb';c.lineWidth=2;c.strokeRect(3,3,302,178);c.beginPath();c.moveTo(154,3);c.lineTo(154,181);c.stroke();for(const p of s.players){c.fillStyle=p.team===vt?'#f7bf30':'#ef4054';c.beginPath();c.arc((p.x/46+1)*154,(p.z/29+1)*92, p.id===ctl?6:4,0,7);c.fill()}c.fillStyle='#fff';c.beginPath();c.arc((s.ball.x/46+1)*154,(s.ball.z/29+1)*92,4,0,7);c.fill();}
 function hud(s:MatchState){const vt=net?viewTeam:s.humanTeam,ctl=net?engine.controlOf(vt):s.controlled;const me=s.players[ctl];const my=s.teams[vt],away=s.teams[1-vt];const how=s.phase==='corner'?'ARROWS AIM · A CROSS · S SHORT':s.phase==='throwin'?'ARROWS AIM · S THROW':s.phase==='goalkick'?'S SHORT · D LONG': 'ARROWS AIM · S KICK OFF';const restart=s.restart?`${s.teams[s.restart.team].name.toUpperCase()} ${s.phase==='throwin'?'THROW-IN':s.phase==='corner'?'CORNER':s.phase==='goalkick'?'GOAL KICK':'KICKOFF'}${s.restart.team===vt?`<small>${how}</small>`:'<small>OPPONENT TAKING RESTART</small>'}`:'';const toast=performance.now()-camNoteAt<1600?`<div class="camtoast">📷 ${camNote}</div>`:'';const holder=s.ball.owner===null?null:s.players[s.ball.owner];const keeperHint=holder&&holder.keeper&&holder.team===vt?`<div class="keeper-hint">🧤 KEEPER · ARROWS AIM<small>S SHORT · W THROUGH · D/A LONG</small></div>`:'';ui.innerHTML=`<div class="scoreboard"><div class="club">${my.short}</div><div class="score">${s.score[vt]} – ${s.score[1-vt]}</div><div class="club">${away.short}</div><div class="clock">${s.half===1?'1ST':'2ND'} ${clock(s)}</div></div><div class="attack">YOU: ${my.name.toUpperCase()}<br>ATTACK ${s.attack[vt]>0?'→':'←'}</div><div class="camchip">📷 ${renderer.cameraLabel()}</div><div class="player-info">▲ ${me?.name||'PLAYER'}<div class="stamina"><i style="width:${(me?.stamina||0)*100}%"></i></div></div>${s.charge>0?`<div class="charge"><i style="width:${Math.min(100,s.charge/.6*100)}%"></i></div>`:''}<div class="strip">${isTouchDevice ? 'STICK MOVE · SPRINT HOLD · PASS · THRU · CROSS · SHOOT (HOLD=POWER)<br>SWITCH · CAM · PAUSE' : 'ARROWS MOVE · E/SHIFT SPRINT · S PASS / TACKLE · W THROUGH · A CROSS · D SHOOT / SLIDE<br>Q/SPACE SWITCH · C CAMERA · ESC PAUSE · M ' + (muted ? 'UNMUTE' : 'MUTE')}</div>${toast}${keeperHint}${!restart&&s.messageTime>0?`<div class="message">${s.message}<small>${s.phase==='goal'?'KICKOFF IN A MOMENT':''}</small></div>`:''}${restart?`<div class="message">${restart}</div>`:''}`;ui.append(barTop,barBottom,radar);drawRadar(s,vt,ctl);}

@@ -40,6 +40,15 @@ export function setStick(t: TouchState, x: number, z: number) {
 
 export function releaseStick(t: TouchState) { t.stickX = 0; t.stickZ = 0; }
 
+/**
+ * Analog sprint (FIFA Mobile-style): pushing the stick to its rim sprints,
+ * no sprint button needed. Threshold sits just inside full deflection so a
+ * firm push always engages but steering near the rim never flickers.
+ */
+export function stickSprint(t: TouchState): boolean {
+  return Math.hypot(t.stickX, t.stickZ) > 0.92;
+}
+
 /** End-of-frame: edges are consumed, held buttons persist. Mirrors main.ts keyboard handling. */
 export function clearTouchEdges(t: TouchState) { t.pressed.clear(); t.released.clear(); }
 
@@ -48,16 +57,16 @@ export function resetTouch(t: TouchState) {
   t.stickX = 0; t.stickZ = 0;
 }
 
-/** Button code map for the on-screen match controls. */
+/** Button code map for the on-screen match controls (contextual: the same
+ *  buttons tackle/slide on defense). Movement pace + sprint live on the
+ *  analog stick, camera on the HUD chip, pause on the scoreboard — so the
+ *  pad holds only the five action buttons. */
 export const TOUCH_BUTTONS = {
   shoot: 'KeyD',
   pass: 'KeyS',
   through: 'KeyW',
   cross: 'KeyA',
-  sprint: 'KeyE',
   switch: 'KeyQ',
-  pause: 'Escape',
-  camera: 'KeyC',
 } as const;
 
 /** Menu navigation pad codes (arrows + confirm/back). */
