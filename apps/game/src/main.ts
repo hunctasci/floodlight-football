@@ -79,6 +79,8 @@ function closeNet() {
 }
 function openPause(){if(screen==='match'){engine.state.paused=true;if(net)net.setPaused(true);screen='pause';menuIndex=0;menuDirty=true;down.clear();touch.down.clear();}}
 function resumePlay(){screen='match';engine.state.paused=false;if(net)net.setPaused(false);}
+// Telefonda pause butonu yok: skorboard'a dokunmak pauze acar (cihaz uykusu zaten otomatik pauzeliyor).
+ui.addEventListener('click',(e)=>{if(screen==='match'&&(e.target as HTMLElement).closest?.('.scoreboard'))openPause();});
 // --- Touch controls (mobile): joystick + buttons emit the same key codes ---
 let touchLayer: HTMLDivElement | null = null, stickZone: HTMLElement | null = null, stickNub: HTMLElement | null = null, menuPad: HTMLElement | null = null, matchPad: HTMLElement | null = null;
 const STICK_R = 56;
@@ -93,7 +95,6 @@ if (isTouchDevice) {
   touchLayer.innerHTML = `
     <div class="stick-zone"><div class="stick-base"><div class="stick-nub"></div></div></div>
     <div class="match-pad">
-      <button class="tbtn small tpause" data-code="Escape">II</button>
       <button class="tbtn small tcam" data-code="KeyC">📷</button>
       <button class="tbtn tsprint" data-code="KeyE">SPRINT</button>
       <button class="tbtn tswitch" data-code="KeyQ">SWITCH</button>
