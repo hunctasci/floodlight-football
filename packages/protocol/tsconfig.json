@@ -4,6 +4,7 @@
     "lib": ["ES2022"], "strict": true, "skipLibCheck": true, "noEmit": false,
     "declaration": true, "declarationMap": true, "sourceMap": true,
     "outDir": "dist", "rootDir": "src",
+    "noEmitOnError": true,
     "types": ["node"], "allowImportingTsExtensions": false
   },
   "include": ["src"]
