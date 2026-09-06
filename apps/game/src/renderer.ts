@@ -3,6 +3,21 @@ import { FIELD, MatchState, Player } from './types';
 
 type Avatar = { root: THREE.Group; body: THREE.Mesh; head: THREE.Mesh; legL: THREE.Mesh; legR: THREE.Mesh; armL: THREE.Mesh; armR: THREE.Mesh; shadow: THREE.Mesh; kit: THREE.Color; trim: THREE.Color; keeper: boolean; kitParts: THREE.Mesh[]; trimParts: THREE.Mesh[] };
 
+/** Shared white-on-transparent shirt numbers 1..11 (one small canvas each). */
+const numberTextures = new Map<number, THREE.CanvasTexture>();
+function numberTexture(n: number): THREE.CanvasTexture {
+  let tex = numberTextures.get(n);
+  if (tex) return tex;
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  const ctx = c.getContext('2d')!;
+  ctx.font = 'bold 44px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 7; ctx.strokeStyle = '#182230'; ctx.strokeText(String(n), 32, 34);
+  ctx.fillStyle = '#ffffff'; ctx.fillText(String(n), 32, 34);
+  tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  numberTextures.set(n, tex);
+  return tex;
+}
+
 export type CameraMode = 'broadcast' | 'tactic' | 'close';
 export const CAMERA_MODES: CameraMode[] = ['broadcast', 'tactic', 'close'];
 export const CAMERA_LABELS: Record<CameraMode, string> = { broadcast: 'BROADCAST', tactic: 'TACTICAL', close: 'CLOSE-UP' };
@@ -64,6 +79,28 @@ export function menuOrbitPos(angle: number): THREE.Vector3 {
 
 type Cine = { type: 'goal' | 'intro'; t: number; dur: number; side: number; fromPos: THREE.Vector3; fromLook: THREE.Vector3 } | null;
 
+/** Classic pentagon ball skin painted once onto a shared canvas texture. */
+let ballSkin: THREE.CanvasTexture | null = null;
+function ballTexture(): THREE.CanvasTexture {
+  if (ballSkin) return ballSkin;
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#f7f3e9'; ctx.fillRect(0, 0, 256, 128);
+  const pentagon = (x: number, y: number, r: number) => {
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+      const px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath(); ctx.fillStyle = '#1f3040'; ctx.fill();
+  };
+  // Fixed spots read as a football from every broadcast angle.
+  [[32, 32, 15], [96, 88, 16], [160, 30, 15], [224, 92, 16], [64, 104, 11], [192, 108, 11], [128, 60, 12], [0, 64, 12], [256, 64, 12]].forEach(([x, y, r]) => pentagon(x, y, r));
+  ballSkin = new THREE.CanvasTexture(c); ballSkin.colorSpace = THREE.SRGBColorSpace;
+  return ballSkin;
+}
+
 /** Deliberately chunky, inexpensive match renderer.  All art is made from geometry. */
 export class GameRenderer {
   public canvas: HTMLCanvasElement;
@@ -77,6 +114,7 @@ export class GameRenderer {
   private arrow: THREE.Mesh;
   private target: THREE.Mesh;
   private goalNets: THREE.Group[] = [];
+  private standBanners: THREE.Mesh[] = [];
   private camLook = new THREE.Vector3();
   private camPos = new THREE.Vector3(0, 29, 38);
   private clock = 0;
@@ -118,23 +156,19 @@ export class GameRenderer {
     this.canvas = this.renderer.domElement;
     this.canvas.className = 'match-canvas';
     container.appendChild(this.canvas);
-    this.scene.background = new THREE.Color('#91cce3');
-    this.scene.fog = new THREE.Fog('#91cce3', 160, 260);
+    this.scene.background = new THREE.Color('#7fb6e0');
+    this.scene.fog = new THREE.Fog('#7fb6e0', 160, 260);
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(0, 0, 0);
 
-    const hemi = new THREE.HemisphereLight('#e8f6ff', '#326a35', 2.15); this.scene.add(hemi);
+    const hemi = new THREE.HemisphereLight('#e8f6ff', '#2f6b35', 2.35); this.scene.add(hemi);
     const sun = new THREE.DirectionalLight('#fff1cb', 2.4); sun.position.set(-25, 42, 18); sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024); sun.shadow.camera.left = -60; sun.shadow.camera.right = 60; sun.shadow.camera.top = 45; sun.shadow.camera.bottom = -45; this.scene.add(sun);
     this.buildWorld();
-    const sphere = new THREE.SphereGeometry(FIELD.ballRadius, 12, 8);
+    const sphere = new THREE.SphereGeometry(FIELD.ballRadius, 16, 12);
     this.ball = new THREE.Group();
-    const leather = new THREE.Mesh(sphere, new THREE.MeshStandardMaterial({ color: '#f7f3e9', roughness: .78, flatShading: true }));
+    const leather = new THREE.Mesh(sphere, new THREE.MeshStandardMaterial({ map: ballTexture(), roughness: .55, flatShading: false }));
     leather.castShadow = true; this.ball.add(leather);
-    // Tiny dark poly patches stop the ball disappearing into white lines at a distance.
-    const patchMaterial = new THREE.MeshStandardMaterial({ color: '#1f3040', roughness: .9, flatShading: true });
-    const patchGeometry = new THREE.DodecahedronGeometry(.06, 0);
-    [[0,.24,0],[.21,.08,.11],[-.19,.02,.15],[.04,-.12,-.21]].forEach(([x,y,z]) => { const patch = new THREE.Mesh(patchGeometry, patchMaterial); patch.position.set(x,y,z); this.ball.add(patch); });
     this.scene.add(this.ball);
     this.ballShadow = new THREE.Mesh(new THREE.CircleGeometry(.31, 16), new THREE.MeshBasicMaterial({ color: '#183d24', transparent: true, opacity: .34 }));
     this.ballShadow.rotation.x = -Math.PI / 2; this.ballShadow.position.y = .012; this.scene.add(this.ballShadow);
@@ -148,11 +182,11 @@ export class GameRenderer {
   private buildWorld() {
     const apron = new THREE.Mesh(new THREE.PlaneGeometry(120, 84), new THREE.MeshStandardMaterial({ color: '#2e7840', roughness: 1 }));
     apron.rotation.x = -Math.PI / 2; apron.position.y = -.015; this.scene.add(apron);
-    const grass = new THREE.MeshStandardMaterial({ color: '#3e9b48', roughness: 1 });
+    const grass = new THREE.MeshStandardMaterial({ color: '#35a047', roughness: 1 });
     const pitch = new THREE.Mesh(new THREE.PlaneGeometry(94, 60), grass); pitch.rotation.x = -Math.PI / 2; pitch.receiveShadow = true; this.scene.add(pitch);
-    const stripeMat = new THREE.MeshBasicMaterial({ color: '#358b42', transparent: true, opacity: .42 });
+    const stripeMat = new THREE.MeshBasicMaterial({ color: '#2c8340', transparent: true, opacity: .5 });
     for (let x = -40; x <= 40; x += 16) { const stripe = new THREE.Mesh(new THREE.PlaneGeometry(8, 58), stripeMat); stripe.rotation.x = -Math.PI / 2; stripe.position.set(x, .006, 0); this.scene.add(stripe); }
-    const line = new THREE.MeshBasicMaterial({ color: '#f7ffe9' });
+    const line = new THREE.MeshBasicMaterial({ color: '#ffffff' });
     const addLine = (x: number, z: number, sx: number, sz: number) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx, .025, sz), line); m.position.set(x, .026, z); this.scene.add(m); };
     addLine(0, -29, 92, .16); addLine(0, 29, 92, .16); addLine(-46, 0, .16, 58); addLine(46, 0, .16, 58); addLine(0, 0, .12, 58);
     const circle = new THREE.Mesh(new THREE.RingGeometry(5.7, 5.87, 48), line); circle.rotation.x = -Math.PI / 2; circle.position.y = .028; this.scene.add(circle);
@@ -165,39 +199,56 @@ export class GameRenderer {
       const spot = dot.clone(); spot.position.set(x-dir*11,.04,0); this.scene.add(spot);
       const points: THREE.Vector3[]=[]; const start=x>0?Math.PI/2:-Math.PI/2; const end=x>0?Math.PI*1.5:Math.PI/2;
       for(let i=0;i<=24;i++){const t=start+(end-start)*i/24;points.push(new THREE.Vector3(x-dir*11+Math.cos(t)*5.5,.045,Math.sin(t)*5.5));}
-      const arc = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({color:'#f7ffe9'})); this.scene.add(arc);
+      const arc = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({color:'#ffffff'})); this.scene.add(arc);
     }
     const centreDot=dot.clone();centreDot.position.set(0,.04,0);this.scene.add(centreDot);
+    // Corner arcs: quarter-circles tucked into each corner flag.
+    for (const cx of [-46, 46]) for (const cz of [-29, 29]) {
+      const pts: THREE.Vector3[] = [];
+      const base = Math.atan2(-cz, -cx);
+      for (let i = 0; i <= 10; i++) { const a = base - Math.PI / 4 + (i / 10) * Math.PI / 2; pts.push(new THREE.Vector3(cx + Math.cos(a), .045, cz + Math.sin(a))); }
+      this.scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#ffffff' })));
+    }
     this.buildGoals(); this.buildStands();
   }
 
   private buildGoals() {
-    const postMat = new THREE.MeshStandardMaterial({ color: '#fff9df', roughness: .55 });
-    const netMat = new THREE.LineBasicMaterial({ color: '#e9f7ed', transparent: true, opacity: .46 });
+    const postMat = new THREE.MeshStandardMaterial({ color: '#fffef4', roughness: .4 });
+    const netMat = new THREE.LineBasicMaterial({ color: '#f2f7f2', transparent: true, opacity: .6 });
     for (const x of [-46, 46]) {
       const g = new THREE.Group(); const d = x < 0 ? -1 : 1;
-      const post = new THREE.CylinderGeometry(.075, .075, 2.8, 8); for (const z of [-4.4, 4.4]) { const p = new THREE.Mesh(post, postMat); p.position.set(x, 1.4, z); g.add(p); }
-      const bar = new THREE.Mesh(new THREE.CylinderGeometry(.075, .075, 8.9, 8), postMat); bar.rotation.x = Math.PI / 2; bar.position.set(x, 2.8, 0); g.add(bar);
+      const post = new THREE.CylinderGeometry(.12, .12, 2.8, 10); for (const z of [-4.4, 4.4]) { const p = new THREE.Mesh(post, postMat); p.position.set(x, 1.4, z); p.castShadow = true; g.add(p); }
+      const bar = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 9.0, 10), postMat); bar.rotation.x = Math.PI / 2; bar.position.set(x, 2.8, 0); bar.castShadow = true; g.add(bar);
       // Back, roof and two sides only: the goal mouth remains physically and visually open.
-      const lines: THREE.Vector3[]=[]; const back=x+d*2;
-      for(let z=-4.4;z<=4.401;z+=.88){lines.push(new THREE.Vector3(back,0,z),new THREE.Vector3(back,2.8,z));}
-      for(let y=0;y<=2.801;y+=.56){lines.push(new THREE.Vector3(back,y,-4.4),new THREE.Vector3(back,y,4.4)); for(const z of [-4.4,4.4]) lines.push(new THREE.Vector3(x,y,z),new THREE.Vector3(back,y,z));}
-      for(let z=-4.4;z<=4.401;z+=.88) lines.push(new THREE.Vector3(x,2.8,z),new THREE.Vector3(back,2.8,z));
+      const lines: THREE.Vector3[]=[]; const back=x+d*2.2;
+      for(let z=-4.4;z<=4.401;z+=.55){lines.push(new THREE.Vector3(back,0,z),new THREE.Vector3(back,2.8,z));}
+      for(let y=0;y<=2.801;y+=.4){lines.push(new THREE.Vector3(back,y,-4.4),new THREE.Vector3(back,y,4.4)); for(const z of [-4.4,4.4]) lines.push(new THREE.Vector3(x,y,z),new THREE.Vector3(back,y,z));}
+      for(let z=-4.4;z<=4.401;z+=.55) lines.push(new THREE.Vector3(x,2.8,z),new THREE.Vector3(back,2.8,z));
       const net = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(lines), netMat); net.name='net'; g.add(net); g.userData.side=x; this.goalNets.push(g); this.scene.add(g);
     }
   }
 
   private buildStands() {
-    const concrete = new THREE.MeshStandardMaterial({ color: '#31556b', roughness: 1, flatShading: true });
-    const crowdCols = ['#f8cc54', '#ec5a61', '#5fcddd', '#f3ede0', '#514b91']; const box = new THREE.BoxGeometry(1.05, .72, .55);
-    // Five instanced colour blocks give the crowd a lively, pixel-era mosaic without hundreds of draw calls.
+    const concrete = new THREE.MeshStandardMaterial({ color: '#2c4d63', roughness: 1, flatShading: true });
+    const crowdCols = ['#f8cc54', '#ec5a61', '#5fcddd', '#f3ede0', '#514b91', '#ff9a3d', '#7ee08a']; const box = new THREE.BoxGeometry(1.05, .72, .55);
+    // Seven instanced colour blocks give the crowd a lively, modern mosaic without hundreds of draw calls.
     const fanPositions: THREE.Vector3[][] = crowdCols.map(() => []);
     for (const z of [-36, 36]) {
-      const stand = new THREE.Mesh(new THREE.BoxGeometry(104, 7, 10), concrete); stand.position.set(0, 3.3, z); this.scene.add(stand);
-      for (let x = -49; x <= 49; x += 1.25) for (let r = 0; r < 5; r++) {
+      const stand = new THREE.Mesh(new THREE.BoxGeometry(104, 9, 11), concrete); stand.position.set(0, 4.2, z); this.scene.add(stand);
+      // Roof lip shading the top rows.
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(106, .5, 13), new THREE.MeshStandardMaterial({ color: '#1d3346', roughness: 1, flatShading: true }));
+      roof.position.set(0, 10.6, z + (z > 0 ? 1 : -1)); this.scene.add(roof);
+      for (let x = -49; x <= 49; x += 1.25) for (let r = 0; r < 8; r++) {
         const color = Math.abs((x * 5 + r * 3) | 0) % crowdCols.length;
-        fanPositions[color].push(new THREE.Vector3(x, 7.1 + r * .6, z + (z > 0 ? -3.8 + r * .5 : 3.8 - r * .5)));
+        fanPositions[color].push(new THREE.Vector3(x, 6.4 + r * .58, z + (z > 0 ? -4.2 + r * .5 : 4.2 - r * .5)));
       }
+      // Giant team-colour banner across the stand front, recoloured per match.
+      const banner = new THREE.Mesh(new THREE.PlaneGeometry(46, 2.2),
+        new THREE.MeshBasicMaterial({ color: '#ffffff' }));
+      banner.position.set(0, 2.6, z + (z > 0 ? -5.56 : 5.56));
+      if (z < 0) banner.rotation.y = Math.PI;
+      this.scene.add(banner);
+      this.standBanners.push(banner);
     }
     const matrix = new THREE.Matrix4();
     fanPositions.forEach((positions, color) => {
@@ -205,7 +256,16 @@ export class GameRenderer {
       positions.forEach((pos, i) => { matrix.makeTranslation(pos.x, pos.y, pos.z); crowd.setMatrixAt(i, matrix); });
       crowd.instanceMatrix.needsUpdate = true; this.scene.add(crowd);
     });
-    for (const x of [-55,55]) { const e = new THREE.Mesh(new THREE.BoxGeometry(10, 5, 68), concrete); e.position.set(x, 2.5, 0); this.scene.add(e); }
+    for (const x of [-55,55]) { const e = new THREE.Mesh(new THREE.BoxGeometry(10, 7, 68), concrete); e.position.set(x, 3.2, 0); this.scene.add(e); }
+    // Floodlight pylons in the four corners: emissive heads, no real lights.
+    const poleMat = new THREE.MeshStandardMaterial({ color: '#3a4350', roughness: .8, flatShading: true });
+    const headMat = new THREE.MeshBasicMaterial({ color: '#fffbe8' });
+    for (const px of [-58, 58]) for (const pz of [-38, 38]) {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.35, .5, 20, 6), poleMat);
+      pole.position.set(px, 10, pz); this.scene.add(pole);
+      const head = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.6, .6), headMat);
+      head.position.set(px, 20.4, pz); head.lookAt(0, 0, 0); this.scene.add(head);
+    }
     const makeAd = (text:string, base:string, ink:string) => { const c=document.createElement('canvas');c.width=512;c.height=64;const ctx=c.getContext('2d')!;ctx.fillStyle=base;ctx.fillRect(0,0,512,64);ctx.fillStyle=ink;ctx.font='bold 31px monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,256,34);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;return new THREE.MeshBasicMaterial({map:tex}); };
     const ads=[makeAd('SATURDAY CUP','#173667','#ffe76a'),makeAd('PLAY BEAUTIFUL','#ef713d','#fff4d4')];
     for (const z of [-30.3,30.3]) for(let x=-40, i=0;x<40;x+=10,i++){ const b=new THREE.Mesh(new THREE.BoxGeometry(9.6,1.15,.18),ads[i%2]); b.position.set(x,.6,z); if(z<0)b.rotation.y=Math.PI; this.scene.add(b); }
@@ -213,21 +273,34 @@ export class GameRenderer {
 
   private makeAvatar(p: Player, state: MatchState): Avatar {
     const root = new THREE.Group(); const kit = new THREE.Color(state.teams[p.team].color), trim = new THREE.Color(state.teams[p.team].secondary);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: p.keeper ? '#6b64d9' : kit, roughness: .9, flatShading: true }); const skin = new THREE.MeshStandardMaterial({ color: ['#f0b68c','#985c3c','#d78f65','#6d422f'][p.id % 4], roughness: 1, flatShading:true }); const dark = new THREE.MeshStandardMaterial({ color: '#28283b', flatShading: true });
+    const bodyMat = new THREE.MeshStandardMaterial({ color: p.keeper ? '#6b64d9' : kit, roughness: .85, flatShading: true }); const skin = new THREE.MeshStandardMaterial({ color: ['#f0b68c','#985c3c','#d78f65','#6d422f'][p.id % 4], roughness: 1, flatShading:true }); const dark = new THREE.MeshStandardMaterial({ color: '#28283b', flatShading: true });
+    const bootMat = new THREE.MeshStandardMaterial({ color: '#14141c', roughness: .6, flatShading: true });
     const shadow = new THREE.Mesh(new THREE.CircleGeometry(.52, 12), new THREE.MeshBasicMaterial({color:'#153a20',transparent:true,opacity:.28})); shadow.rotation.x=-Math.PI/2; shadow.position.y=.014; this.scene.add(shadow);
     const body = new THREE.Mesh(new THREE.CylinderGeometry(.38,.48,.85,6),bodyMat); body.position.y=1.02; root.add(body);
+    // Chest stripe in trim colour: team identity readable from the side stands.
+    const stripe = new THREE.Mesh(new THREE.CylinderGeometry(.425,.465,.2,6), new THREE.MeshStandardMaterial({ color: trim, roughness: .9, flatShading: true }));
+    stripe.position.y = 1.28; root.add(stripe);
+    // Shirt number on the back, facing away from the direction of play.
+    const number = new THREE.Mesh(new THREE.PlaneGeometry(.52,.52),
+      new THREE.MeshBasicMaterial({ map: numberTexture(p.number), transparent: true }));
+    number.position.set(0, 1.04, -.44); number.rotation.y = Math.PI; root.add(number);
     const head = new THREE.Mesh(new THREE.IcosahedronGeometry(.32,1),skin); head.position.y=1.7; root.add(head); const hair=new THREE.Mesh(new THREE.SphereGeometry(.325,8,5,0,Math.PI*2,0,Math.PI*.42),dark); hair.position.y=1.81; root.add(hair);
     const eyeMat=new THREE.MeshBasicMaterial({color:'#182230'}); for(const ex of [-.11,.11]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,5,4),eyeMat);eye.position.set(ex,1.72,.3);root.add(eye);}
     const limb = (mat:THREE.Material) => new THREE.Mesh(new THREE.CylinderGeometry(.115,.13,.67,5),mat);
+    const boot = () => { const b = new THREE.Mesh(new THREE.BoxGeometry(.17,.12,.32), bootMat); b.position.set(0,-.33,.07); return b; };
     const trimMat=new THREE.MeshStandardMaterial({color:trim,roughness:.9,flatShading:true});
-    const legL=limb(trimMat),legR=limb(trimMat),armL=limb(bodyMat),armR=limb(bodyMat); legL.position.set(-.2,.38,0);legR.position.set(.2,.38,0);armL.position.set(-.48,1.08,0);armR.position.set(.48,1.08,0);root.add(legL,legR,armL,armR);
+    const legL=limb(trimMat),legR=limb(trimMat),armL=limb(bodyMat),armR=limb(bodyMat); legL.position.set(-.2,.38,0);legR.position.set(.2,.38,0);armL.position.set(-.48,1.08,0);armR.position.set(.48,1.08,0);
+    legL.add(boot()); legR.add(boot());
+    root.add(legL,legR,armL,armR);
     const shorts=new THREE.Mesh(new THREE.CylinderGeometry(.47,.4,.27,6),trimMat);shorts.position.y=.68;root.add(shorts); root.castShadow=true; this.scene.add(root);
-    return {root,body,head,legL,legR,armL,armR,shadow,kit,trim,keeper:p.keeper,kitParts:[body,armL,armR],trimParts:[legL,legR,shorts]};
+    return {root,body,head,legL,legR,armL,armR,shadow,kit,trim,keeper:p.keeper,kitParts:[body,armL,armR],trimParts:[legL,legR,shorts,stripe]};
   }
 
   private ensureAvatars(state: MatchState) {
     while (this.avatars.length < state.players.length) this.avatars.push(this.makeAvatar(state.players[this.avatars.length], state));
     state.players.forEach((p,i)=>{const a=this.avatars[i], kit=p.keeper?'#6b64d9':state.teams[p.team].color, trim=state.teams[p.team].secondary; a.kitParts.forEach(m=>(m.material as THREE.MeshStandardMaterial).color.set(kit));a.trimParts.forEach(m=>(m.material as THREE.MeshStandardMaterial).color.set(trim));});
+    // Each side stand flies one club's colours.
+    this.standBanners.forEach((b, i) => (b.material as THREE.MeshBasicMaterial).color.set(state.teams[i % 2].color));
   }
 
   /** Follow target: tracks the ball tightly so sidelines stay near frame centre. */
