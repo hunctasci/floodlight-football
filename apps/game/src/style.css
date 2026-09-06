@@ -5,4 +5,4 @@
 .score{font-size:18px;padding:2px 8px}
 .clock{font-size:9px;padding:7px 6px;min-width:0}
 .camchip{pointer-events:auto;cursor:pointer}
-.strip{display:none!important}.radar{left:50%;right:auto;top:auto;bottom:10px;transform:translateX(-50%);width:140px;height:84px;opacity:.92}.camchip{top:8px;right:auto;left:8px;font-size:9px;padding:4px 6px;opacity:.85}.charge{bottom:102px}.match-pad{right:12px;bottom:96px}.tbtn{opacity:.55}.tbtn:active{opacity:1;background:#f7bf30;color:#101b31}.stick-base{opacity:.5}}
+.strip{display:none!important}.radar{left:50%;right:auto;top:auto;bottom:10px;transform:translateX(-50%);width:140px;height:84px;opacity:.92}.camchip{top:8px;right:auto;left:8px;font-size:9px;padding:4px 6px;opacity:.85}.charge{bottom:102px}.match-pad{right:12px;bottom:78px}.tbtn{opacity:.55}.tbtn:active{opacity:1;background:#f7bf30;color:#101b31}.stick-base{opacity:.5}}
