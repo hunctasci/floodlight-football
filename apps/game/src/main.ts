@@ -19,6 +19,7 @@ import {
   effectiveOnlineDuration, ingestRemoteCandidate, isE2EMode, resetNegotiationState,
   type MultiplayerDebugState,
 } from './net/online-session';
+import { candidateFamily, netlog, redactCandidate, shortPeer } from './net/netlog';
 import {
   buildInviteUrl, canShare, copyText, friendlyNetError, inviteCodeFromSearch, normalizeRoomCode,
 } from './net/invite';
@@ -247,8 +248,8 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
   if(screen==='title') { const items=LEAGUES_LIVE?['PLAY MATCH','ONLINE MATCH','DAILY CUP','LEAGUE']:['PLAY MATCH','ONLINE MATCH','DAILY CUP','LEAGUE · COMING SOON']; panel(`<div class="eyebrow">ARCADE FOOTBALL · 1998</div><div class="title">FLOODLIGHT<br>FOOTBALL</div><div class="subtitle">SATURDAY CUP</div>${titleNote?`<div class="message">${titleNote}</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">${isTouchDevice ? 'TOUCH READY · TAP OK' : 'KEYBOARD ONLY · PRESS ENTER'}<br>ARROWS MOVE · S PASS · A LONG · D SHOOT · W CROSS · SPACE SWITCH${isTouchDevice ? '<br>OR LEFT STICK + BUTTONS' : ''}</div>`); wireMenuItems(); return; }
   if(screen==='team') { const t=TEAMS[teamIndex],o=TEAMS[(teamIndex+1)%TEAMS.length]; panel(`<div class="eyebrow">CHOOSE YOUR CLUB</div><div class="title" style="font-size:34px">SATURDAY CUP</div><div class="team-row"><div class="team-card active"><div class="team-swatch" style="background:${t.color}"></div>${t.name}<br><small>${t.city}</small></div><div class="team-card"><div class="team-swatch" style="background:${o.color}"></div>${o.name}<br><small>OPPONENT</small></div></div><div class="menu-item selected">${duration/60} MINUTE HALVES</div><div class="hint">← / → CHANGE TEAM · ↑ / ↓ CHANGE LENGTH<br>ENTER KICK OFF · ESC BACK</div>`); return; }
   if(screen==='pause') { const items=['RESUME','RESTART MATCH','MAIN MENU']; panel(`<div class="eyebrow">MATCH PAUSED</div><div class="title" style="font-size:38px">PAUSE</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">ARROWS MOVE · S PASS/TACKLE · A LONG · D/MOUSE SHOOT/SLIDE · W CROSS<br>SPACE SWITCH · E/SHIFT SPRINT · C CAMERA (${renderer.cameraLabel()}) · ↑ / ↓ SELECT · ENTER CONFIRM · ESC RESUME</div>`); return; }
-  if(screen==='online') { const items=['PLAY WITH A FRIEND','JOIN WITH CODE','BACK']; panel(`<div class="eyebrow">PLAY ONLINE · FRIEND MATCH</div><div class="title" style="font-size:38px" data-testid="online-title">ONLINE</div><div class="subtitle">${TEAMS[teamIndex].short} · ${duration/60} MIN HALVES</div>${netStatus?`<div class="subtitle" data-testid="online-status">${netStatus}</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-testid="online-${x.toLowerCase().replace(/[^a-z]+/g, '-')}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
-  if(screen==='host') { const share = canShare(); panel(`<div class="eyebrow">SHARE THE LINK · YOU ARE TEAM 1</div><div class="title" style="font-size:52px" data-testid="room-code">${roomCode || '···'}</div><div class="subtitle" data-testid="host-status">${netStatus || '…'}</div>${inviteUrl?`<textarea class="netpaste scorebox netcode" id="invitelink" data-testid="invite-url" rows="2" readonly>${inviteUrl}</textarea>${copyNote?`<div class="hint">${copyNote}</div>`:''}<div class="menu-item netbtn" data-act="copy">▶ COPY LINK</div>${share?`<div class="menu-item netbtn" data-act="share">▶ SHARE</div>`:''}`:''}<div class="menu-item netbtn" data-act="cancel" data-testid="host-cancel">▶ CANCEL</div>`); return; }
+  if(screen==='online') { const items=['PLAY WITH A FRIEND','JOIN WITH CODE','BACK']; panel(`<div class="eyebrow">PLAY ONLINE · FRIEND MATCH</div><div class="title" style="font-size:38px" data-testid="online-title">ONLINE</div><div class="subtitle">${TEAMS[teamIndex].short} · ${duration/60} MIN HALVES</div>${netStatus?`<div class="subtitle" data-testid="online-status">${netStatus}</div><div class="menu-item netbtn" data-act="copylog" data-testid="copy-debug-log">▶ COPY DEBUG LOG</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-testid="online-${x.toLowerCase().replace(/[^a-z]+/g, '-')}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
+  if(screen==='host') { const share = canShare(); panel(`<div class="eyebrow">SHARE THE LINK · YOU ARE TEAM 1</div><div class="title" style="font-size:52px" data-testid="room-code">${roomCode || '···'}</div><div class="subtitle" data-testid="host-status">${netStatus || '…'}</div>${inviteUrl?`<textarea class="netpaste scorebox netcode" id="invitelink" data-testid="invite-url" rows="2" readonly>${inviteUrl}</textarea>${copyNote?`<div class="hint">${copyNote}</div>`:''}<div class="menu-item netbtn" data-act="copy">▶ COPY LINK</div>${share?`<div class="menu-item netbtn" data-act="share">▶ SHARE</div>`:''}`:''}<div class="menu-item netbtn" data-act="copylog" data-testid="copy-debug-log">▶ COPY DEBUG LOG</div><div class="menu-item netbtn" data-act="cancel" data-testid="host-cancel">▶ CANCEL</div>`); return; }
   if(screen==='join') { panel(`<div class="eyebrow">ENTER THE FRIEND CODE</div><div class="title" style="font-size:38px">JOIN</div><div class="subtitle" data-testid="join-status">${netStatus || 'TYPE THE 6-LETTER CODE'}</div>${roomCode ? '' : `<textarea class="netpaste scorebox" style="width:180px" id="netcode" data-testid="join-code-input" rows="1" maxlength="6" placeholder="ABCDEF"></textarea><div class="menu-item netbtn" data-act="join" data-testid="join-submit">▶ JOIN</div>`}<div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
   if(screen==='joining') { panel(`<div class="eyebrow">JOINING MATCH…</div><div class="title" style="font-size:38px" data-testid="room-code">${roomCode || '···'}</div><div class="subtitle" data-testid="joining-status">${netStatus || 'JOINING MATCH…'}</div><div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
   if(screen==='netready') { const items=["I'M READY",'CANCEL']; panel(`<div class="eyebrow" data-testid="ready-room">ROOM ${roomCode} · ${TEAMS[teamIndex].short} · ${duration/60} MIN</div><div class="title" style="font-size:38px">READY?</div><div class="subtitle" data-testid="ready-status">YOU ${iAmReady ? 'READY ✓' : '…'} · FRIEND ${peerReady ? 'READY ✓' : '…'}</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-testid="ready-${x.toLowerCase().replace(/[^a-z]+/g, '-')}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">BOTH SIDES PRESS READY — THEN KICK OFF</div>`); return; }
@@ -286,21 +287,48 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
   if(screen==='half') { const hs=engine.state; panel(`<div class="eyebrow">HALF TIME · ${hs.score[0]} – ${hs.score[1]}</div><div class="title" style="font-size:42px" data-testid="halftime-title">HALF TIME</div><div class="subtitle" data-testid="halftime-score">${hs.teams[0].short} ${hs.score[0]} – ${hs.score[1]} ${hs.teams[1].short}</div><div class="hint">SECOND HALF STARTS SHORTLY — PRESS ENTER TO CONTINUE</div>`); return; }
   const s=engine.state,items=['PLAY AGAIN','MAIN MENU','SHARE RESULT']; panel(`<div class="eyebrow">${dailyMode?'DAILY CUP · FINAL SCORE':'SATURDAY CUP · FINAL SCORE'}</div><div class="title" style="font-size:42px" data-testid="fulltime-title">FULL TIME</div><div class="subtitle" data-testid="fulltime-score">${s.teams[0].short} ${s.score[0]} – ${s.score[1]} ${s.teams[1].short}</div><div class="statline"><span>SHOTS<strong>${s.stats.shots[0]}–${s.stats.shots[1]}</strong></span><span>SAVES<strong>${s.stats.saves[0]}–${s.stats.saves[1]}</strong></span></div>${dailyMode?`<div class="statline"><span>DAILY BEST<strong>${Math.max(getDailyBest(),s.score[0])}</strong></span></div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM</div>`);
 }
+/** Per-session ICE family counters (categories only, never addresses). */
+const iceLogStats = { sent: {} as Record<string, number>, recv: {} as Record<string, number> };
+function noteIceStat(dir: 'sent' | 'recv', family: string) {
+  const m = dir === 'sent' ? iceLogStats.sent : iceLogStats.recv;
+  m[family] = (m[family] ?? 0) + 1;
+}
+/** Attach redacted diagnostics to a fresh RTCTransport.
+ * onPcState/onIceDebug survive driver takeover; the dc wrapper must be
+ * applied AFTER `new NetDriver` (its constructor owns transport.onstate). */
+function watchTransport(t: RTCTransport, role: string) {
+  t.onPcState = (s) => {
+    netlog.log('pc', `${role} pc=${s.connection} ice=${s.ice} sig=${s.signaling} gather=${s.gathering}`);
+  };
+  t.onIceDebug = (e) => {
+    noteIceStat(e.dir === 'local' ? 'sent' : 'recv', e.family);
+    netlog.log('ice', `${role} ice-${e.dir} typ=${e.family} ok=${e.ok ? 1 : 0}${e.err ? ` err=${e.err}` : ''}`);
+  };
+}
+function wrapDcState(t: RTCTransport, role: string) {
+  const prev = t.onstate;
+  t.onstate = (s) => {
+    netlog.log('dc', `${role} datachannel=${s}`);
+    try { prev?.(s); } catch { /* driver handler */ }
+  };
+}
 function attachDriver(d: NetDriver) {
   d.onEvent = (e) => {
     if (e.type === 'connected') {
+      netlog.log('driver', 'handshake connected → READY lobby');
       screen = 'netready'; menuIndex = 0; peerReady = false; iAmReady = false; menuDirty = true;
       mpState = 'connected';
     }
-    else if (e.type === 'peerReady') { peerReady = true; menuDirty = true; if (mpState === 'connected') mpState = 'ready'; }
-    else if (e.type === 'started') { mpState = 'playing'; launchNet(d); }
+    else if (e.type === 'peerReady') { netlog.log('driver', 'peer ready'); peerReady = true; menuDirty = true; if (mpState === 'connected') mpState = 'ready'; }
+    else if (e.type === 'started') { netlog.log('driver', 'both ready → kickoff'); mpState = 'playing'; launchNet(d); }
     else if (e.type === 'peerPaused') {
       if (e.paused) openPause();
       else if (screen === 'pause' && !engine.state.paused) screen = 'match';
       menuDirty = true;
     }
-    else if (e.type === 'peerQuit') { closeNet(); screen = 'title'; menuIndex = 0; menuDirty = true; }
+    else if (e.type === 'peerQuit') { netlog.log('driver', 'peer quit'); closeNet(); screen = 'title'; menuIndex = 0; menuDirty = true; }
     else if (e.type === 'peerDropped') {
+      netlog.log('driver', `peer dropped screen=${screen}`);
       // Lobby drop (READY shown, match not started): clean FRIEND LEFT.
       // Mid-match drop: AI takes over so solo can continue.
       if (screen === 'netready') {
@@ -312,6 +340,7 @@ function attachDriver(d: NetDriver) {
     }
     else if (e.type === 'error') {
       const msg = e.message.toUpperCase();
+      netlog.log('error', `driver error: ${msg.slice(0, 80)}`);
       closeNet(); mpState = 'error';
       netStatus = msg; screen = 'online'; menuIndex = 0; menuDirty = true;
     }
@@ -340,26 +369,45 @@ async function connectSignal(): Promise<SignalingClient> {
   const base = location.origin;
   const boundFetch: (url: string, init?: RequestInit) => Promise<Response> = (url, init) => fetch(url, init);
   const kind = await detectControlPlane(base, boundFetch, 5000);
+  netlog.log('signal', `control-plane=${kind}`);
   if (kind === 'cloudflare') {
     const cf = new CloudflareSignalingClient(undefined, boundFetch);
     await cf.connect(base, 5000);
+    netlog.log('signal', 'socket probe ok');
     return cf;
   }
   const legacy = new AutoSignal();
   await legacy.connect(base);
+  netlog.log('signal', 'legacy socket open');
   return legacy;
 }
 function webrtcSupported(): boolean {
   return typeof RTCPeerConnection !== 'undefined';
+}
+/** Short UA tag for diagnostics (engine only, no full UA string in logs). */
+function browserTag(): string {
+  try {
+    const ua = navigator.userAgent;
+    if (/Safari\//.test(ua) && !/Chrome\//.test(ua)) return 'safari';
+    if (/Edg\//.test(ua)) return 'edge';
+    if (/Firefox\//.test(ua)) return 'firefox';
+    if (/Chrome\//.test(ua)) return 'chrome';
+    return 'other';
+  } catch {
+    return 'unknown';
+  }
 }
 /** Wire trickle ICE both ways between one transport and the room socket. */
 function relayIce(transport: RTCTransport, signal: SignalingClient, peer: () => string | null) {
   transport.onCandidate = (c) => {
     const to = peer();
     if (!to) return;
+    netlog.log('ice', `ice-send ${redactCandidate(c)}`);
+    noteIceStat('sent', candidateFamily(c.candidate));
     try {
       signal.sendSignal(to, c);
     } catch {
+      netlog.log('error', 'ice-send failed: socket closing');
       /* socket closing; the data channel may still connect */
     }
   };
@@ -376,6 +424,10 @@ function startHost() {
   const fini = (s: SignalingClient) => { try { s.close(); } catch { /* gone */ } };
   resetNegotiationState(neg);
   myPeerId = createSessionPeerId();
+  netlog.clear();
+  for (const k of Object.keys(iceLogStats.sent)) delete iceLogStats.sent[k];
+  for (const k of Object.keys(iceLogStats.recv)) delete iceLogStats.recv[k];
+  netlog.log('info', `host start room peer=${shortPeer(myPeerId)} ua=${browserTag()}`);
   mpState = 'creating-room';
   netStatus = 'CREATING ROOM…'; inviteUrl = ''; copyNote = ''; menuDirty = true;
   void (async () => {
@@ -388,6 +440,7 @@ function startHost() {
     signal.onPeerJoined = (peer) => {
       if (!alive() || peerId) return;
       peerId = peer; neg.remotePeerId = peer;
+      netlog.log('signal', `peer-joined peer=${shortPeer(peer)}`);
       mpState = 'negotiating';
       netStatus = 'FRIEND FOUND… CONNECTING…'; menuDirty = true;
       void (async () => {
@@ -397,9 +450,11 @@ function startHost() {
           // Attach BEFORE sending the offer so early trickle candidates have
           // a target; flush anything queued while the offer was being built.
           const queued = attachNegotiationTransport(neg, transport);
+          watchTransport(transport, 'host');
           for (const c of queued) void transport.addIceCandidate(c).catch(() => {});
           relayIce(transport, signal, () => (token === netGen ? peerId : null));
           signal.sendSignal(peer, offer);
+          netlog.log('sdp', `offer sent ${offer.sdp.length}B`);
           netStatus = 'CONNECTING…'; menuDirty = true;
         } catch { if (alive()) { mpState = 'error'; deadNet('THIS BROWSER CAN’T PLAY ONLINE — TRY CHROME OR SAFARI'); } }
       })();
@@ -410,6 +465,7 @@ function startHost() {
       // AND after the answer SDP. The transport is never nulled on answer.
       if (isIcePayload(payload)) {
         if (screen !== 'host' && screen !== 'netready') return;
+        netlog.log('ice', `host ice-recv ${redactCandidate(payload)}`);
         void ingestRemoteCandidate(neg, payload);
         return;
       }
@@ -419,6 +475,7 @@ function startHost() {
       const t = neg.transport as RTCTransport | null;
       if (!t) return;
       neg.answerHandled = true;
+      netlog.log('sdp', `answer recv ${payload.sdp.length}B`);
       void t.acceptAnswerSdp(payload).then(() => {
         if (!alive()) { t.close(); return; }
         // Keep neg.transport pointing at the live transport so LATE
@@ -429,6 +486,8 @@ function startHost() {
         mpState = 'negotiating';
         const onlineDuration = effectiveOnlineDuration(duration, bootSearch);
         hookDriver(new NetDriver(t, { host: true, teamIndex, duration: onlineDuration, matchToken }));
+        wrapDcState(t, 'host');
+        netlog.log('driver', 'host handshake started (waiting for datachannel)');
       }).catch(() => { if (alive()) { mpState = 'error'; deadNet(netMsg('negotiation failed')); } });
     };
     signal.onPeerLeft = () => {
@@ -442,9 +501,15 @@ function startHost() {
       if (!alive()) return fini(signal);
       roomCode = created.roomCode; matchToken = created.matchToken;
       inviteUrl = buildInviteUrl(location.origin, location.pathname, roomCode);
+      netlog.log('signal', `room created code=${roomCode}`);
       mpState = 'waiting-for-peer';
       netStatus = 'WAITING FOR FRIEND…'; menuDirty = true;
-    } catch (e) { if (alive()) { mpState = 'error'; deadNet(netMsg(e)); } }
+    } catch (e) {
+      if (alive()) {
+        netlog.log('error', `create-room failed: ${(e instanceof Error ? e.message : String(e)).slice(0, 80)}`);
+        mpState = 'error'; deadNet(netMsg(e));
+      }
+    }
   })();
 }
 /**
@@ -469,6 +534,10 @@ function cloudJoin(code: string) {
   const fini = (s: SignalingClient) => { try { s.close(); } catch { /* gone */ } };
   resetNegotiationState(neg);
   myPeerId = createSessionPeerId();
+  netlog.clear();
+  for (const k of Object.keys(iceLogStats.sent)) delete iceLogStats.sent[k];
+  for (const k of Object.keys(iceLogStats.recv)) delete iceLogStats.recv[k];
+  netlog.log('info', `guest join ${code} peer=${shortPeer(myPeerId)} ua=${browserTag()}`);
   mpState = 'joining-room';
   netStatus = 'JOINING MATCH…'; menuDirty = true;
   void (async () => {
@@ -492,6 +561,7 @@ function cloudJoin(code: string) {
       if (isIcePayload(payload)) {
         if (screen !== 'join' && screen !== 'joining' && screen !== 'netready') return;
         if (peerId && from !== peerId) return;
+        netlog.log('ice', `guest ice-recv ${redactCandidate(payload)}`);
         void ingestRemoteCandidate(neg, payload);
         return;
       }
@@ -501,6 +571,7 @@ function cloudJoin(code: string) {
       if (peerId && from !== peerId) return;
       neg.offerHandled = true;
       peerId = from; neg.remotePeerId = from;
+      netlog.log('signal', `offer recv from=${shortPeer(from)}`);
       mpState = 'negotiating';
       netStatus = 'FRIEND FOUND… CONNECTING…'; menuDirty = true;
       void RTCTransport.acceptOfferTrickle(payload).then(({ transport, answer }) => {
@@ -508,13 +579,17 @@ function cloudJoin(code: string) {
         // Attach BEFORE sending the answer; flush pre-offer candidates in
         // order, keep the reference for post-offer candidates.
         const queued = attachNegotiationTransport(neg, transport);
+        watchTransport(transport, 'guest');
         relayIce(transport, signal, () => (token === netGen ? peerId : null));
         for (const c of queued) void transport.addIceCandidate(c).catch(() => {});
         try { signal.sendSignal(from, answer); }
         catch { transport.close(); if (alive()) failJoin('SIGNAL LOST'); return; }
+        netlog.log('sdp', `answer sent ${answer.sdp.length}B`);
         // SDP done ≠ driver ready. Keep CONNECTING until hello/welcome → netready.
         netStatus = 'CONNECTING…'; menuDirty = true;
         hookDriver(new NetDriver(transport, { host: false, matchToken }));
+        wrapDcState(transport, 'guest');
+        netlog.log('driver', 'guest handshake started (waiting for datachannel)');
       }).catch(() => { if (alive()) failJoin('negotiation failed'); });
     };
     const failJoin = (reason: unknown) => {
@@ -531,10 +606,16 @@ function cloudJoin(code: string) {
       const joined = await signal.joinRoom(normalized, myPeerId);
       if (!alive()) return fini(signal);
       roomCode = joined.roomCode; matchToken = joined.matchToken;
+      netlog.log('signal', `room joined code=${roomCode} peers=${joined.peers.length}`);
       mpState = 'negotiating';
       netStatus = joined.peers.length > 0 ? 'FRIEND FOUND… CONNECTING…' : 'CONNECTING… WAITING FOR HOST…';
       menuDirty = true;
-    } catch (e) { if (alive()) failJoin(e); }
+    } catch (e) {
+      if (alive()) {
+        netlog.log('error', `join-room failed: ${(e instanceof Error ? e.message : String(e)).slice(0, 80)}`);
+        failJoin(e);
+      }
+    }
   })();
 }
 function doJoin() {
@@ -568,6 +649,16 @@ function doShareLink() {
 function doReady() {
   if (!net || iAmReady) return;
   iAmReady = true; net.setReady(); mpState = 'ready'; menuDirty = true;
+}
+/** Copy the redacted net diagnostic log (no token/SDP/IPs) for bug reports. */
+function doCopyLog() {
+  const summary =
+    `ice sent ${JSON.stringify(iceLogStats.sent)} recv ${JSON.stringify(iceLogStats.recv)}\n` +
+    netlog.dump();
+  void copyText(summary).then((ok) => {
+    copyNote = ok ? 'DEBUG LOG COPIED — PASTE IT IN YOUR BUG REPORT' : 'TAP THE LOG TO SELECT IT';
+    menuDirty = true;
+  });
 }
 function areaVal(id: string): string {
   return (ui.querySelector<HTMLTextAreaElement>(`#${id}`)?.value || '').trim();
@@ -636,6 +727,7 @@ function handleMenuEnter(act?: string) {
   }
   else if (screen === 'team') launch();
   else if (screen === 'online') {
+    if (act === 'copylog') { doCopyLog(); return; }
     if (menuIndex === 0) { screen = 'host'; menuIndex = 0; roomCode = ''; netStatus = ''; inviteUrl = ''; copyNote = ''; startHost(); }
     else if (menuIndex === 1) { screen = 'join'; menuIndex = 0; roomCode = ''; netStatus = ''; }
     else { screen = 'title'; menuIndex = 0; netStatus = ''; }
@@ -644,6 +736,7 @@ function handleMenuEnter(act?: string) {
     if (act === 'cancel') cancelNet();
     else if (act === 'copy') doCopyLink();
     else if (act === 'share') doShareLink();
+    else if (act === 'copylog') doCopyLog();
   }
   else if (screen === 'join') {
     if (act === 'cancel') cancelNet(); else if (act === 'join') doJoin();
@@ -727,9 +820,10 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
 }
 if(import.meta.env.DEV) Object.assign(window,{__retro:{get engine(){return engine},snapshot:()=>JSON.parse(JSON.stringify(engine.state)),start:launch}});
 // TEST-ONLY diagnostics (dev or ?e2e): high-level multiplayer + sim state for
-// the real-browser E2E. Never exposes matchToken, SDP or ICE. The normal
-// player flow is still driven through the visible menu; this only lets the
-// test assert internal invariants (distinct peer ids, tick sync, hashes).
+// the real-browser E2E, plus the redacted net log (categories/counts only —
+// never matchToken, SDP bodies, or candidate IPs). The normal player flow is
+// still driven through the visible menu; this only lets the test assert
+// internal invariants (distinct peer ids, tick sync, hashes).
 if (import.meta.env.DEV || e2eMode) {
   Object.assign(window, {
     __floodlightTest: {
@@ -744,6 +838,8 @@ if (import.meta.env.DEV || e2eMode) {
       getNetState: () => (net ? net.state : 'none'),
       hasNetSession: () => !!net?.session,
       isE2E: () => e2eMode,
+      getNetLog: () => netlog.dump(),
+      getIceStats: () => JSON.parse(JSON.stringify(iceLogStats)),
       getSimulationState: () => {
         const s = engine.state;
         let hash = 0;

@@ -156,6 +156,13 @@ test('E2E 2 — manual JOIN WITH CODE reaches the same READY lobby', async ({ br
     const g = await peerIds(guest);
     expect(h.room).toBe(g.room);
     expect(h.mine).not.toBe(g.mine);
+    // Redacted diagnostics prove the handshake path without leaking secrets.
+    const hostLog = await host.evaluate(
+      () => (window as unknown as { __floodlightTest?: { getNetLog(): string } }).__floodlightTest?.getNetLog() ?? '',
+    );
+    expect(hostLog).toMatch(/driver.*connected/);
+    expect(hostLog).not.toMatch(/matchToken|v=0\r?\no=-/);
+    expect(hostLog).not.toMatch(/192\.168|10\.\d+\.\d+\.\d+/);
     assertNoBadErrors(errs.errors, errs.failed);
   } catch (e) {
     // eslint-disable-next-line no-console

@@ -49,6 +49,22 @@ export interface RTCOffer {
 }
 
 const STUN = 'stun:stun.l.google.com:19302';
+const STUN_FALLBACKS = ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'];
+
+/** Redundant STUN set: one Google endpoint down must not kill gathering. */
+function iceServers(stun: string): RTCIceServer[] {
+  const urls = [stun, ...STUN_FALLBACKS.filter((s) => s !== stun)];
+  return [{ urls }];
+}
+
+/** DataChannel-only needs max-bundle + MUX; ignored where unsupported. */
+function pcConfig(stun: string): RTCConfiguration {
+  return {
+    iceServers: iceServers(stun),
+    bundlePolicy: 'max-bundle',
+    rtcpMuxPolicy: 'require',
+  };
+}
 
 function waitIceComplete(pc: RTCPeerConnection, timeoutMs = 4000): Promise<void> {
   return new Promise((resolve) => {
@@ -86,6 +102,12 @@ export function isSdpPayload(p: SignalPayload): p is SdpInit {
   return (p as { type: string }).type !== 'candidate' && typeof (p as SdpInit).sdp === 'string';
 }
 
+/** Candidate family without storing the address (host/srflx/prflx/relay). */
+function iceFamilyOf(candidate: string): string {
+  const m = /\styp\s+(host|srflx|prflx|relay)\b/i.exec(candidate);
+  return m ? m[1].toLowerCase() : 'unknown';
+}
+
 /** Structural check for inbound signaling payloads (never throws). */
 export function isValidSignalPayload(v: unknown): v is SignalPayload {
   if (!v || typeof v !== 'object') return false;
@@ -103,6 +125,22 @@ export function isValidSignalPayload(v: unknown): v is SignalPayload {
   return typeof p.sdp === 'string' && p.sdp.length >= 1 && (p.sdp as string).length <= 16384;
 }
 
+/** Aggregate PC/ICE states for diagnostics (never SDP or addresses). */
+export interface PcDebugState {
+  connection: string;
+  ice: string;
+  signaling: string;
+  gathering: string;
+}
+
+/** Per-candidate debug event: family only, never the raw candidate line. */
+export interface IceDebugEvent {
+  dir: 'local' | 'remote';
+  family: string;
+  ok: boolean;
+  err?: string;
+}
+
 /** Browser WebRTC transport. Signaling (offer/answer + trickle ICE) stays
  *  outside: the Cloudflare control plane relays it; the data channel carries
  *  gameplay. Legacy non-trickle helpers remain for tests/debugging. */
@@ -111,6 +149,10 @@ export class RTCTransport implements DataTransport {
   onstate: ((s: TransportState) => void) | null = null;
   /** Fires for each locally gathered ICE candidate (trickle flow). */
   onCandidate: ((c: IceInit) => void) | null = null;
+  /** PC/ICE state transitions; survives driver takeover (unlike onstate). */
+  onPcState: ((s: PcDebugState) => void) | null = null;
+  /** Redacted per-candidate outcomes for the net diagnostic log. */
+  onIceDebug: ((e: IceDebugEvent) => void) | null = null;
   private _state: TransportState = 'connecting';
   private pc: RTCPeerConnection;
   private dc: RTCDataChannel | null = null;
@@ -119,6 +161,9 @@ export class RTCTransport implements DataTransport {
   private remoteReady = false;
 
   get state(): TransportState { return this._state; }
+
+  /** Expose the underlying PC read-only for stats/state inspection. */
+  get peerConnection(): RTCPeerConnection { return this.pc; }
 
   private constructor(pc: RTCPeerConnection) {
     this.pc = pc;
@@ -141,6 +186,11 @@ export class RTCTransport implements DataTransport {
     this.pc.onicecandidate = (e) => {
       const c = e.candidate;
       if (!c || !c.candidate) return;
+      try {
+        this.onIceDebug?.({ dir: 'local', family: iceFamilyOf(c.candidate), ok: true });
+      } catch {
+        /* diagnostics only */
+      }
       this.onCandidate?.({
         type: 'candidate',
         candidate: c.candidate,
@@ -150,12 +200,29 @@ export class RTCTransport implements DataTransport {
     };
   }
 
+  private emitPcState() {
+    try {
+      this.onPcState?.({
+        connection: this.pc.connectionState,
+        ice: this.pc.iceConnectionState,
+        signaling: this.pc.signalingState,
+        gathering: this.pc.iceGatheringState,
+      });
+    } catch {
+      /* diagnostics only */
+    }
+  }
+
   private watchConnection() {
     this.pc.onconnectionstatechange = () => {
+      this.emitPcState();
       if (this.pc.connectionState === 'failed' || this.pc.connectionState === 'closed') {
         this.setState('closed');
       }
     };
+    this.pc.oniceconnectionstatechange = () => this.emitPcState();
+    this.pc.onsignalingstatechange = () => this.emitPcState();
+    this.pc.onicegatheringstatechange = () => this.emitPcState();
   }
 
   /** Queue or apply one remote ICE candidate (trickle flow, never throws). */
@@ -175,8 +242,23 @@ export class RTCTransport implements DataTransport {
           sdpMLineIndex: c.sdpMLineIndex ?? undefined,
         }),
       );
-    } catch {
+      try {
+        this.onIceDebug?.({ dir: 'remote', family: iceFamilyOf(c.candidate), ok: true });
+      } catch {
+        /* diagnostics only */
+      }
+    } catch (e) {
       /* stale candidate (e.g. after restart): connectivity continues without it */
+      try {
+        this.onIceDebug?.({
+          dir: 'remote',
+          family: iceFamilyOf(c.candidate),
+          ok: false,
+          err: e instanceof Error ? e.name.slice(0, 32) : 'error',
+        });
+      } catch {
+        /* diagnostics only */
+      }
     }
   }
 
@@ -192,15 +274,30 @@ export class RTCTransport implements DataTransport {
             sdpMLineIndex: c.sdpMLineIndex ?? undefined,
           }),
         );
-      } catch {
+        try {
+          this.onIceDebug?.({ dir: 'remote', family: iceFamilyOf(c.candidate), ok: true });
+        } catch {
+          /* diagnostics only */
+        }
+      } catch (e) {
         /* ignore stale entries */
+        try {
+          this.onIceDebug?.({
+            dir: 'remote',
+            family: iceFamilyOf(c.candidate),
+            ok: false,
+            err: e instanceof Error ? e.name.slice(0, 32) : 'error',
+          });
+        } catch {
+          /* diagnostics only */
+        }
       }
     }
   }
 
   /** Host side (trickle): offer returns immediately; candidates flow via onCandidate. */
   static async createOfferTrickle(stun = STUN): Promise<{ transport: RTCTransport; offer: SdpInit }> {
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: stun }] });
+    const pc = new RTCPeerConnection(pcConfig(stun));
     const t = new RTCTransport(pc);
     const dc = pc.createDataChannel('game', { ordered: true });
     t.wire(dc);
@@ -213,7 +310,7 @@ export class RTCTransport implements DataTransport {
 
   /** Joiner side (trickle): answer returns immediately; candidates flow via onCandidate. */
   static async acceptOfferTrickle(offer: SdpInit, stun = STUN): Promise<{ transport: RTCTransport; answer: SdpInit }> {
-    const pc = new RTCPeerConnection({ iceServers: [{ urls: stun }] });
+    const pc = new RTCPeerConnection(pcConfig(stun));
     const t = new RTCTransport(pc);
     pc.ondatachannel = (e) => t.wire(e.channel);
     t.watchConnection();
