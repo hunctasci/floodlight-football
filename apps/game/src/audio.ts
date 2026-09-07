@@ -3,7 +3,7 @@ import type { GameEvent } from './types';
 /** Tiny original synthesised match soundscape. No samples or music files. */
 export class MatchAudio {
   private ctx: AudioContext | null = null;
-  private muted = localStorage.getItem('retro-football-muted') === '1';
+  private muted = localStorage.getItem('floodlight-muted') === '1';
   private ambience: OscillatorNode | null = null;
   get isMuted() { return this.muted; }
   enable() {
@@ -11,7 +11,7 @@ export class MatchAudio {
     if (this.ctx.state === 'suspended') void this.ctx.resume();
     if (!this.ambience && !this.muted) this.startAmbience();
   }
-  toggle() { this.muted = !this.muted; localStorage.setItem('retro-football-muted', this.muted ? '1' : '0'); if (this.muted) this.stopAmbience(); else { this.enable(); this.startAmbience(); } return this.muted; }
+  toggle() { this.muted = !this.muted; localStorage.setItem('floodlight-muted', this.muted ? '1' : '0'); if (this.muted) this.stopAmbience(); else { this.enable(); this.startAmbience(); } return this.muted; }
   private tone(freq: number, seconds: number, type: OscillatorType, volume: number, slide = 1) {
     const c = this.ctx; if (!c || this.muted) return;
     const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(freq, c.currentTime); o.frequency.exponentialRampToValueAtTime(Math.max(25, freq * slide), c.currentTime + seconds);

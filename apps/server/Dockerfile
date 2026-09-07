@@ -7,8 +7,8 @@ COPY packages/protocol/package.json ./packages/protocol/
 RUN npm ci
 COPY apps/server ./apps/server
 COPY packages/protocol ./packages/protocol
-RUN npm run build --workspace=@retro/protocol \
- && npm run build --workspace=@retro/server \
+RUN npm run build --workspace=@floodlight/protocol \
+ && npm run build --workspace=@floodlight/server \
  && npm prune --omit=dev
 
 # ---- run: dist + production node_modules only, non-root ----

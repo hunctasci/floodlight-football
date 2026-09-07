@@ -1,4 +1,4 @@
-# Retro Football — Saturday Cup
+# Floodlight Football — Saturday Cup
 
 A complete local, single-player football game for **desktop and mobile**. Four fictional clubs, 11 versus 11, original low-poly stadium and synthesized sound.
 

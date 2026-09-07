@@ -35,8 +35,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build --workspace=@retro/protocol
-      - run: REDIS_URL=redis://localhost:6379 npm run test --workspace=@retro/server
+      - run: npm run build --workspace=@floodlight/protocol
+      - run: REDIS_URL=redis://localhost:6379 npm run test --workspace=@floodlight/server
 
   docker:
     runs-on: ubuntu-latest

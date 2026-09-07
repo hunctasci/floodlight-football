@@ -1,5 +1,5 @@
 {
-  "name": "retro-football-monorepo",
+  "name": "floodlight-football-monorepo",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -7,8 +7,8 @@
   "scripts": {
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
-    "dev:game": "npm run dev --workspace=retro-football",
-    "dev:server": "npm run dev --workspace=@retro/server"
+    "dev:game": "npm run dev --workspace=floodlight-football",
+    "dev:server": "npm run dev --workspace=@floodlight/server"
   },
   "engines": { "node": "^20.19.0 || >=22.12.0" }
 }

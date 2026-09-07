@@ -54,7 +54,7 @@ services:
       - 80:80
       - 443:443
     volumes:
-      # Production game build (run `npm run build --workspace=retro-football` first).
+      # Production game build (run `npm run build --workspace=floodlight-football` first).
       - ./apps/game/dist:/srv/game:ro
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

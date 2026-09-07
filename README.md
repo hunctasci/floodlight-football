@@ -1,4 +1,4 @@
-# Retro Football — open-source arcade football
+# Floodlight Football — open-source arcade football
 
 11v11 browser football (Three.js + deterministic sim), local AI, P2P online,
 touch + PWA. MIT licensed.

@@ -37,7 +37,7 @@ test('service worker caches the app shell and versions itself', () => {
   for (const token of ['install', 'activate', 'fetch', 'skipWaiting', 'clients.claim', '/manifest.webmanifest', '/index.html']) {
     assert.ok(sw.includes(token), `sw.js mentions ${token}`);
   }
-  const v = sw.match(/retro-football-v\d+/);
+  const v = sw.match(/floodlight-v\d+/);
   assert.ok(v, 'sw.js has a versioned cache name for clean upgrades');
 });
 

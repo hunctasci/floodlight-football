@@ -57,7 +57,7 @@ test('server url prefers the saved override, else the dev fallback in node', () 
     setServerUrl('https://play.example.com/');
     assert.equal(getServerUrl(), 'https://play.example.com', 'trailing slash trimmed');
     // Production page served next to the backend: same origin, zero setup.
-    mem.delete('retro-server-url');
+    mem.delete('floodlight-server-url');
     g.window = { location: { origin: 'https://localhost', port: '' } };
     assert.equal(getServerUrl(), 'https://localhost');
     g.window = { location: { origin: 'http://127.0.0.1:5173', port: '5173' } };

@@ -4,7 +4,7 @@ import {
   CreateLeagueSchema, FixtureSchema, HealthSchema, JoinLeagueSchema, LeagueSchema,
   ResolveResultSchema, StartLeagueSchema, SubmitResultSchema,
   parseClientMsg, type ClientMsg, type ServerMsg,
-} from '@retro/protocol';
+} from '@floodlight/protocol';
 import type { ServerConfig } from './config.js';
 import type { Logger } from './log.js';
 import { RoomError, RoomManager } from './rooms.js';

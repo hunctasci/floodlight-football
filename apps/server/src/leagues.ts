@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import type { FixtureStatus, LeagueStatus, Member, StandingsRow } from '@retro/protocol';
+import type { FixtureStatus, LeagueStatus, Member, StandingsRow } from '@floodlight/protocol';
 
 export class LeagueError extends Error {
   constructor(

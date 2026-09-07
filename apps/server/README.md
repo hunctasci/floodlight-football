@@ -1,6 +1,6 @@
-# @retro/server
+# @floodlight/server
 
-Thin signaling + rooms service for Retro Football online play. Match traffic
+Thin signaling + rooms service for Floodlight Football online play. Match traffic
 stays P2P (WebRTC lockstep in `apps/game/src/net/`); this service only
 relays SDP, tracks rooms/presence, and rate-limits. Leagues, results and
 leaderboards land here in F4b.
@@ -9,14 +9,14 @@ leaderboards land here in F4b.
 
 ```sh
 # dev (memory store, no Redis needed)
-npm run dev --workspace=@retro/server
+npm run dev --workspace=@floodlight/server
 
 # with Redis
-REDIS_URL=redis://localhost:6379 npm run dev --workspace=@retro/server
+REDIS_URL=redis://localhost:6379 npm run dev --workspace=@floodlight/server
 
 # production build
-npm run build --workspace=@retro/server
-npm start --workspace=@retro/server
+npm run build --workspace=@floodlight/server
+npm start --workspace=@floodlight/server
 ```
 
 Config: see `.env.example`. All settings are env vars with sane defaults.
@@ -24,7 +24,7 @@ Config: see `.env.example`. All settings are env vars with sane defaults.
 ## Protocol
 
 WebSocket endpoint: `ws://host:8080/socket`. Every message is validated
-with `@retro/protocol` zod schemas; malformed input gets `{t:'error'}`
+with `@floodlight/protocol` zod schemas; malformed input gets `{t:'error'}`
 and the connection survives.
 
 | Client → Server | Server → Client |
@@ -40,7 +40,7 @@ Health: `GET /healthz` → `{status, uptimeSec, redis}`.
 ## Leagues (F4b REST)
 
 Friend leagues with round-robin fixtures and dual-submit results (ADR-004).
-DTOs live in `@retro/protocol`; output is re-validated before sending.
+DTOs live in `@floodlight/protocol`; output is re-validated before sending.
 
 | Method | Path | Body → Result |
 |---|---|---|

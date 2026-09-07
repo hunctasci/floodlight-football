@@ -1,4 +1,4 @@
-/** Structural mirror of the @retro/protocol league DTOs (game stays decoupled). */
+/** Structural mirror of the @floodlight/protocol league DTOs (game stays decoupled). */
 export interface LeagueMember {
   clientId: string;
   displayName: string;

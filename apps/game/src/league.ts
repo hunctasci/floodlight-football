@@ -80,20 +80,20 @@ const store = {
 
 /** Stable guest id, minted once and kept on this device. */
 export function getClientId(): string {
-  let id = store.get('retro-client-id');
-  if (!id) { id = makeClientId(); store.set('retro-client-id', id); }
+  let id = store.get('floodlight-client-id');
+  if (!id) { id = makeClientId(); store.set('floodlight-client-id', id); }
   return id;
 }
 
 export function getDisplayName(): string {
-  return store.get('retro-name') || '';
+  return store.get('floodlight-name') || '';
 }
 export function setDisplayName(v: string) {
-  store.set('retro-name', v);
+  store.set('floodlight-name', v);
 }
 
 export function getServerUrl(): string {
-  const saved = store.get('retro-server-url');
+  const saved = store.get('floodlight-server-url');
   if (saved) return saved;
   // Same-origin by default: the production page is served by Caddy next to
   // /socket + /api, so online + leagues work with zero setup (and stay on
@@ -105,14 +105,14 @@ export function getServerUrl(): string {
   return 'http://127.0.0.1:8080';
 }
 export function setServerUrl(v: string) {
-  store.set('retro-server-url', v.replace(/\/+$/, ''));
+  store.set('floodlight-server-url', v.replace(/\/+$/, ''));
 }
 
 export function getLeagueCode(): string {
-  return store.get('retro-league-code') || '';
+  return store.get('floodlight-league-code') || '';
 }
 export function setLeagueCode(v: string) {
-  store.set('retro-league-code', v);
+  store.set('floodlight-league-code', v);
 }
 
 /** "ANN 4 PTS · 2-0" one-liners for the standings panel. */

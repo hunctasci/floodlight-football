@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { eq } from 'drizzle-orm';
 import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres, { type Sql } from 'postgres';
-import type { FixtureStatus, LeagueStatus, Member } from '@retro/protocol';
+import type { FixtureStatus, LeagueStatus, Member } from '@floodlight/protocol';
 import * as schema from './schema.js';
 import type { FixtureRecord, LeagueRecord, LeagueStore, NewFixture, SubmissionRecord } from '../leagues.js';
 

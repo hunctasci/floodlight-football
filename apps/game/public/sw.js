@@ -1,8 +1,8 @@
-/* Retro Football service worker.
+/* Floodlight Football service worker.
  * Navigation (the app shell) is network-first so new deploys reach players
  * on the next visit; hashed assets are immutable and stay cache-first.
  * Match traffic is unaffected (local-first sim, P2P netcode). */
-const VERSION = 'retro-football-v2';
+const VERSION = 'floodlight-v1';
 const CORE = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {
