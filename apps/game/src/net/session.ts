@@ -19,6 +19,12 @@ export class LockstepSession {
   lastAgreeTick = -1;
   /** Events produced by the most recent stepped tick (goals, saves, whistle…). */
   lastEvents: GameEvent[] = [];
+  /**
+   * Every event from every stepped tick, in order. Catch-up frames step
+   * several ticks per render: events accumulate here so none are lost and
+   * none replay — drain exactly once per render frame via drainEvents().
+   */
+  private pendingEvents: GameEvent[] = [];
   private delay: number;
   private maxHistory: number;
   private local = new Map<number, Uint8Array>();
@@ -115,8 +121,16 @@ export class LockstepSession {
     if (this.tick % HASH_EVERY === 0) this.snaps.set(this.tick, this.engine.snapshot());
     this.engine.update(1 / 60, decodeInput(l), decodeInput(r));
     this.lastEvents = this.engine.events.splice(0);
+    for (const e of this.lastEvents) this.pendingEvents.push(e);
     this.tick++;
     return true;
+  }
+
+  /** Take all accumulated events exactly once (render/audio consumption). */
+  drainEvents(): GameEvent[] {
+    const out = this.pendingEvents;
+    this.pendingEvents = [];
+    return out;
   }
 
   hash(): number { return this.engine.hash(); }

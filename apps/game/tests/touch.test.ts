@@ -5,14 +5,14 @@ import { createTouchState, touchDown, touchUp, setStick, releaseStick, clearTouc
 test('button press fires edge once while held', () => {
   const t = createTouchState();
   touchDown(t, TOUCH_BUTTONS.shoot);
-  assert.ok(t.pressed.has('KeyD') && t.down.has('KeyD'));
+  assert.ok(t.pressed.has(TOUCH_BUTTONS.shoot) && t.down.has(TOUCH_BUTTONS.shoot));
   clearTouchEdges(t);
   touchDown(t, TOUCH_BUTTONS.shoot); // still held: no new edge
-  assert.ok(!t.pressed.has('KeyD') && t.down.has('KeyD'));
+  assert.ok(!t.pressed.has(TOUCH_BUTTONS.shoot) && t.down.has(TOUCH_BUTTONS.shoot));
   touchUp(t, TOUCH_BUTTONS.shoot);
-  assert.ok(t.released.has('KeyD') && !t.down.has('KeyD'));
+  assert.ok(t.released.has(TOUCH_BUTTONS.shoot) && !t.down.has(TOUCH_BUTTONS.shoot));
   clearTouchEdges(t);
-  assert.ok(!t.released.has('KeyD'));
+  assert.ok(!t.released.has(TOUCH_BUTTONS.shoot));
 });
 
 test('joystick dead-zones and normalizes', () => {
@@ -29,12 +29,12 @@ test('joystick dead-zones and normalizes', () => {
 
 test('shoot hold/release flow for charged shots', () => {
   const t = createTouchState();
-  touchDown(t, 'KeyD');
-  assert.ok(t.down.has('KeyD') && !t.released.has('KeyD'));
+  touchDown(t, TOUCH_BUTTONS.shoot);
+  assert.ok(t.down.has(TOUCH_BUTTONS.shoot) && !t.released.has(TOUCH_BUTTONS.shoot));
   clearTouchEdges(t);
-  assert.ok(t.down.has('KeyD'), 'hold persists across frames');
-  touchUp(t, 'KeyD');
-  assert.ok(t.released.has('KeyD') && !t.down.has('KeyD'));
+  assert.ok(t.down.has(TOUCH_BUTTONS.shoot), 'hold persists across frames');
+  touchUp(t, TOUCH_BUTTONS.shoot);
+  assert.ok(t.released.has(TOUCH_BUTTONS.shoot) && !t.down.has(TOUCH_BUTTONS.shoot));
 });
 
 test('menu codes round-trip through the same sets', () => {

@@ -20,30 +20,37 @@ function kbWith(...codes: string[]) {
 
 // Freeze the keyboard/touch -> InputFrame contract. Future 2v2 multi-controller
 // work must preserve these semantics per controller stream.
-test('arrows move and aim; diagonals normalize', () => {
+test('arrows and WASD move; diagonals normalize', () => {
   const touch = createTouchState();
   let r = buildInputFrame(kbWith('ArrowRight'), touch, false);
   assert.equal(r.frame.x, 1);
   assert.equal(r.frame.z, 0);
+  r = buildInputFrame(kbWith('KeyD'), touch, false);
+  assert.equal(r.frame.x, 1);
+  r = buildInputFrame(kbWith('KeyW'), touch, false);
+  assert.equal(r.frame.z, -1);
   r = buildInputFrame(kbWith('ArrowRight', 'ArrowUp'), touch, false);
   const n = Math.hypot(r.frame.x, r.frame.z);
-  assert.ok(Math.abs(n - 1) < 1e-9, 'diagonal normalized');
-  r = buildInputFrame(kbWith('ArrowLeft'), touch, false);
+  // Wire quantization keeps half-a-percent accuracy, not exact unity.
+  assert.ok(Math.abs(n - 1) < 0.02, `diagonal normalized (n=${n})`);
+  r = buildInputFrame(kbWith('KeyA'), touch, false);
   assert.equal(r.frame.x, -1);
 });
 
-test('action buttons map with legacy aliases', () => {
+test('action buttons: Space pass, KeyK/mouse shoot, Q switch; no through/cross buttons', () => {
   const touch = createTouchState();
-  assert.equal(buildInputFrame(kbWith('KeyS'), touch, false).frame.pass, true);
+  assert.equal(buildInputFrame(kbWith('Space'), touch, false).frame.pass, true);
   assert.equal(buildInputFrame(kbWith('KeyJ'), touch, false).frame.pass, true);
-  assert.equal(buildInputFrame(kbWith('KeyW'), touch, false).frame.through, true);
-  assert.equal(buildInputFrame(kbWith('KeyL'), touch, false).frame.through, true);
-  assert.equal(buildInputFrame(kbWith('KeyA'), touch, false).frame.cross, true);
-  assert.equal(buildInputFrame(kbWith('KeyI'), touch, false).frame.cross, true);
-  assert.equal(buildInputFrame(kbWith('KeyD'), touch, false).frame.shootPressed, true);
   assert.equal(buildInputFrame(kbWith('KeyK'), touch, false).frame.shootPressed, true);
-  assert.equal(buildInputFrame(kbWith('Space'), touch, false).frame.switchPlayer, true);
+  assert.equal(buildInputFrame(kbWith('MouseL'), touch, false).frame.shootPressed, true);
   assert.equal(buildInputFrame(kbWith('KeyQ'), touch, false).frame.switchPlayer, true);
+  // No dedicated open-play THROUGH/CROSS buttons: lead passes derive from
+  // hold-PASS and long restarts from SHOOT inside the sim.
+  for (const k of ['KeyW', 'KeyA']) {
+    const f = buildInputFrame(kbWith(k), touch, false).frame;
+    assert.equal(f.through, false, `${k} is movement, not through`);
+    assert.equal(f.cross, false, `${k} is movement, not cross`);
+  }
 });
 
 test('sprint from Shift/E or stick rim', () => {
@@ -59,6 +66,21 @@ test('sprint from Shift/E or stick rim', () => {
   const t3 = createTouchState();
   setStick(t3, 0.45, 0);
   assert.equal(buildInputFrame(kb, t3, false).frame.sprint, false);
+});
+
+test('stick sprint hysteresis: rim latches until the pull relaxes', () => {
+  const kb = createKeyboardState();
+  const t = createTouchState();
+  setStick(t, 0, 1);
+  let r = buildInputFrame(kb, t, false, {});
+  assert.equal(r.stickSprint, true);
+  // Ease back to 0.85: still sprinting (above the 0.82 release line).
+  setStick(t, 0, 0.85);
+  r = buildInputFrame(kb, t, false, { stickSprintOn: r.stickSprint });
+  assert.equal(r.stickSprint, true, 'latch holds through minor relaxation');
+  setStick(t, 0, 0.7);
+  r = buildInputFrame(kb, t, false, { stickSprintOn: r.stickSprint });
+  assert.equal(r.stickSprint, false, 'release below 0.82 drops sprint');
 });
 
 test('touch buttons emit the same codes as keyboard', () => {
@@ -85,15 +107,15 @@ test('touch stick merges with keyboard and normalizes', () => {
   setStick(touch, 1, 0);
   const r = buildInputFrame(kb, touch, false);
   const n = Math.hypot(r.frame.x, r.frame.z);
-  assert.ok(n <= 1 + 1e-9, 'merged vector normalized');
+  assert.ok(n <= 1 + 0.02, 'merged vector normalized');
   assert.ok(r.frame.x > 0.9, 'merged direction preserved');
 });
 
 test('shoot hold/release flow across devices (shootWasDown unified)', () => {
   const kb = createKeyboardState();
   const touch = createTouchState();
-  // Press D on keyboard.
-  keyDown(kb, 'KeyD');
+  // Press K on keyboard.
+  keyDown(kb, 'KeyK');
   let r = buildInputFrame(kb, touch, false);
   assert.equal(r.frame.shootPressed, true);
   assert.equal(r.frame.shootHeld, true);
@@ -105,7 +127,7 @@ test('shoot hold/release flow across devices (shootWasDown unified)', () => {
   assert.equal(r.frame.shootHeld, true);
   assert.equal(r.frame.shootReleased, false);
   // Release: edge fires once via released set AND via shootWasDown fallback.
-  keyUp(kb, 'KeyD');
+  keyUp(kb, 'KeyK');
   r = buildInputFrame(kb, touch, r.shootWasDown);
   assert.equal(r.frame.shootReleased, true);
   assert.equal(r.shootWasDown, false);
@@ -114,14 +136,41 @@ test('shoot hold/release flow across devices (shootWasDown unified)', () => {
   assert.equal(r.frame.shootReleased, false, 'release edge fires once');
 });
 
+test('pass hold/release flow (passWasDown unified)', () => {
+  const kb = createKeyboardState();
+  const touch = createTouchState();
+  keyDown(kb, 'Space');
+  let r = buildInputFrame(kb, touch, false, {});
+  assert.equal(r.frame.pass, true);
+  assert.equal(r.frame.passHeld, true);
+  assert.equal(r.passWasDown, true);
+  clearKeyboardEdges(kb);
+  r = buildInputFrame(kb, touch, false, { passWasDown: r.passWasDown });
+  assert.equal(r.frame.pass, false, 'press edge fires once');
+  assert.equal(r.frame.passHeld, true, 'hold persists');
+  keyUp(kb, 'Space');
+  r = buildInputFrame(kb, touch, false, { passWasDown: r.passWasDown });
+  assert.equal(r.frame.passReleased, true);
+  clearKeyboardEdges(kb);
+  r = buildInputFrame(kb, touch, false, { passWasDown: false });
+  assert.equal(r.frame.passReleased, false, 'release edge fires once');
+});
+
 test('keyboard edge semantics: press fires once while held', () => {
   const kb = createKeyboardState();
   const touch = createTouchState();
-  keyDown(kb, 'KeyS');
+  keyDown(kb, 'Space');
   assert.equal(buildInputFrame(kb, touch, false).frame.pass, true);
   clearKeyboardEdges(kb);
-  keyDown(kb, 'KeyS'); // still held: no new edge
+  keyDown(kb, 'Space'); // still held: no new edge
   assert.equal(buildInputFrame(kb, touch, false).frame.pass, false);
+});
+
+test('axes and aim are quantized to the wire representation', () => {
+  const touch = createTouchState();
+  const r = buildInputFrame(kbWith('ArrowRight'), touch, false, { aim: { aimU: 0.3333, aimV: 0.6666 } });
+  assert.equal(r.frame.aimU, 0.33);
+  assert.equal(r.frame.aimV, 0.67);
 });
 
 test('blocked keys cover gameplay inputs', () => {

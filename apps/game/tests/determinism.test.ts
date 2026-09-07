@@ -149,12 +149,16 @@ function carrierSandbox(seed: number): MatchEngine {
   }
   const p = s.players.find((q) => q.team === s.humanTeam && !q.keeper)!;
   s.controlled = p.id;
-  p.x = 0;
+  // 15m out, central: a settled, reachable finish (flat lobs from 40m are
+  // physically impossible at arcade gravity — the solver says so honestly).
+  p.x = 31;
   p.z = 0;
   p.facingX = 1;
   p.facingZ = 0;
+  // Keepers parked far from the flight path so this asserts the shot, not a save.
+  for (const k of s.players.filter((q) => q.keeper)) { k.x = 0; k.z = 25; k.think = 100; }
   Object.assign(s.ball, {
-    x: 0.7, y: FIELD.ballRadius, z: 0, vx: 0, vy: 0, vz: 0,
+    x: 31.7, y: FIELD.ballRadius, z: 0, vx: 0, vy: 0, vz: 0,
     owner: p.id, lastKicker: null, lock: 0, lastTouch: p.team, flight: 'roll',
   });
   return g;
@@ -162,7 +166,7 @@ function carrierSandbox(seed: number): MatchEngine {
 
 test('snapshot/restore covers shot flight (charged release)', () => {
   const script = (g: MatchEngine) => {
-    const aim = { x: 1, z: 0.1 };
+    const aim = { x: 1, z: 0, aimU: 0.3, aimV: 0.1 };
     g.update(DT, { ...EMPTY_INPUT, ...aim, shootPressed: true, shootHeld: true });
     for (let i = 0; i < 20; i++) g.update(DT, { ...EMPTY_INPUT, ...aim, shootHeld: true });
     g.update(DT, { ...EMPTY_INPUT, ...aim, shootReleased: true });
@@ -178,9 +182,10 @@ test('snapshot/restore covers shot flight (charged release)', () => {
   const b = carrierSandbox(7);
   const b2 = carrierSandbox(999);
   // Replay to the snapshot point, then restore and replay flight.
-  b.update(DT, { ...EMPTY_INPUT, x: 1, z: 0.1, shootPressed: true, shootHeld: true });
-  for (let i = 0; i < 20; i++) b.update(DT, { ...EMPTY_INPUT, x: 1, z: 0.1, shootHeld: true });
-  b.update(DT, { ...EMPTY_INPUT, x: 1, z: 0.1, shootReleased: true });
+  const aim2 = { x: 1, z: 0, aimU: 0.3, aimV: 0.1 };
+  b.update(DT, { ...EMPTY_INPUT, ...aim2, shootPressed: true, shootHeld: true });
+  for (let i = 0; i < 20; i++) b.update(DT, { ...EMPTY_INPUT, ...aim2, shootHeld: true });
+  b.update(DT, { ...EMPTY_INPUT, ...aim2, shootReleased: true });
   b2.restore(b.snapshot());
   // b2 must equal b at the same point, and flight onward must match a.
   assert.equal(b2.hash(), b.hash());

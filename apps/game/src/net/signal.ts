@@ -1,6 +1,15 @@
 import type { TeamId } from '../types';
 
-export const NET_PROTO = 1;
+export const NET_PROTO = 2;
+/**
+ * Deterministic gameplay version: sim tick logic + wire/input codec + tuning.
+ * Peers must agree on all three before kickoff; mismatches fail the
+ * handshake gracefully instead of starting an invalid match.
+ */
+export const SIM_VERSION = 2;
+export const INPUT_VERSION = 2;
+/** Fingerprint of the canonical tuning table (see game/tuning.ts). */
+export const TUNING_FINGERPRINT = 'p0.5-challenge-geo';
 
 /** Manual room-code envelope: base64url(JSON). Used for copy-paste SDP
  *  exchange now, and as the payload shape the F4 signal server will relay. */
@@ -25,6 +34,9 @@ export interface HelloMsg {
   proto: number;
   seedPart: number;
   clientId: string;
+  sim: number;
+  input: number;
+  tune: string;
 }
 
 export interface WelcomeMsg {
@@ -32,6 +44,9 @@ export interface WelcomeMsg {
   proto: number;
   seed: number;
   yourTeam: TeamId;
+  sim: number;
+  input: number;
+  tune: string;
 }
 
 export function makeSeedPart(): number {
@@ -43,10 +58,25 @@ export function decideSeed(a: number, b: number): number {
   return ((a ^ b) >>> 0) || 1;
 }
 
+/** Version block both sides must agree on before a match starts. */
+export function localVersions() {
+  return { sim: SIM_VERSION, input: INPUT_VERSION, tune: TUNING_FINGERPRINT };
+}
+
+/** Null when compatible, otherwise a human-readable mismatch reason. */
+export function checkVersions(peer: { sim?: number; input?: number; tune?: string }): string | null {
+  if (peer.sim !== undefined && peer.sim !== SIM_VERSION) return `sim version mismatch (got ${peer.sim})`;
+  if (peer.input !== undefined && peer.input !== INPUT_VERSION) return `input version mismatch (got ${peer.input})`;
+  if (peer.tune !== undefined && peer.tune !== TUNING_FINGERPRINT) return 'tuning mismatch — update the game';
+  return null;
+}
+
 /** Host (offerer, team 0) answers a joiner, who always takes team 1. */
 export function answerHello(hostPart: number, hello: HelloMsg): WelcomeMsg {
   if (hello.proto !== NET_PROTO) throw new Error(`net proto mismatch (got ${hello.proto})`);
-  return { t: 'welcome', proto: NET_PROTO, seed: decideSeed(hostPart, hello.seedPart), yourTeam: 1 };
+  const mismatch = checkVersions(hello);
+  if (mismatch) throw new Error(mismatch);
+  return { t: 'welcome', proto: NET_PROTO, seed: decideSeed(hostPart, hello.seedPart), yourTeam: 1, ...localVersions() };
 }
 
 export function makeClientId(): string {

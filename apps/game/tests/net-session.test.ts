@@ -4,17 +4,18 @@ import { EMPTY_INPUT, type InputFrame } from '../src/types.ts';
 import { INPUT_BYTES, decodeInput, encodeInput } from '../src/net/codec.ts';
 import { HASH_EVERY, LockstepSession } from '../src/net/session.ts';
 
-test('codec round-trips buttons and analog axes in 3 bytes', () => {
+test('codec round-trips buttons, axes and aim in 6 bytes', () => {
   const f: InputFrame = {
-    ...EMPTY_INPUT, x: 0.6, z: -0.8, sprint: true, pass: true,
-    shootPressed: true, shootHeld: true, switchPlayer: true,
+    ...EMPTY_INPUT, x: 0.6, z: -0.8, sprint: true, pass: true, passHeld: true,
+    shootPressed: true, shootHeld: true, switchPlayer: true, aimU: 0.33, aimV: 0.67,
   };
   const b = encodeInput(f);
   assert.equal(b.length, INPUT_BYTES);
   const d = decodeInput(b);
   assert.ok(Math.abs(d.x - 0.6) < 0.01 && Math.abs(d.z + 0.8) < 0.01);
-  for (const k of ['sprint', 'pass', 'shootPressed', 'shootHeld', 'switchPlayer'] as const) assert.ok(d[k]);
-  for (const k of ['through', 'cross', 'shootReleased'] as const) assert.ok(!d[k]);
+  assert.ok(Math.abs(d.aimU - 0.33) < 0.01 && Math.abs(d.aimV - 0.67) < 0.01);
+  for (const k of ['sprint', 'pass', 'passHeld', 'shootPressed', 'shootHeld', 'switchPlayer'] as const) assert.ok(d[k]);
+  for (const k of ['through', 'cross', 'passReleased', 'shootReleased'] as const) assert.ok(!d[k]);
 });
 
 test('codec clamps out-of-range axes', () => {

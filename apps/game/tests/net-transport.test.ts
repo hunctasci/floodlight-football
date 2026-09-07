@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LoopbackTransport, RTCTransport, type TransportState } from '../src/net/transport.ts';
-import { answerHello, decideSeed, decodeCode, encodeCode, makeClientId, makeSeedPart, NET_PROTO, type HelloMsg } from '../src/net/signal.ts';
+import { answerHello, decideSeed, decodeCode, encodeCode, localVersions, makeClientId, makeSeedPart, NET_PROTO, type HelloMsg } from '../src/net/signal.ts';
 import { decodePacket, encodeHashPacket, encodeInputPacket, encodeSnapshotPacket } from '../src/net/proto.ts';
 import { encodeInput } from '../src/net/codec.ts';
 import { EMPTY_INPUT } from '../src/types.ts';
@@ -42,7 +42,7 @@ test('room codes round-trip arbitrary JSON and reject garbage', () => {
 test('seed negotiation is deterministic, shared and nonzero', () => {
   assert.equal(decideSeed(0, 0), 1);
   assert.equal(decideSeed(12345, 67890), decideSeed(67890, 12345), 'order-independent');
-  const hello: HelloMsg = { t: 'hello', proto: NET_PROTO, seedPart: 777, clientId: 'abcdef01' };
+  const hello: HelloMsg = { t: 'hello', proto: NET_PROTO, seedPart: 777, clientId: 'abcdef01', ...localVersions() };
   const w = answerHello(1234, hello);
   assert.equal(w.t, 'welcome'); assert.equal(w.proto, NET_PROTO);
   assert.equal(w.yourTeam, 1); assert.equal(w.seed, decideSeed(1234, 777));

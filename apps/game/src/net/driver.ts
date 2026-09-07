@@ -3,14 +3,15 @@ import {
   decodeControl, decodePacket, encodeControlPacket, encodeHashPacket,
   encodeInputPacket, encodeSnapshotPacket,
 } from './proto';
-import { answerHello, makeClientId, makeSeedPart, NET_PROTO } from './signal';
+import { answerHello, checkVersions, localVersions, makeClientId, makeSeedPart, NET_PROTO } from './signal';
 import { decodeInput, encodeInput } from './codec';
+import { MAX_CATCH_UP, SimulationClock } from '../game/clock';
 import { EMPTY_INPUT, type InputFrame, type TeamId } from '../types';
 import type { DataTransport } from './transport';
 
 export type ControlMsg =
-  | { t: 'hello'; proto: number; seedPart: number; clientId: string; teamIndex: number; duration: number; matchToken?: string }
-  | { t: 'welcome'; proto: number; seed: number; yourTeam: TeamId; teamIndex: number; duration: number; matchToken?: string }
+  | { t: 'hello'; proto: number; seedPart: number; clientId: string; teamIndex: number; duration: number; matchToken?: string; sim: number; input: number; tune: string }
+  | { t: 'welcome'; proto: number; seed: number; yourTeam: TeamId; teamIndex: number; duration: number; matchToken?: string; sim: number; input: number; tune: string }
   | { t: 'ready' }
   | { t: 'pause' }
   | { t: 'resume' }
@@ -75,15 +76,18 @@ export class NetDriver {
   private peerReady = false;
   private startedEmitted = false;
   /** Edge buttons accumulate here until staged into exactly one tick. */
-  private edgeAcc = { pass: false, through: false, cross: false, shootPressed: false, shootReleased: false, switchPlayer: false };
+  private edgeAcc = { pass: false, passReleased: false, through: false, cross: false, shootPressed: false, shootReleased: false, switchPlayer: false };
   /** Consecutive stalled frames before the link is declared dead. */
   static readonly DROP_AFTER_STALL = 600;
   private outbox: Uint8Array[] = [];
+  /** Match clock: render frequency never sets simulation speed. Ticks run only
+   *  when due by elapsed time AND the required inputs exist (see frame). */
+  private clock = new SimulationClock();
 
   constructor(private transport: DataTransport, opts: DriverOpts) {
     this.myTeam = opts.host ? 0 : 1;
     this.teamIndex = opts.teamIndex ?? 0;
-    this.duration = opts.duration ?? 180;
+    this.duration = opts.duration ?? 90;
     this.matchToken = opts.matchToken;
     this.delay = opts.delay ?? 3;
     this.openTimeoutMs = opts.openTimeoutMs ?? 20000;
@@ -121,6 +125,7 @@ export class NetDriver {
       t: 'hello', proto: NET_PROTO, seedPart: this.hostPart,
       clientId: this.clientId, teamIndex: this.teamIndex, duration: this.duration,
       ...(this.matchToken ? { matchToken: this.matchToken } : {}),
+      ...localVersions(),
     });
   }
 
@@ -164,20 +169,26 @@ export class NetDriver {
     if (!m || typeof m !== 'object') return;
     if (m.t === 'hello' && this.myTeam === 0 && this.state === 'handshake') {
       if (m.proto !== NET_PROTO) { this.fail('net proto mismatch'); return; }
+      const mismatch = checkVersions(m);
+      if (mismatch) { this.fail(mismatch); return; }
       if (!this.checkToken(m.matchToken)) return;
       try {
         const w = answerHello(this.hostPart, {
           t: 'hello', proto: m.proto, seedPart: m.seedPart, clientId: m.clientId,
+          sim: m.sim, input: m.input, tune: m.tune,
         });
         this.sendControl({
           t: 'welcome', proto: NET_PROTO, seed: w.seed, yourTeam: 1,
           teamIndex: this.teamIndex, duration: this.duration,
           ...(this.matchToken ? { matchToken: this.matchToken } : {}),
+          ...localVersions(),
         });
         this.begin(w.seed);
       } catch (e) { this.fail(e instanceof Error ? e.message : 'handshake failed'); }
     } else if (m.t === 'welcome' && this.myTeam === 1 && this.state === 'handshake') {
       if (m.proto !== NET_PROTO) { this.fail('net proto mismatch'); return; }
+      const mismatch = checkVersions(m);
+      if (mismatch) { this.fail(mismatch); return; }
       if (!this.checkToken(m.matchToken)) return;
       this.teamIndex = m.teamIndex; this.duration = m.duration;
       this.begin(m.seed);
@@ -189,6 +200,7 @@ export class NetDriver {
         t: 'welcome', proto: NET_PROTO, seed: this.seed, yourTeam: 1,
         teamIndex: this.teamIndex, duration: this.duration,
         ...(this.matchToken ? { matchToken: this.matchToken } : {}),
+        ...localVersions(),
       });
     } else if (!this.session) {
       return;
@@ -231,7 +243,7 @@ export class NetDriver {
   }
 
   private clearEdges() {
-    this.edgeAcc.pass = this.edgeAcc.through = this.edgeAcc.cross = false;
+    this.edgeAcc.pass = this.edgeAcc.passReleased = this.edgeAcc.through = this.edgeAcc.cross = false;
     this.edgeAcc.shootPressed = this.edgeAcc.shootReleased = this.edgeAcc.switchPlayer = false;
   }
 
@@ -243,11 +255,14 @@ export class NetDriver {
    */
   private stageInput(s: LockstepSession, input: InputFrame) {
     const e = this.edgeAcc;
-    e.pass ||= input.pass; e.through ||= input.through; e.cross ||= input.cross;
+    e.pass ||= input.pass; e.passReleased ||= input.passReleased;
+    e.through ||= input.through; e.cross ||= input.cross;
     e.shootPressed ||= input.shootPressed; e.shootReleased ||= input.shootReleased;
     e.switchPlayer ||= input.switchPlayer;
     const move: InputFrame = {
-      ...EMPTY_INPUT, x: input.x, z: input.z, sprint: input.sprint, shootHeld: input.shootHeld,
+      ...EMPTY_INPUT, x: input.x, z: input.z, sprint: input.sprint,
+      shootHeld: input.shootHeld, passHeld: input.passHeld,
+      aimU: input.aimU, aimV: input.aimV,
     };
     const frontier = s.tick + this.delay;
     for (let t = s.tick; t <= frontier; t++) {
@@ -273,12 +288,15 @@ export class NetDriver {
 
   /**
    * Pump one render frame with local input. Returns ticks stepped.
-   * Call every rAF; also call poll() for handshake timeouts.
+   * Call every rAF with the frame's elapsed seconds; also call poll() for
+   * handshake timeouts. A tick advances only when it is due by elapsed
+   * simulation time AND both inputs exist — render frequency never sets
+   * match speed. Catch-up is capped at MAX_CATCH_UP ticks per frame; deeper
+   * debt is rebased, never fast-forwarded.
    */
-  frame(input: InputFrame): number {
-    const s = this.session;
+  frame(input: InputFrame, elapsedSec = 1 / 60): number {    const s = this.session;
     if (!s || this.state !== 'playing') return 0;
-    if (s.engine.state.paused) return 0;
+    if (s.engine.state.paused) { this.clock.reset(); return 0; }
     // Sent ticks are immutable: only rewind the watermark past a resync jump.
     if (this.flushed > s.tick + this.delay + 1) {
       this.flushed = s.tick;
@@ -292,7 +310,8 @@ export class NetDriver {
     }
     this.flushed = Math.max(this.flushed, upto + 1);
     let n = 0;
-    while (n < 8 && s.step()) {
+    for (let due = this.clock.push(elapsedSec); due > 0 && n < MAX_CATCH_UP; due--) {
+      if (!s.step()) break;
       n++;
     }
     // Newest snapshotted tick always has state; hash it exactly once.
@@ -318,6 +337,11 @@ export class NetDriver {
       this.sendControl({ t: 'resync-request', tick: s.lastAgreeTick });
     }
     return n;
+  }
+
+  /** Unstepped simulation debt in seconds (for render interpolation). */
+  debt(): number {
+    return this.session && this.state === 'playing' ? this.clock.debt : 0;
   }
 
   /** Wall-clock maintenance (outside the sim): handshake timeout + hello retry. */

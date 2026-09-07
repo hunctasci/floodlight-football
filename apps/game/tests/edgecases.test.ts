@@ -70,25 +70,28 @@ test('short pass reaches its selected nearby receiver physically',()=>{
   assert.equal(s.ball.owner,receiver.id,'the pass is received rather than only acquiring launch velocity');
 });
 
-test('right-wing cross is delivered into the penalty area rather than toward own goal',()=>{
-  const g=playing();const s=g.state;const p=s.players[s.controlled];p.x=27;p.z=21;p.facingX=1;p.facingZ=0;s.ball.owner=p.id;
+test('right-wing lead pass is delivered into the penalty area rather than toward own goal',()=>{
+  const g=playing();const s=g.state;const p=s.players[s.controlled];p.x=27;p.z=21;p.facingX=1;p.facingZ=0;
+  Object.assign(s.ball,{x:27.7,y:FIELD.ballRadius,z:21,vx:0,vy:0,vz:0,owner:p.id,lastTouch:0,lock:0,lastKicker:null,flight:'roll'});
   for(const q of s.players)if(q.team===0&&!q.keeper&&q.id!==p.id){q.x=30;q.z=(q.id%2?7:-7);}
-  tick(g,DT,{cross:true,x:1,z:-1});assert.equal(s.ball.flight,'cross');
+  tick(g,DT,{pass:true,passHeld:true,x:1,z:-1});
+  for(let i=0;i<14;i++)tick(g,DT,{passHeld:true,x:1,z:-1});
+  tick(g,DT,{passReleased:true,x:1,z:-1});assert.equal(s.ball.flight,'through');
   const initialX=s.ball.x;tick(g,.45);
-  assert.ok(s.ball.x>initialX+2,'cross progresses toward the attacking goal');
-  assert.ok(Math.abs(s.ball.z)<18,'cross curves or travels back toward the penalty area');
+  assert.ok(s.ball.x>initialX+2,'lead pass progresses toward the attacking goal');
+  assert.ok(Math.abs(s.ball.z)<18,'lead pass travels back toward the penalty area');
 });
 
 test('corner I delivery goes into the box instead of immediately beyond the goal line',()=>{
   const g=playing();const s=g.state;s.phase='corner';s.restart={team:0,taker:s.controlled,x:FIELD.halfLength,z:FIELD.halfWidth-1,wait:0};
   s.players[s.controlled].x=FIELD.halfLength-.7;s.players[s.controlled].z=FIELD.halfWidth-1;loose(g,FIELD.halfLength,FIELD.halfWidth-1);
-  tick(g,DT,{cross:true,x:-1,z:-1});assert.equal(s.phase,'playing');tick(g,.3);
+  tick(g,DT,{shootPressed:true,x:-1,z:-1});assert.equal(s.phase,'playing');tick(g,.3);
   assert.ok(s.ball.x<FIELD.halfLength-1,'corner travels back into the field');
   assert.ok(s.ball.z<FIELD.halfWidth-2,'corner travels toward the packed box');
 });
 
 test('kickoff after a goal puts each non-taker on its own side of halfway',()=>{
-  const g=playing();const s=g.state;loose(g,FIELD.halfLength-.1,0,.3,25,0);tick(g,.1);tick(g,3);
+  const g=playing();const s=g.state;loose(g,FIELD.halfLength-.1,0,.3,25,0);tick(g,.1);tick(g,2);
   assert.equal(s.phase,'kickoff');const r=s.restart!;
   for(const p of s.players)if(p.id!==r.taker){const ownSide=-s.attack[p.team];assert.ok(p.x*ownSide>=-.01,`player ${p.id} starts on own half`);}
 });

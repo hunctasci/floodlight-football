@@ -1,4 +1,4 @@
-import { releaseStick, setStick, touchDown, touchUp, type TouchState } from '../input/touch';
+import { releaseStick, setShootAim, setStick, touchDown, touchUp, TOUCH_BUTTONS, type TouchState } from '../input/touch';
 
 const STICK_R = 56;
 
@@ -52,10 +52,8 @@ export function setupTouchControls(
     <div class="stick-zone"><div class="stick-base"><div class="stick-nub"></div></div></div>
     <div class="match-pad">
       <button class="tbtn tswitch" data-code="KeyQ">SWITCH</button>
-      <button class="tbtn tpass" data-code="KeyS">PASS</button>
-      <button class="tbtn tthru" data-code="KeyW">THRU</button>
-      <button class="tbtn tcross" data-code="KeyA">CROSS</button>
-      <button class="tbtn tshoot" data-code="KeyD">SHOOT</button>
+      <button class="tbtn tpass" data-code="Space">PASS</button>
+      <button class="tbtn tshoot" data-code="KeyK">SHOOT</button>
     </div>
     <div class="menu-pad">
       <button class="tbtn mup" data-code="ArrowUp">▲</button>
@@ -73,6 +71,28 @@ export function setupTouchControls(
     touchLayer
       .querySelectorAll('button[data-code]')
       .forEach((b) => bindHold(touch, onEnable, b, (b as HTMLElement).dataset.code!));
+    // SHOOT drag-aim: sliding the finger on SHOOT moves the reticle; the
+    // release fires with that placement (same sim semantics as mouse drag).
+    const shootBtn = touchLayer.querySelector(`button[data-code="${TOUCH_BUTTONS.shoot}"]`);
+    if (shootBtn) {
+      let aimId: number | null = null, ax = 0, ay = 0;
+      shootBtn.addEventListener('touchstart', (e: Event) => {
+        const t = (e as TouchEvent).changedTouches[0];
+        aimId = t.identifier; ax = t.clientX; ay = t.clientY;
+      }, { passive: true });
+      shootBtn.addEventListener('touchmove', (e: Event) => {
+        for (const t of Array.from((e as TouchEvent).changedTouches)) {
+          if (t.identifier === aimId) setShootAim(touch, t.clientX - ax, t.clientY - ay);
+        }
+      }, { passive: true });
+      const aimEnd = (e: Event) => {
+        for (const t of Array.from((e as TouchEvent).changedTouches)) {
+          if (t.identifier === aimId) aimId = null;
+        }
+      };
+      shootBtn.addEventListener('touchend', aimEnd);
+      shootBtn.addEventListener('touchcancel', aimEnd);
+    }
     let stickId: number | null = null;
     let anchorX = 0;
     let anchorY = 0;

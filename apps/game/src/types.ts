@@ -14,9 +14,13 @@ export interface Player extends Vec {
   vx: number; vz: number; facingX: number; facingZ: number; homeX: number; homeZ: number;
   stamina: number; action: 'idle' | 'run' | 'kick' | 'tackle' | 'dive' | 'slide' | 'fallen'; actionTime: number;
   cooldown: number; think: number; aiState: string;
+  /** Seconds until the next dribble touch is due (ball-control system). */
+  touchIn: number;
 }
 export interface Ball extends Vec { y: number; vx: number; vy: number; vz: number; spin: number; owner: number | null; lastTouch: TeamId; lock: number; lastKicker: number | null; flight: 'roll' | 'pass' | 'through' | 'cross' | 'shot' }
 export interface Restart { team: TeamId; taker: number; x: number; z: number; wait: number }
+/** Buffered restart input: pressed during setup, executed when the wait ends. */
+export interface RestartBuf { pass: boolean; shoot: boolean; x: number; z: number }
 export interface MatchStats { shots: [number, number]; saves: [number, number]; passes: [number, number]; tackles: [number, number]; possession: [number, number] }
 export interface MatchState {
   players: Player[]; ball: Ball; teams: [Team, Team]; humanTeam: TeamId; controlled: number;
@@ -26,6 +30,38 @@ export interface MatchState {
   score: [number, number]; attack: [number, number]; restart: Restart | null; paused: boolean;
   message: string; messageTime: number; charge: number; targetPlayer: number | null; time: number; stats: MatchStats;
 }
-export interface InputFrame { x: number; z: number; sprint: boolean; pass: boolean; through: boolean; cross: boolean; shootPressed: boolean; shootHeld: boolean; shootReleased: boolean; switchPlayer: boolean }
-export const EMPTY_INPUT: InputFrame = { x: 0, z: 0, sprint: false, pass: false, through: false, cross: false, shootPressed: false, shootHeld: false, shootReleased: false, switchPlayer: false };
+export interface InputFrame {
+  x: number; z: number; sprint: boolean;
+  /** Fresh press edge: exactly one intended action. */
+  pass: boolean;
+  /** Pass button currently held (for tap-vs-hold lead passes). */
+  passHeld: boolean;
+  /** Pass button release edge. */
+  passReleased: boolean;
+  /** @deprecated No dedicated through button: hold-PASS derives lead passes. */
+  through: boolean;
+  /** @deprecated No dedicated cross button: SHOOT selects long restarts. */
+  cross: boolean;
+  shootPressed: boolean; shootHeld: boolean; shootReleased: boolean; switchPlayer: boolean;
+  /** Shot placement aim, goal-local: U = across (-1..1), V = height (0..1). */
+  aimU: number; aimV: number;
+}
+export const EMPTY_INPUT: InputFrame = { x: 0, z: 0, sprint: false, pass: false, passHeld: false, passReleased: false, through: false, cross: false, shootPressed: false, shootHeld: false, shootReleased: false, switchPlayer: false, aimU: 0, aimV: 0 };
 export type GameEvent = { type: 'kick' | 'shot' | 'tackle' | 'save' | 'post' | 'goal' | 'whistle' | 'restart'; team?: TeamId; power?: number; slide?: boolean };
+
+/** One physical input edge = exactly one intended action. Captured on
+ *  button-down; possession changes never reinterpret the held gesture. */
+export type ActionKind = 'pass' | 'leadpass' | 'shot' | 'challenge' | 'slide' | 'outlet-short' | 'outlet-long';
+export interface ControllerActionState {
+  actorId: number | null;
+  action: ActionKind | null;
+  startedTick: number;
+  capturedMoveX: number;
+  capturedMoveZ: number;
+  shotAimU: number;
+  shotAimV: number;
+}
+export const EMPTY_ACTION: ControllerActionState = {
+  actorId: null, action: null, startedTick: 0,
+  capturedMoveX: 0, capturedMoveZ: 0, shotAimU: 0, shotAimV: 0,
+};

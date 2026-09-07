@@ -53,41 +53,50 @@ test('movement accelerates responsively, normalizes diagonals, and sprint is fas
   tick(straight.g, 0.35); assert.ok(Math.hypot(p.vx, p.vz) < 1, 'release stops without skating');
 });
 
-test('analog stick pace: partial deflection jogs, full matches keyboard', () => {
+test('analog pace is smooth: partial deflection scales speed, sprint ratio ~1.24, no stamina cliff', () => {
   const run = (x: number, z: number, sprint = false) => {
     const g = sandbox(); freeBall(g, { x: 40, z: 25, y: FIELD.ballRadius, vx: 0, vy: 0, vz: 0 });
     tick(g, 1, { x, z, sprint });
     const p = g.state.players[g.state.controlled];
-    return { dist: Math.hypot(p.x, p.z), stamina: p.stamina };
+    return { dist: Math.hypot(p.x, p.z), speed: Math.hypot(p.vx, p.vz), stamina: p.stamina };
   };
   const full = run(1, 0), half = run(0.45, 0), burst = run(1, 0, true);
   assert.ok(half.dist < full.dist * 0.85, 'partial stick deflection jogs slower');
-  assert.ok(burst.dist > full.dist * 1.1, 'sprint key still fastest');
-  assert.equal(half.stamina, 1, 'jogging never drains stamina');
-  assert.ok(burst.stamina < 1, 'sprinting drains stamina');
+  assert.ok(half.dist > full.dist * 0.2, 'no minimum-jog jump: small deflection stays slow');
+  assert.ok(burst.dist > full.dist * 1.15 && burst.dist < full.dist * 1.35, `sprint ratio is arcade (~1.24), got ${(burst.dist / full.dist).toFixed(2)}`);
+  assert.equal(half.stamina, 1, 'no stamina model in P0');
+  assert.equal(burst.stamina, 1, 'sprint costs through touch exposure, not a stamina cliff');
 });
 
-test('assisted pass travels physically and through ball leads into space', () => {
-  const perform = (through: boolean) => {
+test('tap pass goes to feet, hold pass leads the same receiver into space', () => {
+  const perform = (hold: boolean) => {
     const g = sandbox(); const s = g.state;
     const receiver = s.players.find(p => p.team === 0 && p.id !== s.controlled && !p.keeper)!;
     receiver.x = 13; receiver.z = 0; receiver.vx = 5;
-    tick(g, DT, { x: 1, pass: !through, through });
-    assert.equal(s.ball.owner, null); assert.ok(s.ball.vx > 8);
+    tick(g, DT, { x: 1, z: 0, pass: true, passHeld: true });
+    assert.equal(s.targetPlayer, receiver.id, 'press nominates the intended teammate');
+    assert.notEqual(s.ball.owner, null, 'press does not kick yet');
+    if (hold) for (let i = 0; i < 14; i++) tick(g, DT, { x: 1, z: 0, passHeld: true });
+    tick(g, DT, { x: 1, z: 0, passReleased: true });
+    assert.equal(s.ball.owner, null, 'release kicks'); assert.ok(s.ball.vx > 8);
     assert.ok(s.ball.x < 3, 'ball does not teleport to receiver');
-    assert.equal(s.targetPlayer, receiver.id, 'assist picks intended teammate');
-    assert.equal(s.ball.flight, through ? 'through' : 'pass');
-    return g;
+    assert.equal(s.targetPlayer, receiver.id, 'same receiver for tap and hold');
+    assert.equal(s.ball.flight, hold ? 'through' : 'pass');
+    const dest = g.receiveDest();
+    assert.ok(dest, 'release fixes a destination');
+    return { g, destX: dest!.x };
   };
   const pass = perform(false), through = perform(true);
-  assert.ok(through.state.ball.vx >= pass.state.ball.vx, 'through pass reaches useful forward space');
+  assert.ok(through.destX > pass.destX + 2, `hold leads the same man into space (feet ${pass.destX.toFixed(1)}m vs lead ${through.destX.toFixed(1)}m)`);
 });
 
-test('cross has loft and shot produces fast independent ball', () => {
-  const cross = sandbox();
-  tick(cross, DT, { cross: true, x: 1 });
-  assert.equal(cross.state.ball.owner, null);
-  assert.ok(cross.state.ball.vy > 3); assert.equal(cross.state.ball.flight, 'cross');
+test('corner has loft and shot produces fast independent ball', () => {
+  const corner = sandbox();
+  corner.state.phase = 'corner';
+  corner.state.restart = { team: 0, taker: corner.state.controlled, x: 40, z: 24, wait: 0 };
+  tick(corner, DT, { shootPressed: true, x: -1 });
+  assert.equal(corner.state.ball.owner, null);
+  assert.ok(corner.state.ball.vy > 3); assert.equal(corner.state.ball.flight, 'cross');
   const shot = sandbox();
   tick(shot, 0.2, { shootPressed: true, shootHeld: true, x: 1 });
   tick(shot, DT, { shootReleased: true, x: 1 });
@@ -129,7 +138,7 @@ test('goal-line last touch awards corners and goal kicks; both can restart', () 
     freeBall(g, { x: side * (FIELD.halfLength - 0.05), z: 12, y: 0.3, vx: side * 15, vy: 0, vz: 0, lastTouch: 1 });
     tick(g, 0.1); assert.equal(g.state.phase, kind); assert.equal(g.state.restart?.team, 0);
     tick(g, 1.5);
-    tick(g, DT, kind === 'corner' ? { cross: true } : { shootPressed: true });
+    tick(g, DT, kind === 'corner' ? { shootPressed: true } : { shootPressed: true });
     assert.equal(g.state.phase, 'playing', `${kind} resumes`);
     assert.equal(g.state.ball.owner, null);
   }

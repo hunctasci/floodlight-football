@@ -36,25 +36,24 @@ test('full-power shots are faster than taps (charge = risk/reward power)', () =>
   assert.ok(fullSpeed > tapSpeed + 6, `charge adds pace (${tapSpeed.toFixed(1)} → ${fullSpeed.toFixed(1)} m/s)`);
 });
 
-test('continuous aim reaches the corners of the goal mouth', () => {
-  const b = fire(7, { x: .6, z: .8 }, .12);
+test('reticle aim reaches the corners of the goal mouth', () => {
+  const g = striker(7);
+  tick(g, DT, { aimU: 0.7, aimV: 0, shootPressed: true, shootHeld: true });
+  tick(g, .11, { aimU: 0.7, aimV: 0, shootHeld: true });
+  tick(g, DT, { aimU: 0.7, aimV: 0, shootReleased: true });
+  const b = g.state.ball;
+  assert.equal(b.owner, null);
+  assert.equal(b.flight, 'shot');
   const zAtGoal = b.z + b.vz / b.vx * (FIELD.halfLength - b.x);
-  assert.ok(Math.abs(zAtGoal) > 2.4, `wide stick aim finds the corner (z=${zAtGoal.toFixed(2)})`);
+  assert.ok(Math.abs(zAtGoal) > 2.4, `reticle aim finds the corner (z=${zAtGoal.toFixed(2)})`);
   assert.ok(Math.abs(zAtGoal) < FIELD.goalHalfWidth, 'aimed shot stays on target');
 });
 
-test('sprint+shoot is a flat driven strike', () => {
+test('sprint never selects a shot variant: one shoot action, placement + power only', () => {
   const b = fire(7, { x: 1, z: 0 }, .55, { sprint: true });
   const speed = Math.hypot(b.vx, b.vz);
-  assert.ok(speed > 28, `driven is fierce (${speed.toFixed(1)} m/s)`);
-  assert.ok(b.vy < 1.2, `driven stays flat (vy=${b.vy.toFixed(2)})`);
-  assert.ok(Math.abs(b.spin || 0) < .01, 'driven has no curve');
-});
-
-test('low wide shots become curlers with Magnus spin', () => {
-  const b = fire(7, { x: .6, z: .8 }, .06);
-  assert.ok((b.spin || 0) > 1.5, `finesse spins toward the corner (spin=${(b.spin || 0).toFixed(2)})`);
-  assert.ok(Math.hypot(b.vx, b.vz) < 26, 'curler is softer than a placed drive');
+  assert.ok(speed > 32, `max charge is fierce (${speed.toFixed(1)} m/s)`);
+  assert.ok((b.spin || 0) === 0, 'no automatic curl on any shot');
 });
 
 test('spin bends the ball sideways in flight', () => {

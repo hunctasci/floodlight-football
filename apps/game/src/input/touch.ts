@@ -14,10 +14,13 @@ export interface TouchState {
   stickX: number;
   stickZ: number;
   usingTouch: boolean;
+  /** Shot aim from dragging on the SHOOT control (goal-local U/V). */
+  aimU: number;
+  aimV: number;
 }
 
 export function createTouchState(): TouchState {
-  return { down: new Set(), pressed: new Set(), released: new Set(), stickX: 0, stickZ: 0, usingTouch: false };
+  return { down: new Set(), pressed: new Set(), released: new Set(), stickX: 0, stickZ: 0, usingTouch: false, aimU: 0, aimV: 0 };
 }
 
 export function touchDown(t: TouchState, code: string) {
@@ -29,6 +32,15 @@ export function touchDown(t: TouchState, code: string) {
 export function touchUp(t: TouchState, code: string) {
   t.released.add(code);
   t.down.delete(code);
+  t.usingTouch = true;
+  // Releasing SHOOT clears the drag aim with the gesture.
+  if (code === TOUCH_BUTTONS.shoot) { t.aimU = 0; t.aimV = 0; }
+}
+
+/** Drag offset on the SHOOT control, in px from the touch start. */
+export function setShootAim(t: TouchState, dx: number, dy: number) {
+  t.aimU = Math.max(-1, Math.min(1, dx / 96));
+  t.aimV = Math.max(0, Math.min(1, -dy / 96));
   t.usingTouch = true;
 }
 
@@ -46,11 +58,13 @@ export function releaseStick(t: TouchState) { t.stickX = 0; t.stickZ = 0; }
 
 /**
  * Analog sprint (FIFA Mobile-style): pushing the stick to its rim sprints,
- * no sprint button needed. Threshold sits just inside full deflection so a
- * firm push always engages but steering near the rim never flickers.
+ * no sprint button needed. Hysteresis: enter at ~0.92, stay until below
+ * ~0.82, so steering near the rim never flickers. Pass the previous result
+ * (`wasSprint`) back in each frame.
  */
-export function stickSprint(t: TouchState): boolean {
-  return Math.hypot(t.stickX, t.stickZ) > 0.92;
+export function stickSprint(t: TouchState, wasSprint = false): boolean {
+  const m = Math.hypot(t.stickX, t.stickZ);
+  return m > (wasSprint ? 0.82 : 0.92);
 }
 
 /** End-of-frame: edges are consumed, held buttons persist. Mirrors keyboard handling. */
@@ -58,18 +72,15 @@ export function clearTouchEdges(t: TouchState) { t.pressed.clear(); t.released.c
 
 export function resetTouch(t: TouchState) {
   t.down.clear(); t.pressed.clear(); t.released.clear();
-  t.stickX = 0; t.stickZ = 0;
+  t.stickX = 0; t.stickZ = 0; t.aimU = 0; t.aimV = 0;
 }
 
-/** Button code map for the on-screen match controls (contextual: the same
- *  buttons tackle/slide on defense). Movement pace + sprint live on the
- *  analog stick, camera on the HUD chip, pause on the scoreboard — so the
- *  pad holds only the five action buttons. */
+/** Button code map for the on-screen match controls: three permanent action
+ *  buttons only (PASS / SHOOT / SWITCH). Sprint lives on the joystick rim,
+ *  lead passes come from holding PASS, long keeper balls from SHOOT. */
 export const TOUCH_BUTTONS = {
-  shoot: 'KeyD',
-  pass: 'KeyS',
-  through: 'KeyW',
-  cross: 'KeyA',
+  shoot: 'KeyK',
+  pass: 'Space',
   switch: 'KeyQ',
 } as const;
 

@@ -13,3 +13,10 @@ export const direction = (x: number, z: number): Vec => {
   return d > 0.001 ? { x: x / d, z: z / d } : { x: 0, z: 0 };
 };
 export const other = (t: TeamId) => (1 - t) as TeamId;
+/** 2D distance from point p to segment a→b (swept contact for fast balls). */
+export const segDist = (a: Vec, b: Vec, p: Vec): number => {
+  const dx = b.x - a.x, dz = b.z - a.z;
+  const len2 = dx * dx + dz * dz;
+  const u = len2 > 1e-9 ? clamp(((p.x - a.x) * dx + (p.z - a.z) * dz) / len2, 0, 1) : 0;
+  return length(p.x - (a.x + u * dx), p.z - (a.z + u * dz));
+};

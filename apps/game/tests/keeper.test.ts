@@ -50,7 +50,7 @@ test('keeper through ball on W', () => {
   assert.equal(s.ball.flight, 'through');
 });
 
-test('pressing forward cannot camp on or steal from a holding keeper', () => {
+test('pressing forward cannot camp inside the keeper cylinder or steal the ball', () => {
   const { g, s, k } = keeperSetup();
   const foe = s.players.find(p => p.team === 1 && !p.keeper)!;
   foe.x = k.x + 1.0; foe.z = 0; foe.vx = foe.vz = 0;
@@ -61,7 +61,7 @@ test('pressing forward cannot camp on or steal from a holding keeper', () => {
     minDist = Math.min(minDist, Math.hypot(foe.x - k.x, foe.z - k.z));
     assert.equal(s.ball.owner, k.id, 'keeper keeps holding under press');
   }
-  assert.ok(minDist >= 1.9, `protection bubble holds (min=${minDist.toFixed(2)})`);
+  assert.ok(minDist >= 1.9, `keeper cylinder holds (min=${minDist.toFixed(2)})`);
 });
 
 test('idle keeper auto-distributes instead of holding forever', () => {
@@ -78,30 +78,73 @@ test('opponents retreat when the opposing keeper holds the ball', () => {
   const k1 = s.players.find(p => p.team === 1 && p.keeper)!;
   k1.x = 40; k1.z = 0; k1.vx = k1.vz = 0; k1.cooldown = 0;
   Object.assign(s.ball, { x: 39.4, z: 0, y: FIELD.ballRadius, vx: 0, vy: 0, vz: 0, owner: k1.id, lastTouch: 1, lock: 0, lastKicker: null, flight: 'roll' });
-  // Park team 0's AI outfielders right next to the keeper; human is excluded from AI.
+  // Park team 0's AI outfielders at contain distance; human is excluded from AI.
   const chasers = s.players.filter(p => p.team === 0 && !p.keeper && p.id !== s.controlled);
-  for (const p of chasers) { p.x = 41; p.z = 0; p.vx = p.vz = 0; p.think = 100; }
+  for (const p of chasers) { p.x = 32; p.z = 0; p.vx = p.vz = 0; p.think = 100; }
   tick(g, 0.4); // inside the calm .6s hold window — no distribution yet
   assert.equal(s.ball.owner, k1.id, 'keeper keeps holding');
-  for (const p of chasers) {
-    const d = Math.hypot(p.x - k1.x, p.z - k1.z);
-    assert.ok(d >= 3.9, `outfielder ${p.id} stays out of the 4m bubble (d=${d.toFixed(2)})`);
-  }
   const retreats = chasers.filter(p => p.aiState === 'RETREAT').length;
   assert.ok(retreats >= 5, `most outfielders drop back (${retreats}/9)`);
 });
 
-test('outfield driven pass (sprint+pass) is flat and fierce', () => {
-  const g = new MatchEngine(0, 180, 21);
+test('keeper hurries the release when camped at the cylinder', () => {
+  const g = new MatchEngine(0, 180, 32);
   const s = g.state;
-  s.phase = 'playing'; s.restart = null;
-  for (const p of s.players) { p.x = p.team === 0 ? -20 : 25; p.z = 24; p.think = 100; }
-  const kicker = s.players[s.controlled];
-  kicker.x = 0; kicker.z = 0; kicker.facingX = 1; kicker.facingZ = 0;
-  const mate = s.players.find(p => p.team === 0 && !p.keeper && p.id !== kicker.id)!;
-  mate.x = 13; mate.z = 0; mate.vx = mate.vz = 0;
-  Object.assign(s.ball, { x: 0.7, z: 0, owner: kicker.id });
-  tick(g, DT, { x: 1, z: 0, pass: true, sprint: true });
-  const speed = Math.hypot(s.ball.vx, s.ball.vz);
-  assert.ok(speed >= 25, `driven pass is fierce (${speed.toFixed(1)} m/s)`);
+  s.phase = 'playing'; s.phaseTime = 0; s.restart = null; s.paused = false;
+  const k1 = s.players.find(p => p.team === 1 && p.keeper)!;
+  k1.x = 40; k1.z = 0; k1.vx = k1.vz = 0; k1.cooldown = 0;
+  Object.assign(s.ball, { x: 39.4, z: 0, y: FIELD.ballRadius, vx: 0, vy: 0, vz: 0, owner: k1.id, lastTouch: 1, lock: 0, lastKicker: null, flight: 'roll' });
+  const camper = s.players.find(p => p.team === 0 && !p.keeper && p.id !== s.controlled)!;
+  camper.x = 41.5; camper.z = 0; camper.vx = camper.vz = 0; camper.think = 100;
+  for (const p of s.players) if (p.team === 0 && !p.keeper && p.id !== camper.id && p.id !== s.controlled) { p.x = 0; p.z = 20; p.think = 100; }
+  tick(g, 0.5);
+  assert.notEqual(s.ball.owner, k1.id, 'camped keeper releases early instead of holding');
+});
+
+test('hold-PASS is a lead pass into space; sprint never modifies a pass', () => {
+  const setup = () => {
+    const g = new MatchEngine(0, 180, 21);
+    const s = g.state;
+    s.phase = 'playing'; s.restart = null;
+    for (const p of s.players) { p.x = p.team === 0 ? -20 : 25; p.z = 24; p.think = 100; }
+    const kicker = s.players[s.controlled];
+    kicker.x = 0; kicker.z = 0; kicker.facingX = 1; kicker.facingZ = 0;
+    const mate = s.players.find(p => p.team === 0 && !p.keeper && p.id !== kicker.id)!;
+    mate.x = 13; mate.z = 0; mate.vx = 4; mate.vz = 0;
+    Object.assign(s.ball, { x: 0.7, z: 0, owner: kicker.id });
+    return { g, s, kicker, mate };
+  };
+  // Tap: feet pass at a modest pace.
+  {
+    const { g, s } = setup();
+    tick(g, DT, { x: 1, z: 0, pass: true, passHeld: true });
+    tick(g, DT, { x: 1, z: 0, passReleased: true });
+    assert.equal(s.ball.flight, 'pass');
+    const tapSpeed = Math.hypot(s.ball.vx, s.ball.vz);
+    assert.ok(tapSpeed >= 17 && tapSpeed <= 27, `tap pace sane (${tapSpeed.toFixed(1)} m/s)`);
+  }
+  // Hold: same receiver, lead destination into space.
+  {
+    const { g, s, mate } = setup();
+    tick(g, DT, { x: 1, z: 0, pass: true, passHeld: true });
+    assert.equal(s.targetPlayer, mate.id, 'hold keeps the same receiver');
+    for (let i = 0; i < 14; i++) tick(g, DT, { x: 1, z: 0, passHeld: true });
+    tick(g, DT, { x: 1, z: 0, passReleased: true, passHeld: false });
+    assert.equal(s.ball.flight, 'through', 'hold turns the same receiver into a lead pass');
+    const dest = g.receiveDest();
+    assert.ok(dest && dest.x > mate.x + 2, `lead destination serves space ahead (${dest ? dest.x.toFixed(1) : 'none'} vs mate ${mate.x.toFixed(1)})`);
+  }
+  // Sprint held through the gesture must not change the pass intent.
+  {
+    const a = setup();
+    tick(a.g, DT, { x: 1, z: 0, pass: true, passHeld: true });
+    tick(a.g, DT, { x: 1, z: 0, passReleased: true });
+    const b = setup();
+    tick(b.g, DT, { x: 1, z: 0, pass: true, passHeld: true, sprint: true });
+    tick(b.g, DT, { x: 1, z: 0, passReleased: true, sprint: true });
+    assert.equal(a.s.targetPlayer, b.s.targetPlayer, 'sprint does not change the receiver');
+    assert.equal(a.s.ball.flight, b.s.ball.flight, 'sprint does not change the pass type');
+    const da = a.g.receiveDest()!, db = b.g.receiveDest()!;
+    assert.ok(Math.hypot(da.x - db.x, da.z - db.z) < 1.5, 'sprint does not redirect the destination');
+  }
 });
