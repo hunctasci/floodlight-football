@@ -32,6 +32,23 @@ test('coarse-pointer inputs stay at readable sizes', () => {
   assert.ok(coarse.includes('font-size:16px'), 'mobile inputs use 16px+');
 });
 
+// Lobby waiting readout: spinner + ROOM→FRIEND/JOIN→LINK→READY stages.
+test('waiting screens show a spinner and progress stages', () => {
+  assert.ok(mainSrc.includes('waitSteps()'), 'host/joining panels render progress');
+  assert.ok(mainSrc.includes('data-testid="wait-steps"'), 'steps are test-targetable');
+  assert.ok(mainSrc.includes('data-testid="wait-spinner"'), 'spinner is test-targetable');
+  assert.ok(css.includes('.waitspinner'), 'spinner styled');
+  assert.ok(css.includes('@keyframes wwaitspin'), 'spinner animates without assets');
+  assert.ok(css.includes('.wstep'), 'stage steps styled');
+  assert.ok(css.includes('prefers-reduced-motion'), 'motion-sensitive users respected');
+  // The step template once shipped a missing closing quote, which made the
+  // parser swallow the invite textarea into a span (no usable invite field).
+  assert.ok(
+    mainSrc.includes(`' active' : ''}">`),
+    'step spans close their class attribute before >',
+  );
+});
+
 // Room-code fields are full, centered blocks — the narrow scorebox class is
 // reserved for the 0-99 score inputs (its 84px !important width collapsed
 // the invite/join fields into tiny left-aligned boxes).

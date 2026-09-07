@@ -150,8 +150,9 @@ test('E2E 2 — manual JOIN WITH CODE reaches the same READY lobby', async ({ br
     await openOnlineMenu(guest, { e2e: false });
     await joinWithCode(guest, roomCode.toLowerCase());
 
-    await waitForReadyLobby(host, 45_000);
-    await waitForReadyLobby(guest, 45_000);
+    await expect(host.getByTestId('wait-steps')).toBeVisible({ timeout: 10_000 });
+  await waitForReadyLobby(host, 45_000);
+  await waitForReadyLobby(guest, 45_000);
     const h = await peerIds(host);
     const g = await peerIds(guest);
     expect(h.room).toBe(g.room);
