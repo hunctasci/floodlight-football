@@ -79,6 +79,20 @@ test('production signaling is explicit (no silent Cloudflare->legacy swap)', () 
   assert.ok(!mainSrc.includes('not a Cloudflare control plane — try the Node reference'), 'silent fallback comment gone');
 });
 
+test('lobby drives the NetDriver handshake (no stuck-at-CONNECTED)', () => {
+  // Regression: net.poll() used to run only on screen==='match', so a lost
+  // hello or a never-opening DataChannel left host/guest on CONNECTED forever
+  // with no READY and no error. The lobby must pump the handshake so retries
+  // fire and the 20s timeout surfaces CONNECTION FAILED instead of hanging.
+  assert.ok(
+    mainSrc.includes("screen==='host'||screen==='join'||screen==='joining'||screen==='netready'"),
+    'frame pumps net.poll() in lobby screens',
+  );
+  // SDP done must not masquerade as driver-ready; READY appears only on the
+  // driver's 'connected' event → netready screen.
+  assert.ok(!mainSrc.includes("netStatus = 'CONNECTED'"), 'no premature CONNECTED status');
+});
+
 // --- Invite URL: code only ---------------------------------------------------
 
 test('invite URL carries only the public room code', () => {
