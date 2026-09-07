@@ -1,33 +1,30 @@
-# Gameplay known issues (reserved for the specialist pass)
+# Gameplay known issues (post-P0)
 
-Deliberately unfixed in the architecture refactor. Gameplay values and formulas
-were frozen — `TUNING` moved verbatim to `game/tuning.ts`, helpers to
-`game/math.ts`, no retuning. The next pass (Astra) owns these.
+The specialist pass (ADR-006, commit `d3fcca8`) resolved the reserved list:
+magnetic possession, teleport claims, immunity windows, hidden shot spread
+and automatic curl, RNG keeper disks and teleport bubbles, instant RNG
+tackles, nearest-switching, through/cross buttons, stamina cliffs, and AI
+ball-piling all removed, with acceptance suites in `tests/p0-*.test.ts`.
+Mechanics: `docs/gameplay.md`. Sim tech: `docs/simulation.md`.
 
-- Goalkeeper distribution vs over-pressing: holding keeper can feel camped;
-  protection bubble (4 m) vs press spacing needs a feel pass.
-- Shooting frequently converging near the keeper: placement/spread curve
-  (`spread`, `intentZ`, charge/run penalties) may funnel shots centrally.
-- Scoring too difficult: shot speed/placement vs keeper reach/reaction
-  (`keeperReach`, `keeperDiveReach`, `keeperReact`, hold/spill curve) balance.
-- Movement/control responsiveness: acceleration/deceleration/turn
-  (`acceleration`, `deceleration`, `turn`), analog jog→sprint pace, assist magnet
-  strength and first-step burst.
-- First-touch/possession feel: `controlRadius`/`receiverRadius` magnet,
-  `possessionGrace`, claim teleport vs trap, driven-pass control difficulty.
-- Tackle/slide-tackle feel: reach (`tackle`, `slideTackle`), success rates,
-  cooldowns (standing 0.48 s vs slide 1.0 s), slide momentum lock, `fallen`
-  recovery, victim knock-down distance.
-- AI pressing/spacing: chaser/cover assignment, goalside vs direct press,
-  `MARK`/`SUPPORT`/`RETREAT` shape, carrier decision rates (shoot/pass/cross),
-  keeper sweep (`sweep`/`close`) aggression.
-- Mobile unwanted bar/UI issue: reported bottom bar overlapping play on some
-  phones (HUD strip vs touch pads vs safe-area; camera `look.z + 2.5` bias and
-  `.strip` CSS interplay need a device pass).
-- Reported pixel/rendering/performance issues: high-DPI overflow notes in
-  `renderer.resize()`, DPR cap 1.5, shadow map size, instanced crowd cost,
-  trail puff churn — visual only, no sim impact, but needs a device sweep.
+Genuine remaining limitations (not regressions):
 
-Where to look first: `apps/game/src/engine.ts` (all of the above),
-`apps/game/src/game/tuning.ts` (values), `apps/game/tests/` (`match`, `shoot`,
-`keeper`, `tackle`, `edgecases`, `determinism` for the frozen contract).
+- **Browser GPU pass outstanding:** sim-side p95 is 0.02 ms, but renderer
+  cost (shadows, 22 avatars, DPR tiers, trail churn) was only reviewed, not
+  profiled on device. Needs a real phone + laptop sweep, including the
+  reported bottom-bar/safe-area interplay on some phones.
+- **Aerial game is basic:** high balls, chips and headers work through the
+  same contact gates (1.0–1.2 m); no elaborate crossing/header gameplay by
+  design, but feel needs playtest confirmation.
+- **AI set pieces:** corners/throw-ins use scripted placements; no wider
+  routines, no offside/fouls/cards (all out of scope for P0).
+- **Keeper edge cases:** 1v1 chip timing vs smother trigger, and sweeper
+  restraint when already beaten, could use more match-hours.
+- **Tuning is calibration, not law:** conversion rates (placed corners vs
+  body shots), presser lunge rate, outlet spacing were set from fixtures +
+  scripted matches. Human playtesting should move individual numbers inside
+  `game/tuning.ts` — the systems underneath no longer need redesign.
+
+Where to look: `apps/game/src/engine.ts` (systems table in
+`docs/simulation.md`), `apps/game/src/game/tuning.ts` (values),
+`apps/game/tests/p0-*.test.ts` (acceptance contracts).

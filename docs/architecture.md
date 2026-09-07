@@ -9,15 +9,24 @@ and signaling in production. Solo play works with no backend.
 ```text
 apps/game/src/
   main.ts                  # app orchestration: lifecycle, frame loop, navigation, net/league side effects
-  engine.ts                # MatchEngine — central deterministic simulation authority (frozen)
-  types.ts                 # sim types: MatchState, InputFrame, Ball, Player (shared with net)
+  engine.ts                # MatchEngine — deterministic simulation (movement, ball, passing,
+                           #   shooting, keeper, tackling, shape, restarts; see docs/simulation.md)
+  types.ts                 # sim types: MatchState, InputFrame (+aim/hold edges), Ball, Player, action state
   game/
-    math.ts                # pure helpers (clamp/length/distance/direction/other), no THREE
-    tuning.ts              # canonical TUNING + grouped read aliases (values frozen)
+    math.ts                # pure helpers (clamp/length/distance/direction/other/segDist), no THREE
+    tuning.ts              # canonical TUNING values (P0 rebuild values)
+    clock.ts               # SimulationClock: fixed 60 Hz pacing, catch-up cap, debt rebase
   input/
     keyboard.ts            # keyboard device state (down/pressed/released, blocked keys)
-    touch.ts               # pure touch state (stick, buttons); DOM lives in ui/
-    input.ts               # unified device state -> InputFrame (+ shootWasDown)
+    touch.ts               # pure touch state (stick, buttons, SHOOT drag-aim, sprint hysteresis)
+    input.ts               # unified device state -> quantized InputFrame (+ hold-state carry)
+  render/
+    camera.ts              # pure camera math (computeCamera/followFocus/cines)
+  renderer.ts              # GameRenderer (Three.js) + re-exports of camera helpers
+  ui/
+    touch-controls.ts      # touch-control DOM (stick + 3-button pad + SHOOT drag-aim)
+  audio/
+    audio.ts               # synthesised soundscape (no assets)
   render/
     camera.ts              # pure camera math (computeCamera/followFocus/cines)
   renderer.ts              # GameRenderer (Three.js) + re-exports of camera helpers
@@ -79,13 +88,17 @@ and delegates:
   side effects (launch, net flows, league REST); extracting it into a DI menu
   framework would change semantics for no behavioral gain.
 
-## Simulation (frozen)
+## Simulation
 
-`MatchEngine` is the authority. Fixed 60 Hz (`update(1/60, input, peerInput)`),
-seeded RNG (`seed * 1664525 + 1013904223`), serial iteration order, snapshot/
-restore (`structuredClone`), FNV-1a `hash()` over quantized fields. Helpers in
-`game/math.ts` and constants in `game/tuning.ts` were relocated verbatim —
-expressions, values, call order and float op order unchanged.
+`MatchEngine` is the authority. Fixed 60 Hz ticks driven by
+`game/clock.ts` (`update(1/60, input, peerInput)`), seeded RNG, serial
+iteration order, snapshot/restore (`structuredClone`), FNV-1a `hash()` over
+the canonical quantized field list (see `docs/simulation.md` — every
+future-affecting field, no presentation state). Gameplay systems
+(movement, touch model, passing, shooting solve, keeper, challenges, shape)
+are private methods with centralized `TUNING`; contributor rules
+(no wall-clock/RNG in decisions, snapshot+hash+reset checklist) live in
+`docs/simulation.md`, mechanics in `docs/gameplay.md`.
 
 Three.js never enters simulation modules (`engine`, `game/*`, `types`,
 `input/*`, `net/codec|proto|session`). Renderer-only helpers
@@ -105,20 +118,23 @@ raw browser input → device state → InputFrame → simulation
 ```
 
 - `input/keyboard.ts`: `down/pressed/released`, `BLOCKED_KEYS`, pure transitions.
-- `input/touch.ts`: `TouchState` + stick dead-zone/normalize + `stickSprint(>0.92)`.
-- `input/input.ts`: `buildInputFrame(kb, touch, shootWasDown)` — arrows + stick
-  merged and normalized, `E/Shift/stick-rim` sprint, `S/W/A/D` + `J/L/I/K`
-  aliases, `Q/Space` switch, unified `shootWasDown` release detection.
+- `input/touch.ts`: `TouchState` + stick dead-zone/normalize + rim-sprint
+  hysteresis (0.92 enter / 0.82 leave) + SHOOT drag-aim.
+- `input/input.ts`: `buildInputFrame(kb, touch, shootWasDown, carry)` —
+  WASD/arrows + stick merged and normalized, `Shift/E`/rim sprint, Space
+  pass (tap/hold), mouse/KeyK shoot with reticle aim, `Q` switch, unified
+  press/hold/release carry. Axes and aim quantized to the wire format.
 
 Frozen by `tests/input-mapping.test.ts`. MatchEngine never sees DOM.
 
 ## WebRTC networking (frozen)
 
 1v1 P2P lockstep, both peers construct identical engines
-(`humanTeam=0, remoteTeam=1`) and exchange 3-byte inputs per tick; a tick runs
-only when both sides' inputs are present. Hashes every `HASH_EVERY=15` ticks
-detect desyncs; host snapshots heal. Transport is a byte pipe (`Loopback` in
-tests, `RTCDataChannel` in browsers). One player flow:
+(`humanTeam=0, remoteTeam=1`) and exchange 6-byte inputs per tick; a tick runs
+only when due by match-clock time *and* both sides' inputs are present
+(catch-up capped, debt rebased — see `docs/simulation.md`). Hashes every
+`HASH_EVERY=15` ticks detect desyncs; host snapshots heal. Transport is a
+byte pipe (`Loopback` in tests, `RTCDataChannel` in browsers). One player flow:
 
 - **Cloudflare rooms (production)**: `CloudflareSignalingClient`
   (`POST /api/rooms`, `WS /api/rooms/:code/socket`) creates/joins a 6-char
@@ -134,9 +150,12 @@ tests, `RTCDataChannel` in browsers). One player flow:
   `signal.encodeCode`): low-level fallback for tests/debugging only, not the
   normal player path.
 
-Codec, framing, hash cadence, snapshot/resync, timing — all frozen and covered
-by `net-*.test.ts` + `determinism.test.ts`. No 4-player lockstep, rollback
-redesign, authoritative server, matchmaking or spectator in this pass.
+Codec (v2: buttons + move + shot aim), framing, hash cadence,
+snapshot/resync, timing and version negotiation are covered by
+`net-*.test.ts` + `determinism.test.ts` + `p0-clock.test.ts`. Peers with
+mismatched sim/input/tuning versions fail the handshake instead of starting
+an invalid match. No 4-player lockstep, rollback redesign, authoritative
+server, matchmaking or spectator in this pass.
 
 ## Signaling / shared protocol
 
