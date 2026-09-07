@@ -331,7 +331,13 @@ function watchTransport(t: RTCTransport, role: string) {
 }
 function wrapDcState(t: RTCTransport, role: string) {
   const prev = t.onstate;
+  let last: string | null = null;
   t.onstate = (s) => {
+    if (s === last) {
+      try { prev?.(s); } catch { /* driver handler */ }
+      return;
+    }
+    last = s;
     netlog.log('dc', `${role} datachannel=${s}`);
     if (s === 'closed') {
       // Best-effort final pair diagnosis (consent lost vs no pair at all).

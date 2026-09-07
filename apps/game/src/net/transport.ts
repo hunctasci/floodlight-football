@@ -275,7 +275,14 @@ type StatsSource = { getStats(): Promise<Iterable<unknown>> };
 export async function summarizeStats(pc: StatsSource): Promise<string> {
   let report: StatsLike[];
   try {
-    report = [...(await pc.getStats())].filter(
+    const raw = (await pc.getStats()) as unknown;
+    // RTCStatsReport is a Map (entries spread as [key, value]); test fakes
+    // may pass plain arrays. Values hold the stats dictionaries either way.
+    const values: unknown[] =
+      raw && typeof raw === 'object' && typeof (raw as Map<string, unknown>).values === 'function'
+        ? [...(raw as Map<string, unknown>).values()]
+        : [...(raw as Iterable<unknown>)];
+    report = values.filter(
       (s): s is StatsLike => !!s && typeof s === 'object' && typeof (s as StatsLike).type === 'string',
     );
   } catch {

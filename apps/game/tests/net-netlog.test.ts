@@ -204,6 +204,26 @@ test('stats summaries name the pair without addresses', async () => {
   assert.ok(!sum.includes('192.168'), 'no addresses leak');
 });
 
+// Regression: real RTCStatsReport is a Map — spreading it yields [key, value]
+// entries, and filtering those for `.type` finds zero pairs (a previous build
+// logged `pairs=0` for an entire failing session while checks were running).
+test('stats summaries read Map-shaped RTCStatsReport values', async () => {
+  const entries: Array<[string, unknown]> = [
+    ['l1', { type: 'local-candidate', id: 'l1', candidateType: 'relay' }],
+    ['r1', { type: 'remote-candidate', id: 'r1', candidateType: 'relay' }],
+    ['p1', {
+      type: 'candidate-pair', id: 'p1', localCandidateId: 'l1', remoteCandidateId: 'r1',
+      protocol: 'udp', state: 'succeeded', nominated: true, selected: true,
+      currentRoundTripTime: 0.05, bytesSent: 100, bytesReceived: 90,
+    }],
+  ];
+  const asMap = new Map(entries);
+  const sum = await summarizeStats({ getStats: async () => asMap });
+  assert.ok(sum.includes('pair=relay-relay/udp'), `relay pair named: ${sum}`);
+  assert.ok(sum.includes('state=succeeded'), 'pair state present');
+  assert.ok(!sum.includes('pairs=0'), 'pairs found through Map values');
+});
+
 test('main exposes copyable redacted diagnostics, never secrets', () => {
   assert.ok(mainSrc.includes('COPY DEBUG LOG'), 'player-facing log action');
   assert.ok(mainSrc.includes('doCopyLog'), 'copy handler');
