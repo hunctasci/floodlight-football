@@ -15,7 +15,8 @@
 .panel .netcode,.panel .netpaste{resize:none;line-height:1.5;letter-spacing:.12em;text-transform:uppercase}
 .panel .netcode:focus,.panel .netpaste:focus{outline:none;border-color:#f7bf30}
 #invitelink{text-transform:none;letter-spacing:0}
-#netcode{text-align:center;letter-spacing:.3em;text-indent:.3em}
+#netcode{display:block;width:min(280px,100%);margin:8px auto;text-align:center;letter-spacing:.3em;text-indent:.3em}
+#invitelink{display:block;width:100%}
 .scorebox{letter-spacing:.3em;text-indent:.3em}
 .tbtn{letter-spacing:.06em}
 @media(pointer:coarse){

@@ -32,6 +32,20 @@ test('coarse-pointer inputs stay at readable sizes', () => {
   assert.ok(coarse.includes('font-size:16px'), 'mobile inputs use 16px+');
 });
 
+// Room-code fields are full, centered blocks — the narrow scorebox class is
+// reserved for the 0-99 score inputs (its 84px !important width collapsed
+// the invite/join fields into tiny left-aligned boxes).
+test('invite and join-code fields are centered blocks, not scoreboxes', () => {
+  const inviteTag = mainSrc.slice(mainSrc.indexOf('id="invitelink"') - 60, mainSrc.indexOf('id="invitelink"') + 40);
+  assert.ok(!inviteTag.includes('scorebox'), 'invite link must not use scorebox');
+  const codeTag = mainSrc.slice(mainSrc.indexOf('id="netcode"') - 60, mainSrc.indexOf('id="netcode"') + 40);
+  assert.ok(!codeTag.includes('scorebox'), 'join code must not use scorebox');
+  assert.ok(!codeTag.includes('style='), 'join code width comes from CSS, not inline styles');
+  assert.ok(css.includes('#netcode'), 'join code has dedicated layout rules');
+  assert.ok(css.includes('margin:8px auto') || css.includes('margin: 8px auto'), 'join code is horizontally centered');
+  assert.ok(css.includes('#invitelink'), 'invite link has dedicated layout rules');
+});
+
 // Mobile keyboards must not autocorrect room/league codes; scores get digits.
 test('code inputs disable autocorrect, scores request numeric entry', () => {
   for (const id of ['id="netcode"', 'id="lgcode"']) {
