@@ -42,7 +42,7 @@ export class CloudflareSignalingClient implements SignalingClient {
 
   constructor(
     private factory: WsFactory = (u) => new WebSocket(u),
-    private fetchFn: FetchLike = fetch,
+    private fetchFn: FetchLike = (url, init) => fetch(url, init),
   ) {}
 
   static socketUrl(baseHttp: string, code: string, clientId: string): string {

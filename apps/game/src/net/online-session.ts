@@ -157,7 +157,7 @@ export type ControlPlaneKind = 'cloudflare' | 'legacy';
  */
 export async function detectControlPlane(
   baseHttp: string,
-  fetchFn: (url: string, init?: RequestInit) => Promise<Response> = fetch,
+  fetchFn: (url: string, init?: RequestInit) => Promise<Response> = (url, init) => fetch(url, init),
   timeoutMs = 5000,
 ): Promise<ControlPlaneKind> {
   const base = baseHttp.replace(/\/+$/, '');

@@ -75,13 +75,13 @@ function assertNoLeak(text: string) {
 
 export async function openOnlineMenu(page: Page, opts: { e2e?: boolean } = {}) {
   await page.goto(opts.e2e === false ? '/' : '/?e2e=1');
-  await expect(page.getByText('ONLINE MATCH')).toBeVisible({ timeout: 15_000 });
-  await page.getByText('ONLINE MATCH').click();
-  await expect(page.getByText('PLAY WITH A FRIEND')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByText('ONLINE MATCH').first()).toBeVisible({ timeout: 15_000 });
+  await page.getByText('ONLINE MATCH').first().click();
+  await expect(page.getByText('PLAY WITH A FRIEND').first()).toBeVisible({ timeout: 10_000 });
 }
 
 export async function createFriendRoom(page: Page): Promise<{ roomCode: string; inviteUrl: string }> {
-  await page.getByText('PLAY WITH A FRIEND').click();
+  await page.getByText('PLAY WITH A FRIEND').first().click();
   // Host screen appears immediately (CREATING ROOM...), invite arrives after POST /api/rooms.
   await expect(page.getByTestId('invite-url')).toBeVisible({ timeout: 15_000 });
   const inviteUrl = await page.getByTestId('invite-url').inputValue();
@@ -101,8 +101,8 @@ export async function waitForReadyLobby(page: Page, timeout = 30_000) {
 }
 
 export async function setReady(page: Page) {
-  await expect(page.getByText("I'M READY")).toBeVisible({ timeout: 10_000 });
-  await page.getByText("I'M READY").click();
+  await expect(page.getByText("I'M READY").first()).toBeVisible({ timeout: 10_000 });
+  await page.getByText("I'M READY").first().click();
 }
 
 export async function waitForMatch(page: Page, timeout = 30_000) {
@@ -121,7 +121,7 @@ export async function waitForFullTime(page: Page, timeout = 120_000) {
 }
 
 export async function joinWithCode(page: Page, code: string) {
-  await page.getByText('JOIN WITH CODE').click();
+  await page.getByText('JOIN WITH CODE').first().click();
   await expect(page.getByTestId('join-code-input')).toBeVisible({ timeout: 10_000 });
   await page.getByTestId('join-code-input').fill(code);
   await page.getByTestId('join-submit').click();

@@ -26,7 +26,7 @@ type FetchLike = (url: string, init?: RequestInit) => Promise<Response>;
 
 /** Thin REST client for the F4b league API. Fetch is injectable for tests. */
 export class LeagueApi {
-  constructor(private base: string, private fetchFn: FetchLike = fetch) {}
+  constructor(private base: string, private fetchFn: FetchLike = (url, init) => fetch(url, init)) {}
 
   private async call<T>(path: string, method: string, body?: unknown): Promise<T> {
     let res: Response;

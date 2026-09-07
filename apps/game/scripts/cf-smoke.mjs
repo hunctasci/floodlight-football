@@ -51,10 +51,25 @@ class Sock {
 
 const roomUrl = (code, id) => BASE.replace(/^http/, 'ws') + `/api/rooms/${code}/socket?clientId=${id}`;
 
-// 1. Static game shell.
+// 1. Static game shell (+ no stale legacy multiplayer UI).
 const index = await fetch(BASE + '/');
 const html = await index.text();
 check('GET / serves the game', index.ok && html.includes('Floodlight Football'));
+// Deployed bundle must carry the unified friend-match UI, never the removed
+// manual-SDP ceremony (guards against stale-asset deploys).
+try {
+  const jsPaths = [...html.matchAll(/src="(\/assets\/[^"]+\.js)"/g)].map((m) => m[1]);
+  let bundle = '';
+  for (const p of jsPaths.slice(0, 3)) {
+    const r = await fetch(BASE + p);
+    bundle += await r.text();
+  }
+  const banned = ['CREATE INVITE LINK', 'CREATE ROOM', 'SEND THE REPLY BACK', 'PASTE THE REPLY', 'PASTE THE INVITE', 'invite-answer'];
+  check('deployed JS has no legacy SDP ceremony', banned.every((s) => !bundle.includes(s)));
+  check('deployed JS has unified friend-match UI', bundle.includes('PLAY WITH A FRIEND') && bundle.includes('JOIN WITH CODE'));
+} catch {
+  check('deployed bundle inspectable', false);
+}
 
 // 2. Health.
 const health = await (await fetch(BASE + '/api/health')).json();

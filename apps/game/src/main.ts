@@ -301,7 +301,14 @@ function attachDriver(d: NetDriver) {
     }
     else if (e.type === 'peerQuit') { closeNet(); screen = 'title'; menuIndex = 0; menuDirty = true; }
     else if (e.type === 'peerDropped') {
-      engine.state.message = 'PEER LEFT — AI TAKES OVER'; engine.state.messageTime = 3;
+      // Lobby drop (READY shown, match not started): clean FRIEND LEFT.
+      // Mid-match drop: AI takes over so solo can continue.
+      if (screen === 'netready') {
+        netGen++; closeNet(); mpState = 'error';
+        netStatus = 'FRIEND LEFT'; screen = 'online'; menuIndex = 0; menuDirty = true;
+      } else {
+        engine.state.message = 'PEER LEFT — AI TAKES OVER'; engine.state.messageTime = 3;
+      }
     }
     else if (e.type === 'error') {
       const msg = e.message.toUpperCase();
@@ -330,9 +337,10 @@ function hookDriver(d: NetDriver) {
  */
 async function connectSignal(): Promise<SignalingClient> {
   const base = location.origin;
-  const kind = await detectControlPlane(base, fetch, 5000);
+  const boundFetch: (url: string, init?: RequestInit) => Promise<Response> = (url, init) => fetch(url, init);
+  const kind = await detectControlPlane(base, boundFetch, 5000);
   if (kind === 'cloudflare') {
-    const cf = new CloudflareSignalingClient();
+    const cf = new CloudflareSignalingClient(undefined, boundFetch);
     await cf.connect(base, 5000);
     return cf;
   }
@@ -373,7 +381,7 @@ function startHost() {
     let signal: SignalingClient;
     try {
       signal = await connectSignal();
-    } catch (e) { if (alive()) { try { console.error('[host-connect]', e); } catch {} mpState = 'error'; deadNet(netMsg(e)); } return; }
+    } catch (e) { if (alive()) { mpState = 'error'; deadNet(netMsg(e)); } return; }
     if (!alive()) return fini(signal);
     sig = signal;
     signal.onPeerJoined = (peer) => {
@@ -389,20 +397,22 @@ function startHost() {
           // a target; flush anything queued while the offer was being built.
           const queued = attachNegotiationTransport(neg, transport);
           for (const c of queued) void transport.addIceCandidate(c).catch(() => {});
-          relayIce(transport, signal, () => (alive() ? peerId : null));
+          relayIce(transport, signal, () => (token === netGen ? peerId : null));
           signal.sendSignal(peer, offer);
           netStatus = 'CONNECTING…'; menuDirty = true;
         } catch { if (alive()) { mpState = 'error'; deadNet('THIS BROWSER CAN’T PLAY ONLINE — TRY CHROME OR SAFARI'); } }
       })();
     };
     signal.onPeerSignal = (from, payload) => {
-      if (!alive() || from !== peerId) return;
-      // Trickle ICE is accepted for the whole negotiation: before AND after
-      // the answer SDP. The transport reference is never nulled on answer.
+      if (token !== netGen || from !== peerId) return;
+      // Trickle ICE is accepted for the whole lobby (waiting + READY): before
+      // AND after the answer SDP. The transport is never nulled on answer.
       if (isIcePayload(payload)) {
+        if (screen !== 'host' && screen !== 'netready') return;
         void ingestRemoteCandidate(neg, payload);
         return;
       }
+      if (!alive()) return;
       if (payload.type !== 'answer') return;
       if (neg.answerHandled) return;
       const t = neg.transport as RTCTransport | null;
@@ -418,7 +428,12 @@ function startHost() {
         hookDriver(new NetDriver(t, { host: true, teamIndex, duration: onlineDuration, matchToken }));
       }).catch(() => { if (alive()) { mpState = 'error'; deadNet(netMsg('negotiation failed')); } });
     };
-    signal.onPeerLeft = () => { if (alive()) { mpState = 'error'; deadNet('FRIEND LEFT'); } };
+    signal.onPeerLeft = () => {
+      // Lobby leave: waiting (host) or READY (both). Mid-match leaves go
+      // through the NetDriver (AI takeover), not the signaling socket.
+      if (token !== netGen) return;
+      if (screen === 'host' || screen === 'netready') { mpState = 'error'; deadNet('FRIEND LEFT'); }
+    };
     try {
       const created = await signal.createRoom(myPeerId);
       if (!alive()) return fini(signal);
@@ -426,7 +441,7 @@ function startHost() {
       inviteUrl = buildInviteUrl(location.origin, location.pathname, roomCode);
       mpState = 'waiting-for-peer';
       netStatus = 'WAITING FOR FRIEND…'; menuDirty = true;
-    } catch (e) { if (alive()) { try { console.error('[host-create]', e); } catch {} mpState = 'error'; deadNet(netMsg(e)); } }
+    } catch (e) { if (alive()) { mpState = 'error'; deadNet(netMsg(e)); } }
   })();
 }
 /**
@@ -467,15 +482,17 @@ function cloudJoin(code: string) {
     if (!alive()) return fini(signal);
     sig = signal;
     signal.onPeerSignal = (from, payload) => {
-      if (!alive()) return;
-      // ICE is accepted throughout negotiation: before the offer (reordered
-      // relay), after the offer while the answer is being built, and after
-      // the NetDriver exists (late candidates). Never gated on `answered`.
+      if (token !== netGen) return;
+      // ICE is accepted throughout the lobby (joining + READY): before the
+      // offer (reordered relay), while the answer is being built, and after
+      // the NetDriver exists (late candidates). Never gated on offerHandled.
       if (isIcePayload(payload)) {
+        if (screen !== 'join' && screen !== 'joining' && screen !== 'netready') return;
         if (peerId && from !== peerId) return;
         void ingestRemoteCandidate(neg, payload);
         return;
       }
+      if (!alive()) return;
       if (payload.type !== 'offer') return;
       if (neg.offerHandled) return;
       if (peerId && from !== peerId) return;
@@ -488,7 +505,7 @@ function cloudJoin(code: string) {
         // Attach BEFORE sending the answer; flush pre-offer candidates in
         // order, keep the reference for post-offer candidates.
         const queued = attachNegotiationTransport(neg, transport);
-        relayIce(transport, signal, () => (alive() ? peerId : null));
+        relayIce(transport, signal, () => (token === netGen ? peerId : null));
         for (const c of queued) void transport.addIceCandidate(c).catch(() => {});
         try { signal.sendSignal(from, answer); }
         catch { transport.close(); if (alive()) failJoin('SIGNAL LOST'); return; }
@@ -497,11 +514,15 @@ function cloudJoin(code: string) {
       }).catch(() => { if (alive()) failJoin('negotiation failed'); });
     };
     const failJoin = (reason: unknown) => {
-      if (!alive()) return;
+      if (token !== netGen) return;
+      if (screen !== 'join' && screen !== 'joining' && screen !== 'netready') return;
       netGen++; closeNet(); mpState = 'error';
       netStatus = netMsg(reason); screen = 'online'; menuIndex = 0; menuDirty = true;
     };
-    signal.onPeerLeft = () => { if (alive()) failJoin('HOST LEFT'); };
+    signal.onPeerLeft = () => {
+      if (token !== netGen) return;
+      if (screen === 'join' || screen === 'joining' || screen === 'netready') failJoin('HOST LEFT');
+    };
     try {
       const joined = await signal.joinRoom(normalized, myPeerId);
       if (!alive()) return fini(signal);
@@ -677,7 +698,13 @@ function handleMenuEnter(act?: string) {
     else { closeNet(); screen = 'title'; }
   }
   else if (screen === 'half') {
-    if (net && viewTeam === 1) return; // guest waits for the host
+    if (net && viewTeam === 1) {
+      // Guest follows the host's broadcastHalf packet (engine already left
+      // halftime): return to the match screen so simulation resumes. While
+      // the engine still shows halftime, keep waiting for the host.
+      if (engine.state.phase !== 'halftime') { screen = 'match'; audio.event({ type: 'whistle' }); }
+      return;
+    }
     engine.continueHalf(); if (net) net.broadcastHalf(); screen = 'match'; audio.event({ type: 'whistle' });
   }
   else if (screen === 'full') {
@@ -687,7 +714,7 @@ function handleMenuEnter(act?: string) {
   }
   menuDirty = true;
 }
-function handleMenu(){if(pressed.size||released.size||touch.pressed.size||touch.released.size)menuDirty=true;if(hit('KeyM')){muted=audio.toggle();consume('KeyM')}if(screen==='match'){if(hit('Escape')){consume('Escape');openPause()}if(hit('KeyC')){camNote=renderer.cycleCamera();camNoteAt=performance.now();consume('KeyC')}return}const confirm=hit('Enter');if(confirm)consume('Enter');const up=hit('KeyW')||hit('ArrowUp'),dn=hit('KeyS')||hit('ArrowDown');if(screen==='title'){if(up||dn)menuIndex=(menuIndex+(up?3:1))%4;if(hit('Escape'))menuIndex=0;if(confirm)handleMenuEnter()}else if(screen==='team'){if(hit('KeyA')||hit('ArrowLeft'))teamIndex=(teamIndex+3)%4;if(hit('KeyD')||hit('ArrowRight'))teamIndex=(teamIndex+1)%4;if(hit('KeyW')||hit('ArrowUp'))duration=duration===90?180:duration===180?300:90;if(hit('KeyS')||hit('ArrowDown'))duration=duration===90?300:duration===300?180:90;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='online'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='host'){if(hit('Escape'))cancelNet();}else if(screen==='join'){if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter('join');}else if(screen==='joining'){if(hit('Escape'))cancelNet();}else if(screen==='netready'){if(up||dn)menuIndex=1-menuIndex;if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter();}else if(screen==='league'){if(up)menuIndex=(menuIndex+4)%5;if(dn)menuIndex=(menuIndex+1)%5;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='leaguecreate'||screen==='leaguejoin'||screen==='leagueserver'){if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leagueview'){const n=Math.max(1,leagueActions.length);if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguesubmit'||screen==='leagueresolve'){const n=leaguePick.length+1;if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='leagueview';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguescore'){if(hit('Escape')){screen=scoreMode==='resolve'?'leagueresolve':'leaguesubmit';menuIndex=0}else if(confirm)handleMenuEnter()}else if(screen==='pause'){if(hit('Escape'))resumePlay();if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}else if(screen==='half'){if(confirm)handleMenuEnter();else if(performance.now()-halfAt>(net&&viewTeam===1?5000:1500))handleMenuEnter()}else if(screen==='full'){if(up)menuIndex=(menuIndex+2)%3;if(dn)menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}menu();}
+function handleMenu(){if(pressed.size||released.size||touch.pressed.size||touch.released.size)menuDirty=true;if(hit('KeyM')){muted=audio.toggle();consume('KeyM')}if(screen==='match'){if(hit('Escape')){consume('Escape');openPause()}if(hit('KeyC')){camNote=renderer.cycleCamera();camNoteAt=performance.now();consume('KeyC')}return}const confirm=hit('Enter');if(confirm)consume('Enter');const up=hit('KeyW')||hit('ArrowUp'),dn=hit('KeyS')||hit('ArrowDown');if(screen==='title'){if(up||dn)menuIndex=(menuIndex+(up?3:1))%4;if(hit('Escape'))menuIndex=0;if(confirm)handleMenuEnter()}else if(screen==='team'){if(hit('KeyA')||hit('ArrowLeft'))teamIndex=(teamIndex+3)%4;if(hit('KeyD')||hit('ArrowRight'))teamIndex=(teamIndex+1)%4;if(hit('KeyW')||hit('ArrowUp'))duration=duration===90?180:duration===180?300:90;if(hit('KeyS')||hit('ArrowDown'))duration=duration===90?300:duration===300?180:90;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='online'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='host'){if(hit('Escape'))cancelNet();}else if(screen==='join'){if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter('join');}else if(screen==='joining'){if(hit('Escape'))cancelNet();}else if(screen==='netready'){if(up||dn)menuIndex=1-menuIndex;if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter();}else if(screen==='league'){if(up)menuIndex=(menuIndex+4)%5;if(dn)menuIndex=(menuIndex+1)%5;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='leaguecreate'||screen==='leaguejoin'||screen==='leagueserver'){if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leagueview'){const n=Math.max(1,leagueActions.length);if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguesubmit'||screen==='leagueresolve'){const n=leaguePick.length+1;if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='leagueview';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguescore'){if(hit('Escape')){screen=scoreMode==='resolve'?'leagueresolve':'leaguesubmit';menuIndex=0}else if(confirm)handleMenuEnter()}else if(screen==='pause'){if(hit('Escape'))resumePlay();if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}else if(screen==='half'){if(net&&viewTeam===1&&engine.state.phase!=='halftime')handleMenuEnter();else if(confirm)handleMenuEnter();else if(performance.now()-halfAt>(net&&viewTeam===1?5000:1500))handleMenuEnter()}else if(screen==='full'){if(up)menuIndex=(menuIndex+2)%3;if(dn)menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}menu();}
 function frame(now:number){const raw=Math.min(.1,(now-last)/1000);last=now;let stepped=false;if(screen==='match'){handleMenu();if(screen==='match'){capturePrev(engine.state);if(net&&net.session){net.poll();const f=input();net.frame(f,raw);stepped=true;for(const e of net.session.drainEvents())audio.event(e);renderer.setFollow(engine.controlOf(viewTeam),engine.targetOf(viewTeam));}else{const due=soloClock.push(raw);let first=true;for(let n=0;n<due;n++){const f=input();if(!first){f.pass=false;f.passReleased=false;f.through=false;f.cross=false;f.shootPressed=false;f.shootReleased=false;f.switchPlayer=false}engine.update(1/60,f);for(const e of engine.events.splice(0)){audio.event(e);if(e.type==='shot'){renderer.impact(e.power??28)}if(e.type==='tackle'&&e.slide){renderer.impact(9)}}first=false;stepped=true;}}const s=engine.state;if(s.phase==='halftime'){screen='half';halfAt=performance.now();menuDirty=true;audio.event({type:'whistle'})}if(s.phase==='fulltime'){screen='full';menuIndex=0;menuDirty=true;if(net)mpState='finished';audio.event({type:'whistle'});if(dailyMode)setDailyBest(s.score[0])}let alpha=1;if(s.phase!==interpPhase||engine.tick<interpTickMark){capturePrev(s)}else{const debt=net?net.debt():soloClock.debt;alpha=Math.max(0,Math.min(1,debt/TICK_DT))}interpPhase=s.phase;interpTickMark=engine.tick;renderer.render(s,raw,false,displayPositions(s,alpha));const cine=renderer.inCinematic();barTop.classList.toggle('on',cine);barBottom.classList.toggle('on',cine);if(now-hudAt>66){hud(s);hudAt=now}}}else {renderer.render(engine.state,raw,screen==='title'||screen==='team');barTop.classList.remove('on');barBottom.classList.remove('on');handleMenu()}updateTouchVisibility();if(import.meta.env.DEV&&now-devStatusAt>100){const s=engine.state,p=s.players[s.controlled],b=s.ball;document.body.dataset.match=JSON.stringify({phase:s.phase,screen,half:s.half,elapsed:s.elapsed,time:s.time,score:s.score,controlled:s.controlled,player:{x:p?.x,z:p?.z,vx:p?.vx,vz:p?.vz},ball:{x:b.x,z:b.z,y:b.y,owner:b.owner,flight:b.flight},stats:s.stats});devStatusAt=now}if(screen!=='match'||stepped){clearKeyboardEdges(kb);clearTouchEdges(touch)}requestAnimationFrame(frame)}
 addEventListener('resize',()=>renderer.resize());
 // PWA: offline app shell in production only (never cache dev iterations).

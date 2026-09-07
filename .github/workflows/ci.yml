@@ -53,6 +53,21 @@ jobs:
       # Production deploys are manual (`npm run deploy`) or a separate
       # explicitly authenticated workflow — never per-PR.
 
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: apps/game
+      # Local Cloudflare runtime (vite plugin Worker + DO) is booted by the
+      # Playwright webServer; real Chromium WebRTC proves the friend-match flow.
+      - run: npm run test:e2e --workspace=floodlight-football
+
   docker:
     runs-on: ubuntu-latest
     steps:
