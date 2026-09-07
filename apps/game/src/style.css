@@ -9,7 +9,7 @@
 /* ARCADE LOOK (display only — values and logic untouched; codes already
    normalize in JS): force uppercase display so mixed-case data (club names,
    nicknames, `v` separators) matches the hardcoded menu strings. */
-.menu-item,.eyebrow,.title,.subtitle,.hint,.statline,.team-card,.tbtn,.camchip,.player-info,.attack,.keeper-hint,.camtoast{text-transform:uppercase}
+.menu-item,.eyebrow,.title,.subtitle,.hint,.statline,.team-card,.tbtn,.camchip,.player-info,.attack,.keeper-hint,.camtoast,.waitsteps{text-transform:uppercase}
 /* Consistent code/score inputs on desktop & mobile: no layout-breaking
    resize handle, visible focus, letterspaced code feel. */
 .panel .netcode,.panel .netpaste{resize:none;line-height:1.5;letter-spacing:.12em;text-transform:uppercase}
@@ -23,3 +23,12 @@
 /* 16px+ inputs stop iOS Safari auto-zooming on focus; keep tap targets roomy. */
 .panel .netcode,.panel .netpaste{font-size:16px;padding:10px}
 }
+/* Lobby waiting readout: CSS-only spinner + stage steps (no assets, no JS). */
+.waitspinner{width:34px;height:34px;margin:10px auto 4px;border:4px solid #596579;border-top-color:#f7bf30;border-radius:50%;animation:wwaitspin 0.9s linear infinite}
+@keyframes wwaitspin{to{transform:rotate(360deg)}}
+.waitsteps{display:flex;align-items:center;justify-content:center;gap:8px;margin:8px 0 4px;font-size:11px;letter-spacing:.14em}
+.wstep{color:#596579;text-transform:uppercase}
+.wstep.done{color:#f7bf30}
+.wstep.active{color:#f8efdb}
+.wsep{color:#596579}
+@media(prefers-reduced-motion:reduce){.waitspinner{animation:none}}
