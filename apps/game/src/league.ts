@@ -115,6 +115,23 @@ export function setLeagueCode(v: string) {
   store.set('floodlight-league-code', v);
 }
 
+// --- Daily Cup: one deterministic match per calendar day, best score kept. ---
+export function dailyKey(d = new Date()): string {
+  return `floodlight-daily-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+}
+/** Pure date hash: every player worldwide faces the same seeded match. */
+export function dailySeed(d = new Date()): number {
+  let h = 2166136261 ^ (d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate());
+  h = Math.imul(h, 16777619) >>> 0;
+  return h || 1;
+}
+export function getDailyBest(d = new Date()): number {
+  return Number(store.get(dailyKey(d)) || '0');
+}
+export function setDailyBest(score: number, d = new Date()): void {
+  if (score > getDailyBest(d)) store.set(dailyKey(d), String(score));
+}
+
 /** "ANN 4 PTS · 2-0" one-liners for the standings panel. */
 export function tableLine(rank: number, name: string, played: number, points: number, gf: number, ga: number): string {
   return `${rank}. ${name.toUpperCase().slice(0, 12)} ${points} PTS · ${played}P · ${gf}-${ga}`;

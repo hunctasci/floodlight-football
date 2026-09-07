@@ -172,6 +172,16 @@ export class GameRenderer {
   private celeTeam: TeamId | null = null;
   private menuAngle = 0;
   private endAngle = 0;
+  private trail: THREE.Mesh[] = [];
+  private trailAge: number[] = [];
+  private trailTick = 0;
+  private fovPunch = 0;
+
+  /** Shot impact juice: power-scaled camera shake + quick fov punch. */
+  impact(power: number) {
+    this.shake = Math.max(this.shake, Math.min(.55, .16 + power * .01));
+    this.fovPunch = Math.min(3.5, power * .09);
+  }
 
   cycleCamera(): CameraMode {
     this.cameraMode = CAMERA_MODES[(CAMERA_MODES.indexOf(this.cameraMode) + 1) % CAMERA_MODES.length];
@@ -219,6 +229,12 @@ export class GameRenderer {
     this.scene.add(this.ball);
     this.ballShadow = new THREE.Mesh(new THREE.CircleGeometry(.31, 16), new THREE.MeshBasicMaterial({ color: '#183d24', transparent: true, opacity: .34 }));
     this.ballShadow.rotation.x = -Math.PI / 2; this.ballShadow.position.y = .012; this.scene.add(this.ballShadow);
+    // Shot trail: short ring of fading puffs shown while the ball flies fast.
+    const puff = new THREE.SphereGeometry(.14, 8, 6);
+    for (let i = 0; i < 10; i++) {
+      const m = new THREE.Mesh(puff, new THREE.MeshBasicMaterial({ color: '#f8efdb', transparent: true, opacity: 0, depthWrite: false }));
+      m.visible = false; this.scene.add(m); this.trail.push(m); this.trailAge.push(1);
+    }
     this.marker = new THREE.Mesh(new THREE.RingGeometry(.72, .88, 24), new THREE.MeshBasicMaterial({ color: '#35f8f0', side: THREE.DoubleSide, transparent: true, opacity: .96 }));
     this.marker.rotation.x = -Math.PI / 2; this.marker.position.y = .025; this.scene.add(this.marker);
     this.arrow = new THREE.Mesh(new THREE.ConeGeometry(.28, .68, 4), new THREE.MeshBasicMaterial({ color: '#fff253' })); this.scene.add(this.arrow);
@@ -432,9 +448,14 @@ export class GameRenderer {
       this.celeTeam = scorerTeam(this.lastScore, state.score);
       this.lastScore = [state.score[0], state.score[1]];
     }
-    const ball = state.ball; if(ball.flight==='shot'&&this.lastFlight!=='shot')this.shake=.22;this.lastFlight=ball.flight;this.shake=Math.max(0,this.shake-dt*.9);
+    const ball = state.ball; if(ball.flight==='shot'&&this.lastFlight!=='shot')this.shake=.22;this.lastFlight=ball.flight;this.shake=Math.max(0,this.shake-dt*.9);this.fovPunch=Math.max(0,this.fovPunch-dt*10);
+    // Fast airborne ball leaves a fading trail of puffs behind it.
+    const ballSpeed=Math.hypot(ball.vx,ball.vz); this.trailTick+=dt;
+    if(ballSpeed>18){ if(this.trailTick>.028){this.trailTick=0;const m=this.trail.shift()!;this.trail.push(m);m.visible=true;m.position.set(ball.x,Math.max(.2,ball.y),ball.z);this.trailAge.push(0);this.trailAge.shift();}
+      for(let i=0;i<this.trail.length;i++){const age=this.trailAge[i]+dt*2.6;this.trailAge[i]=Math.min(1,age);const mat=this.trail[i].material as THREE.MeshBasicMaterial;mat.opacity=.4*(1-this.trailAge[i]);this.trail[i].scale.setScalar(1+this.trailAge[i]*1.6);if(this.trailAge[i]>=1)this.trail[i].visible=false;}
+    } else for(const m of this.trail){this.trailAge[this.trail.indexOf(m)]=1;m.visible=false;}
     this.ball.position.set(ball.x, Math.max(.25,ball.y), ball.z); this.ball.rotation.x += ball.vz * dt * 2; this.ball.rotation.z -= ball.vx * dt * 2; this.ballShadow.position.set(ball.x,.015,ball.z); this.ballShadow.scale.setScalar(1 + Math.min(1,ball.y)*.45);
-    state.players.forEach((p,i) => { const a=this.avatars[i], speed=Math.hypot(p.vx,p.vz); a.root.position.set(p.x,0,p.z); a.root.rotation.set(0,Math.atan2(p.facingX,p.facingZ),0); const run=p.action==='run'||speed>1; const swing=run?Math.sin(this.clock*(8+speed*1.5)+i)*Math.min(.85,.22+speed*.12):0; a.legL.rotation.x=swing;a.legR.rotation.x=-swing;a.armL.rotation.x=-swing*.72;a.armR.rotation.x=swing*.72; if(p.action==='kick'){a.legR.rotation.x=-1.35*Math.min(1,p.actionTime*9)} if(p.action==='tackle'){a.root.rotation.z=.32*Math.sin(Math.min(1,p.actionTime*5))} if(p.action==='dive'){a.root.rotation.z=p.facingZ*.95;a.root.rotation.x=-p.facingX*.55;a.root.position.y=.26} else a.root.position.y=0; this.celebrate(a,i,p,state); a.shadow.position.set(p.x,.015,p.z); a.shadow.scale.setScalar(p.action==='dive'?1.45:1); });
+    state.players.forEach((p,i) => { const a=this.avatars[i], speed=Math.hypot(p.vx,p.vz); a.root.position.set(p.x,0,p.z); a.root.rotation.set(0,Math.atan2(p.facingX,p.facingZ),0); const run=p.action==='run'||speed>1; const swing=run?Math.sin(this.clock*(8+speed*1.5)+i)*Math.min(.85,.22+speed*.12):0; a.legL.rotation.x=swing;a.legR.rotation.x=-swing;a.armL.rotation.x=-swing*.72;a.armR.rotation.x=swing*.72; if(p.action==='kick'){a.legR.rotation.x=-1.35*Math.min(1,p.actionTime*9)} if(p.action==='tackle'){a.root.rotation.z=.32*Math.sin(Math.min(1,p.actionTime*5))} if(p.action==='slide'){a.root.rotation.x=-.95*Math.min(1,p.actionTime*4.5);a.root.position.y=.13;a.legR.rotation.x=-1.25;a.legL.rotation.x=-.4;a.armL.rotation.x=.9;a.armR.rotation.x=-.9} if(p.action==='fallen'){const rise=1-Math.min(1,p.actionTime/.75);a.root.rotation.x=-1.4*(1-rise*rise);a.root.position.y=.09*(1-rise);a.legL.rotation.x=a.legR.rotation.x=a.armL.rotation.x=a.armR.rotation.x=-.25} if(p.action==='dive'){a.root.rotation.z=p.facingZ*.95;a.root.rotation.x=-p.facingX*.55;a.root.position.y=.26} else if(p.action!=='slide'&&p.action!=='fallen')a.root.position.y=0; this.celebrate(a,i,p,state); a.shadow.position.set(p.x,.015,p.z); a.shadow.scale.setScalar(p.action==='dive'?1.45:1); });
     const cp=state.players[this.followId ?? state.controlled]; if(cp){this.marker.visible=!menu;this.arrow.visible=!menu;this.marker.position.set(cp.x,.03,cp.z);this.arrow.position.set(cp.x,2.65+Math.sin(this.clock*5)*.08,cp.z);this.arrow.rotation.x=Math.PI;}
     const tid=this.followTargetId ?? state.targetPlayer;const tp=tid===null?null:state.players[tid];this.target.visible=!!tp&&!menu;if(tp)this.target.position.set(tp.x,.04,tp.z);
     if (state.phase !== this.lastPhase) {
@@ -460,6 +481,7 @@ export class GameRenderer {
     } else this.applyFrame(this.followFrame(state), dt);
     this.camera.position.copy(this.camPos);
     if(this.shake>0)this.camera.position.add(new THREE.Vector3(Math.sin(this.clock*55)*this.shake,Math.cos(this.clock*71)*this.shake*.45,0));this.camera.lookAt(this.camLook);
+    if(this.fovPunch>0){this.camera.fov=Math.max(20,this.camera.fov-this.fovPunch);this.camera.updateProjectionMatrix();}
     for (const g of this.goalNets) {
       const side=g.userData.side as number; const scored=state.phase==='goal'&&Math.sign(ball.x)===Math.sign(side); const net=g.getObjectByName('net');
       if(net){const pulse=scored?Math.sin(Math.min(1,state.phaseTime)*Math.PI)*.22:0;net.position.x=Math.sign(side)*pulse;}

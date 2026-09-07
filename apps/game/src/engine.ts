@@ -57,7 +57,7 @@ export class MatchEngine {
         x: homes[i][0] * a, z: homes[i][1], homeX: homes[i][0] * a, homeZ: homes[i][1], vx: 0, vz: 0,
         facingX: a, facingZ: 0, stamina: 1, cooldown: 0, action: 'idle', actionTime: 0, think: .5 + this.random(), aiState: 'RETURN_TO_POSITION' });
     }
-    this.state = { players, ball: { x: 0, z: 0, y: R, vx: 0, vy: 0, vz: 0, owner: null, lastTouch: 0, lock: 0, lastKicker: null, flight: 'roll' },
+    this.state = { players, ball: { x: 0, z: 0, y: R, vx: 0, vy: 0, vz: 0, spin: 0, owner: null, lastTouch: 0, lock: 0, lastKicker: null, flight: 'roll' },
       teams: [TEAMS[teamIndex % 4], TEAMS[(teamIndex + 1) % 4]], humanTeam: 0, controlled: 10,
       remoteTeam: null, peerControlled: -1, peerTarget: null,
       phase: 'kickoff', phaseTime: 0, half: 1, elapsed: 0, halfDuration, score: [0, 0], attack: [1, -1],
@@ -148,7 +148,7 @@ export class MatchEngine {
     let h = 0x811c9dc5;
     const mix = (n: number) => { h ^= (n | 0); h = Math.imul(h, 0x01000193); };
     const q = (v: number) => Math.round(v * 1000);
-    const acts = { idle: 0, run: 1, kick: 2, tackle: 3, dive: 4 };
+    const acts = { idle: 0, run: 1, kick: 2, tackle: 3, dive: 4, slide: 5, fallen: 6 };
     for (const p of this.state.players) {
       mix(p.id); mix(q(p.x)); mix(q(p.z)); mix(q(p.vx)); mix(q(p.vz));
       mix(q(p.facingX)); mix(q(p.facingZ)); mix(q(p.stamina)); mix(q(p.cooldown));
@@ -221,6 +221,20 @@ export class MatchEngine {
     }
   }
   private steer(p: Player, x: number, z: number, sprint: boolean, dt: number, speedOverride?: number) {
+    if (p.action === 'slide') {
+      // Committed slide: glides on locked momentum, input ignored until recovery.
+      const decay = Math.exp(-2.2 * dt);
+      p.vx *= decay; p.vz *= decay;
+      p.x = clamp(p.x + p.vx * dt, -L + .55, L - .55); p.z = clamp(p.z + p.vz * dt, -W + .5, W - .5);
+      return;
+    }
+    if (p.action === 'fallen') {
+      // Knocked down: no steering, friction brings the body to rest.
+      const decay = Math.exp(-6 * dt);
+      p.vx *= decay; p.vz *= decay;
+      p.x = clamp(p.x + p.vx * dt, -L + .55, L - .55); p.z = clamp(p.z + p.vz * dt, -W + .5, W - .5);
+      return;
+    }
     const d = direction(x, z), moving = length(x, z) > .07;
     const speed = speedOverride ?? (sprint && p.stamina > .08 ? TUNING.sprint : TUNING.speed);
     const gain = 1 - Math.exp(-(moving ? TUNING.acceleration : TUNING.deceleration) * dt);
@@ -304,6 +318,8 @@ export class MatchEngine {
   }
   private updateAI(dt: number, input: InputFrame, peerInput: InputFrame = EMPTY_INPUT) {
     const s = this.state, b = s.ball;
+    /** True while the opposing keeper is holding the ball in his hands. */
+    const opponentsKeeperHolds = (t: TeamId) => { const o = this.owner(); return !!o && o.keeper && o.team !== t; };
     // If a pass/cross/through is in flight for team t, that receiver owns the
     // chase — teammates hold shape instead of crowding the same ball.
     const activeReceiverTeam: (TeamId | null)[] = [null, null];
@@ -347,14 +363,20 @@ export class MatchEngine {
           const keeperHolds = owner && owner.keeper && owner.team !== t;
           if (keeperHolds) {
             const dx = p.x - b.x, dz = p.z - b.z, d = length(dx, dz) || 1;
-            tx = b.x + dx / d * 2.3; tz = b.z + dz / d * 2.3;
+            tx = b.x + dx / d * 4; tz = b.z + dz / d * 4;
           }
           else if (distance(p, b) < 3) { tx = b.x + b.vx * .08; tz = b.z + b.vz * .08; }
           else { tx = b.x - a * .45; tz = b.z; }
           p.aiState = 'CHASE';
         }
-        else if (!owns && p.id === cover.id && b.x * a < -15) { tx = b.x - a * 4; tz = b.z * .65; p.aiState = 'MARK'; }
-        else if (!owns && role < 5) {
+        else if (owner && owner.keeper && owner.team !== t && p.id !== chaser.id) {
+          // Rakip kaleci elindeyken geri çekil: 10 m goalside'da bekle, basma yok.
+          tx = clamp(b.x - a * 10, -L + 4, L - 4);
+          tz = clamp(p.homeZ * .55 + b.z * .2, -W + 3, W - 3);
+          p.aiState = 'RETREAT';
+        }
+        else if (!owns && p.id === cover.id && !opponentsKeeperHolds(t) && b.x * a < -15) { tx = b.x - a * 4; tz = b.z * .65; p.aiState = 'MARK'; }
+        else if (!owns && role < 5 && !opponentsKeeperHolds(t)) {
           const attacker = this.team(other(t)).filter(q => !q.keeper && Math.abs(q.z - p.homeZ) < 8 && q.x * a < 7).sort((u, v) => u.x * a - v.x * a)[0];
           if (attacker) { tx = Math.min(tx * a, attacker.x * a - 2) * a; tz = p.homeZ * .35 + attacker.z * .65; p.aiState = 'MARK'; }
         }
@@ -364,7 +386,12 @@ export class MatchEngine {
         this.steer(p, tx - p.x, tz - p.z, p.aiState === 'CHASE', dt, d < 1 ? d * 5 : undefined);
         const carrier = this.owner();
         // Keepers handling the ball with their hands can never be tackled.
-        if (carrier && !carrier.keeper && carrier.team !== t && distance(p, carrier) < 1.65 && p.cooldown === 0 && this.possessionGrace === 0 && this.random() < dt * 2.1) this.tackle(p);
+        if (carrier && !carrier.keeper && carrier.team !== t && p.cooldown === 0 && this.possessionGrace === 0) {
+          const cd = distance(p, carrier);
+          if (cd < 1.65 && this.random() < dt * 2.1) this.tackle(p);
+          // Top ayak ucundan kaçtıysa ara sıra kayarak müdahale: dramatik ama riskli.
+          else if (cd < 2.7 && this.random() < dt * .45) this.tackle(p, true);
+        }
       }
     }
   }
@@ -375,7 +402,8 @@ export class MatchEngine {
     p.aiState = 'ATTACK';
     if (p.think <= 0 && p.cooldown === 0) {
       if (goalDistance < 23 && Math.abs(p.z) < 16 && this.random() < dt * (goalDistance < 14 ? 3.0 : 1.1)) {
-        this.shoot(p, direction(a, -p.z * .015), .18 + this.random() * .22); p.think = .9; return;
+        const kind = goalDistance < 12 ? 'driven' as const : this.random() < .35 ? 'finesse' as const : 'placed' as const;
+        this.shoot(p, direction(a, -p.z * .015), .18 + this.random() * .22, kind); p.think = .9; return;
       }
       if (p.x * a > 17 && Math.abs(p.z) > 16 && this.random() < dt * .65) { this.cross(p); p.think = 1; return; }
       if (this.random() < dt * (pressure < 3.5 ? 1.45 : .14)) {
@@ -394,7 +422,7 @@ export class MatchEngine {
       // Koruma balonu: top eldivendeyken rakip kalecinin dibine giremez.
       for (const q of this.team(other(p.team))) if (!q.keeper) {
         const dx = q.x - p.x, dz = q.z - p.z, d = length(dx, dz);
-        if (d < 2.0) { const n = d > .001 ? d : 1; q.x = p.x + dx / n * 2.0; q.z = p.z + dz / n * 2.0; }
+        if (d < 4) { const n = d > .001 ? d : 1; q.x = p.x + dx / n * 4; q.z = p.z + dz / n * 4; }
       }
       const human = p.team === s.humanTeam || p.team === s.remoteTeam;
       const aim = human && length(input.x, input.z) > .1 ? direction(input.x, input.z) : direction(a, 0);
@@ -411,10 +439,17 @@ export class MatchEngine {
         }
         return;
       }
-      const hurried = pressure < 6;
+      // Koruma balonu rakibi ≥4 m'de tuttuğu için 'baskı' artık ancak
+      // balonun içindeyken (ihlal anı) tetiklenir; aksi halde sakin dağıtır.
+      const hurried = pressure < 3.5;
       if (this.keeperHold[p.team] > (hurried ? .28 : .6)) {
         const target = this.bestTarget(p, { x: a, z: 0 }, false);
-        if (!hurried && target) this.pass(p, target, false); else this.kick(p, { x: a, z: pressure < 9 ? .3 : .15 }, 25, 5, 'pass');
+        if (!hurried && target) this.pass(p, target, false);
+        else {
+          // Panik bootu: baskı arttıkça daha kısa, daha yumuşak ve daha hatalı.
+          const close = pressure < 2.5, jitter = (this.random() - .5) * (close ? .9 : .35);
+          this.kick(p, direction(a, (pressure < 9 ? .3 : .15) + jitter * .6), close ? 19 : 22, close ? 6.5 : 5.5, 'pass');
+        }
         this.keeperHold[p.team] = 0;
       }
       return;
@@ -473,7 +508,9 @@ export class MatchEngine {
       if (i.shootPressed) { setCharge(0); setCharging(p.id); }
       if (i.shootHeld && charging === p.id) setCharge(Math.min(.55, charge + dt));
       if ((i.shootReleased && charging === p.id) || (i.shootPressed && !i.shootHeld) || (charging === p.id && charge >= .55)) {
-        this.shoot(p, raw, charge); this.cancelShot(peer);
+        // Sprint hold = driven strike; wide low-charge aim becomes a curler.
+        const kind = i.sprint ? 'driven' as const : charge < .2 && Math.abs(raw.z) > .45 ? 'finesse' as const : 'placed' as const;
+        this.shoot(p, raw, charge, kind); this.cancelShot(peer);
       }
     } else {
       this.cancelShot(peer);
@@ -555,20 +592,34 @@ export class MatchEngine {
     this.setReceiver(p.team, rec.id, { x: tx, z: tz }, s.time + ft + 1.5);
     this.setControlled(p.team, rec.id);
   }
-  private shoot(p: Player, aim: Vec, charge: number) {
+  /**
+   * Modern shot model: continuous stick aim across the whole goal mouth, and a
+   * real risk/reward curve — power charges wildness, running hurts placement.
+   * Kinds: placed (default), driven (sprint hold: flat and fierce), finesse
+   * (wide aim at low charge: curler with Magnus spin), chip (keeper off line).
+   */
+  private shoot(p: Player, aim: Vec, charge: number, kind: 'placed' | 'driven' | 'finesse' | 'chip' = 'placed') {
     const s = this.state, a = s.attack[p.team], dx = a * L - s.ball.x;
-    const intentZ = Math.abs(aim.z) > .28 ? Math.sign(aim.z) * 2.55 : clamp(-p.z * .12, -1.6, 1.6);
     const inRange = Math.abs(dx) < 34;
-    const targetZ = inRange ? intentZ : clamp(p.z + aim.z * Math.abs(dx) * .65, -6, 6);
-    const spread = .35 + Math.max(0, Math.abs(dx) - 15) * .05 + (length(p.vx, p.vz) > 8 ? .45 : 0);
-    const z = targetZ + (this.random() - .5) * spread * 2;
+    const intentZ = inRange ? clamp(aim.z * 3.7 - p.z * .06, -3.7, 3.7) : clamp(p.z + aim.z * Math.abs(dx) * .65, -6, 6);
+    const cn = clamp(charge / .55, 0, 1);
+    let spread = .22 + Math.max(0, Math.abs(dx) - 13) * .05 + (length(p.vx, p.vz) > 8 ? .38 : 0) + Math.max(0, cn - .55) * 1.1;
+    let speed = 26 + cn * 11, vy = .8 + cn * 2.4, spin = 0;
+    // Finesse: aimed inside, the Magnus curl carries it out to the corner.
+    let aimZ = intentZ;
+    if (kind === 'driven') { speed += 3; vy = .7; spread += .12; }
+    else if (kind === 'finesse') { speed -= 4.5; vy = 1.1 + cn * 1.2; spread = Math.max(.14, spread - .18); aimZ = intentZ * .72; spin = Math.sign(aimZ || 1) * 2.4; }
+    else if (kind === 'chip') { speed = 17 + cn * 5; vy = 5.4 + cn * 1.6; spread += .1; }
+    const z = aimZ + (this.random() - .5) * spread * 2;
     const d = direction(dx, z - s.ball.z);
-    this.kick(p, d, TUNING.shot + clamp(charge / .55, 0, 1) * 9, 1.5 + charge * 3.0, 'shot');
-    this.keeperReact[other(p.team)] = .12 + this.random() * .05;
+    this.kick(p, d, speed, vy, 'shot');
+    this.state.ball.spin = spin;
+    // Distant shots give the keeper a beat more reaction; rockets stay sharp.
+    this.keeperReact[other(p.team)] = .1 + this.random() * .05 + (Math.abs(dx) > 18 ? .08 : 0);
   }
   private kick(p: Player, d: Vec, speed: number, vy: number, flight: Ball['flight']) {
     const b = this.state.ball;
-    b.owner = null; b.lock = .12; b.lastTouch = p.team; b.lastKicker = p.id; b.vx = d.x * speed; b.vz = d.z * speed; b.vy = vy; b.flight = flight;
+    b.owner = null; b.lock = .12; b.lastTouch = p.team; b.lastKicker = p.id; b.vx = d.x * speed; b.vz = d.z * speed; b.vy = vy; b.flight = flight; b.spin = 0;
     p.cooldown = .25; p.action = 'kick'; p.actionTime = .25;
     this.receiver = null; this.clearReceiver(p.team); this.possessionGrace = 0;
     this.events.push({ type: flight === 'shot' ? 'shot' : 'kick', team: p.team, power: speed });
@@ -576,17 +627,22 @@ export class MatchEngine {
   }
   private tackle(p: Player, slide = false) {
     if (p.cooldown > 0) return;
-    // Kayarak müdahale daha uzun menzilli ama daha çok açık verir.
-    const reach = slide ? TUNING.slideTackle : TUNING.tackle;
-    p.cooldown = slide ? .8 : .48; p.action = 'tackle'; p.actionTime = slide ? .32 : .25;
+    // Kayarak müdahale daha uzun menzilli ama daha çok açık verir: kayma
+    // süresi boyunca momentum kilitlenir, toparlanma yavaştır.
+    const reach = slide ? TUNING.slideTackle + .55 : TUNING.tackle;
+    p.cooldown = slide ? 1.0 : .48; p.action = slide ? 'slide' : 'tackle'; p.actionTime = slide ? .62 : .25;
+    if (slide) { p.vx = p.facingX * 8; p.vz = p.facingZ * 8; } // launch burst
     const owner = this.owner(), b = this.state.ball;
     if (!owner || owner.team === p.team || owner.keeper || this.possessionGrace > 0) return;
     const offset = direction(b.x - p.x, b.z - p.z), facing = offset.x * p.facingX + offset.z * p.facingZ;
     if (distance(p, owner) < reach && facing > -.15 && this.random() < (slide ? .8 : .86)) {
       b.owner = null; b.lock = .14; b.lastTouch = p.team; b.lastKicker = owner.id;
-      b.vx = p.facingX * (slide ? 7.5 : 5.5); b.vz = p.facingZ * (slide ? 7.5 : 5.5); b.vy = .65; b.flight = 'roll';
-      owner.cooldown = .5; this.receiver = null; this.clearReceiver(owner.team);
-      this.state.stats.tackles[p.team]++; this.events.push({ type: 'tackle', team: p.team });
+      b.vx = p.facingX * (slide ? 7.5 : 5.5); b.vz = p.facingZ * (slide ? 7.5 : 5.5); b.vy = .65; b.flight = 'roll'; b.spin = 0;
+      // Mağdur yere devrilir: kısa süre toparlanamaz, top uzağa seker.
+      owner.cooldown = slide ? .85 : .5; owner.vx *= .15; owner.vz *= .15;
+      if (slide) { owner.action = 'fallen'; owner.actionTime = .75; }
+      this.receiver = null; this.clearReceiver(owner.team);
+      this.state.stats.tackles[p.team]++; this.events.push({ type: 'tackle', team: p.team, slide, power: slide ? 10 : 4 });
     }
   }
   private separatePlayers() {
@@ -618,6 +674,18 @@ export class MatchEngine {
     } else {
       b.y += b.vy * dt; b.vy -= 18 * dt;
       if (b.y <= R) { b.y = R; b.vy = b.vy < -1.1 ? -b.vy * .32 : 0; }
+      // Magnus: spin bends the flight path sideways (curlers); decays in air,
+      // weaker through grass. Tolerant of snapshots that predate `spin`.
+      const spin = b.spin || 0;
+      if (spin) {
+        const sp = length(b.vx, b.vz);
+        if (sp > 4) {
+          const eff = spin * (b.y > R + .05 ? 1 : .55) * dt;
+          const ax = -b.vz / sp * eff, az = b.vx / sp * eff;
+          b.vx += ax; b.vz += az;
+        }
+        b.spin = spin * Math.exp(-.45 * dt);
+      }
       const drag = Math.exp(-(b.y > R + .05 ? .075 : .58) * dt);
       b.vx *= drag; b.vz *= drag;
     }
@@ -655,8 +723,12 @@ export class MatchEngine {
         if (speed > 13 || isShot) {
           s.stats.saves[t]++; this.events.push({ type: 'save', team: t }); p.action = 'dive'; p.actionTime = .5;
           b.lastTouch = t;
-          if (speed < 29 && this.random() < .85) this.claim(p);
-          else { b.owner = null; b.vx = a * (4.5 + this.random() * 6); b.vz = (b.z >= p.z ? 1 : -1) * (4 + this.random() * 7); b.vy = 2.0; b.lock = .3; b.flight = 'roll'; }
+          // Placement-aware catch: full-stretch dives and rockets spill more
+          // often; a shot into the keeper's chest is a comfortable hold.
+          const stretch = Math.abs(b.z - p.z), powerPenalty = clamp((speed - 14) * .012, 0, .3);
+          const hold = clamp(.9 - Math.min(.35, stretch * .11) - powerPenalty - (p.action === 'dive' ? .06 : 0), .3, .92);
+          if (speed < 29 && this.random() < hold) this.claim(p);
+          else { b.owner = null; b.spin = 0; b.vx = a * (4.5 + this.random() * 6); b.vz = (b.z >= p.z ? 1 : -1) * (4 + this.random() * 7); b.vy = 2.0; b.lock = .3; b.flight = 'roll'; }
         } else this.claim(p);
         return;
       }
@@ -666,7 +738,7 @@ export class MatchEngine {
     const recvLive = this.liveReceiver(this.receiver, this.receiveUntil);
     const peerLive = this.liveReceiver(this.peerReceiver, this.peerReceiveUntil);
     let best: Player | null = null, bestScore = Infinity;
-    for (const p of s.players) if (!p.keeper && !(p.id === b.lastKicker && p.cooldown > 0)) {
+    for (const p of s.players) if (!p.keeper && p.action !== 'fallen' && !(p.id === b.lastKicker && p.cooldown > 0)) {
       const isRecv = (recvLive && p.id === this.receiver) || (peerLive && p.id === this.peerReceiver);
       const limit = isRecv ? TUNING.receiverRadius : TUNING.controlRadius;
       const q = distance(p, b);
@@ -722,7 +794,7 @@ export class MatchEngine {
   }
   private placeRestart(r: Restart) {
     const s = this.state, a = s.attack[r.team], b = s.ball, p = s.players[r.taker];
-    Object.assign(b, { x: r.x, z: r.z, y: R, vx: 0, vy: 0, vz: 0, owner: null, lock: .15, lastTouch: r.team, flight: 'roll' });
+    Object.assign(b, { x: r.x, z: r.z, y: R, vx: 0, vy: 0, vz: 0, spin: 0, owner: null, lock: .15, lastTouch: r.team, flight: 'roll' });
     this.receiver = null; this.peerReceiver = null; s.targetPlayer = null; s.peerTarget = null; this.cancelShot();
     for (const q of s.players) { q.vx = q.vz = 0; q.cooldown = 0; }
     p.x = r.x - a * .65; p.z = r.z; p.facingX = a; p.facingZ = 0;

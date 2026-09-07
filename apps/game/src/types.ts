@@ -12,10 +12,10 @@ export const FIELD = { halfLength: 46, halfWidth: 29, goalHalfWidth: 4.4, goalHe
 export interface Player extends Vec {
   id: number; team: TeamId; number: number; name: string; keeper: boolean;
   vx: number; vz: number; facingX: number; facingZ: number; homeX: number; homeZ: number;
-  stamina: number; action: 'idle' | 'run' | 'kick' | 'tackle' | 'dive'; actionTime: number;
+  stamina: number; action: 'idle' | 'run' | 'kick' | 'tackle' | 'dive' | 'slide' | 'fallen'; actionTime: number;
   cooldown: number; think: number; aiState: string;
 }
-export interface Ball extends Vec { y: number; vx: number; vy: number; vz: number; owner: number | null; lastTouch: TeamId; lock: number; lastKicker: number | null; flight: 'roll' | 'pass' | 'through' | 'cross' | 'shot' }
+export interface Ball extends Vec { y: number; vx: number; vy: number; vz: number; spin: number; owner: number | null; lastTouch: TeamId; lock: number; lastKicker: number | null; flight: 'roll' | 'pass' | 'through' | 'cross' | 'shot' }
 export interface Restart { team: TeamId; taker: number; x: number; z: number; wait: number }
 export interface MatchStats { shots: [number, number]; saves: [number, number]; passes: [number, number]; tackles: [number, number]; possession: [number, number] }
 export interface MatchState {
@@ -28,4 +28,4 @@ export interface MatchState {
 }
 export interface InputFrame { x: number; z: number; sprint: boolean; pass: boolean; through: boolean; cross: boolean; shootPressed: boolean; shootHeld: boolean; shootReleased: boolean; switchPlayer: boolean }
 export const EMPTY_INPUT: InputFrame = { x: 0, z: 0, sprint: false, pass: false, through: false, cross: false, shootPressed: false, shootHeld: false, shootReleased: false, switchPlayer: false };
-export type GameEvent = { type: 'kick' | 'shot' | 'tackle' | 'save' | 'post' | 'goal' | 'whistle' | 'restart'; team?: TeamId; power?: number };
+export type GameEvent = { type: 'kick' | 'shot' | 'tackle' | 'save' | 'post' | 'goal' | 'whistle' | 'restart'; team?: TeamId; power?: number; slide?: boolean };

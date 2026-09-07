@@ -70,6 +70,27 @@ test('idle keeper auto-distributes instead of holding forever', () => {
   assert.notEqual(s.ball.owner, k.id, 'fallback release after timeout');
 });
 
+test('opponents retreat when the opposing keeper holds the ball', () => {
+  const g = new MatchEngine(0, 180, 31);
+  const s = g.state;
+  s.phase = 'playing'; s.phaseTime = 0; s.restart = null; s.paused = false;
+  // Team 1 AI keeper holds the ball deep in his own box (+x side).
+  const k1 = s.players.find(p => p.team === 1 && p.keeper)!;
+  k1.x = 40; k1.z = 0; k1.vx = k1.vz = 0; k1.cooldown = 0;
+  Object.assign(s.ball, { x: 39.4, z: 0, y: FIELD.ballRadius, vx: 0, vy: 0, vz: 0, owner: k1.id, lastTouch: 1, lock: 0, lastKicker: null, flight: 'roll' });
+  // Park team 0's AI outfielders right next to the keeper; human is excluded from AI.
+  const chasers = s.players.filter(p => p.team === 0 && !p.keeper && p.id !== s.controlled);
+  for (const p of chasers) { p.x = 41; p.z = 0; p.vx = p.vz = 0; p.think = 100; }
+  tick(g, 0.4); // inside the calm .6s hold window — no distribution yet
+  assert.equal(s.ball.owner, k1.id, 'keeper keeps holding');
+  for (const p of chasers) {
+    const d = Math.hypot(p.x - k1.x, p.z - k1.z);
+    assert.ok(d >= 3.9, `outfielder ${p.id} stays out of the 4m bubble (d=${d.toFixed(2)})`);
+  }
+  const retreats = chasers.filter(p => p.aiState === 'RETREAT').length;
+  assert.ok(retreats >= 5, `most outfielders drop back (${retreats}/9)`);
+});
+
 test('outfield driven pass (sprint+pass) is flat and fierce', () => {
   const g = new MatchEngine(0, 180, 21);
   const s = g.state;
