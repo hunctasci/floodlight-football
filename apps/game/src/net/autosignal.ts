@@ -1,15 +1,8 @@
-import type { SdpInit } from './transport';
+import type { SignalPayload } from './transport';
+import type { RoomCreated, RoomJoined, SignalingClient } from './signaling';
 
-export interface RoomCreated {
-  roomCode: string;
-  matchToken: string;
-}
-
-export interface RoomJoined {
-  roomCode: string;
-  peers: string[];
-  matchToken: string;
-}
+export type { RoomCreated, RoomJoined };
+export type { SignalingClient };
 
 export class SignalError extends Error {}
 
@@ -27,9 +20,12 @@ const isToken = (v: unknown): v is string => typeof v === 'string' && v.length >
  * two room members (TTL rooms, rate-limited joins, no room listing), and
  * both sides bind the WebRTC handshake to the room's matchToken, so a stray
  * peer can never land in someone else's session.
+ *
+ * Node/self-host reference transport. Production uses CloudflareSignalingClient
+ * (same SignalingClient contract, Worker + Durable Object rooms).
  */
-export class AutoSignal {
-  onPeerSignal: ((from: string, sdp: SdpInit) => void) | null = null;
+export class AutoSignal implements SignalingClient {
+  onPeerSignal: ((from: string, payload: SignalPayload) => void) | null = null;
   onPeerJoined: ((clientId: string) => void) | null = null;
   onPeerLeft: ((clientId: string) => void) | null = null;
   private ws: WebSocket | null = null;
@@ -77,9 +73,9 @@ export class AutoSignal {
     return { roomCode: m.roomCode, peers: m.peers.filter((p): p is string => typeof p === 'string'), matchToken: m.matchToken };
   }
 
-  sendSignal(to: string, sdp: SdpInit): void {
+  sendSignal(to: string, payload: SignalPayload): void {
     if (!this.connected) throw new SignalError('SIGNAL LOST');
-    this.ws!.send(JSON.stringify({ t: 'signal', to, payload: sdp }));
+    this.ws!.send(JSON.stringify({ t: 'signal', to, payload }));
   }
 
   close(): void {
@@ -111,7 +107,7 @@ export class AutoSignal {
       m = v as Msg;
     } catch { return; }
     if (m.t === 'signaled' && typeof m.from === 'string' && m.payload && typeof m.payload === 'object') {
-      this.onPeerSignal?.(m.from, m.payload as SdpInit);
+      this.onPeerSignal?.(m.from, m.payload as SignalPayload);
       return;
     }
     if (m.t === 'peer-joined' && typeof m.clientId === 'string') { this.onPeerJoined?.(m.clientId); return; }

@@ -12,7 +12,19 @@ export const SdpSchema = z.object({
   sdp: z.string().min(1).max(16384),
 });
 
-const BaseSignal = z.object({ to: ClientIdSchema, payload: SdpSchema });
+/** Trickle ICE candidate relayed between peers (size-capped). */
+export const IceCandidateSchema = z.object({
+  type: z.literal('candidate'),
+  candidate: z.string().min(1).max(4096),
+  sdpMid: z.string().max(64).nullish(),
+  sdpMLineIndex: z.number().int().min(0).max(32).nullish(),
+});
+
+/** Any signaling payload the control plane relays: SDP or ICE candidate. */
+export const SignalPayloadSchema = z.union([SdpSchema, IceCandidateSchema]);
+export type SignalPayload = z.infer<typeof SignalPayloadSchema>;
+
+const BaseSignal = z.object({ to: ClientIdSchema, payload: SignalPayloadSchema });
 
 export const ClientMsgSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('create-room'), clientId: ClientIdSchema }),
@@ -29,7 +41,7 @@ export const ServerMsgSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('room-joined'), roomCode: RoomCodeSchema, peers: z.array(ClientIdSchema), matchToken: z.string().min(16) }),
   z.object({ t: z.literal('peer-joined'), clientId: ClientIdSchema }),
   z.object({ t: z.literal('peer-left'), clientId: ClientIdSchema }),
-  z.object({ t: z.literal('signaled'), from: ClientIdSchema, payload: SdpSchema }),
+  z.object({ t: z.literal('signaled'), from: ClientIdSchema, payload: SignalPayloadSchema }),
   z.object({ t: z.literal('pong') }),
   z.object({ t: z.literal('error'), message: z.string().min(1).max(256) }),
 ]);

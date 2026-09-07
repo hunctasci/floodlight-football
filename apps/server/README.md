@@ -1,4 +1,12 @@
-# @floodlight/server
+# @floodlight/server — self-hosted/reference backend
+
+> Production V1 uses the Cloudflare control plane (`apps/game/worker/`:
+> Worker + per-room Durable Objects). This Node service remains as the
+> **self-hosted/reference implementation** with the same room semantics
+> (6-char codes, 2-player cap, matchToken handshake binding, ~2 h TTL) plus
+> league REST. The game falls back to its WS protocol automatically when the
+> page is served next to Node (Docker self-host). Cloudflare never calls this
+> server. See [ADR-005](../../docs/adr/005-cloudflare-control-plane.md).
 
 Thin signaling + rooms service for Floodlight Football online play. Match traffic
 stays P2P (WebRTC lockstep in `apps/game/src/net/`); this service only

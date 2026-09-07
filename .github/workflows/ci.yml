@@ -38,6 +38,21 @@ jobs:
       - run: npm run build --workspace=@floodlight/protocol
       - run: REDIS_URL=redis://localhost:6379 npm run test --workspace=@floodlight/server
 
+  cloudflare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run cf:check --workspace=floodlight-football
+      - run: npm run build --workspace=floodlight-football
+      # No Cloudflare credentials needed: typecheck + bundle only.
+      # Production deploys are manual (`npm run deploy`) or a separate
+      # explicitly authenticated workflow — never per-PR.
+
   docker:
     runs-on: ubuntu-latest
     steps:

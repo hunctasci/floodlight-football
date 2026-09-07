@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ClientMsgSchema, CreateLeagueSchema, JoinLeagueSchema, RoomCodeSchema, SubmitResultSchema, parseClientMsg, ServerMsgSchema } from '../src/index.ts';
+import { ClientMsgSchema, CreateLeagueSchema, JoinLeagueSchema, RoomCodeSchema, SignalPayloadSchema, SubmitResultSchema, parseClientMsg, ServerMsgSchema } from '../src/index.ts';
 
 test('room codes accept the unambiguous alphabet only', () => {
   assert.ok(RoomCodeSchema.safeParse('ABCDEFGH'.slice(0, 6)).success);
@@ -18,6 +18,17 @@ test('client messages validate by shape', () => {
   assert.ok(!ClientMsgSchema.safeParse({
     t: 'signal', to: id, payload: { type: 'offer', sdp: 'x'.repeat(20000) },
   }).success, 'SDP size capped');
+});
+
+test('signaling relays SDP and trickle ICE candidates', () => {
+  const id = '123e4567-e89b-12d3-a456-426614174000';
+  const ice = { type: 'candidate', candidate: 'candidate:1 1 udp 1 1.2.3.4 5000 typ host', sdpMid: '0', sdpMLineIndex: 0 };
+  assert.ok(SignalPayloadSchema.safeParse({ type: 'offer', sdp: 'v=0' }).success);
+  assert.ok(SignalPayloadSchema.safeParse(ice).success);
+  assert.ok(!SignalPayloadSchema.safeParse({ type: 'candidate', candidate: '' }).success, 'empty candidate rejected');
+  assert.ok(!SignalPayloadSchema.safeParse({ type: 'candidate' }).success, 'candidate body required');
+  assert.ok(ClientMsgSchema.safeParse({ t: 'signal', to: id, payload: ice }).success, 'client ICE relays');
+  assert.ok(ServerMsgSchema.safeParse({ t: 'signaled', from: id, payload: ice }).success, 'server ICE relays');
 });
 
 test('parseClientMsg never throws and reports errors', () => {

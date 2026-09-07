@@ -61,7 +61,7 @@ test('server url prefers the saved override, else the dev fallback in node', () 
     g.window = { location: { origin: 'https://localhost', port: '' } };
     assert.equal(getServerUrl(), 'https://localhost');
     g.window = { location: { origin: 'http://127.0.0.1:5173', port: '5173' } };
-    assert.equal(getServerUrl(), 'http://127.0.0.1:8080', 'vite dev keeps the local port');
+    assert.equal(getServerUrl(), 'http://127.0.0.1:5173', 'vite+Worker dev is same-origin');
   } finally {
     if (realLocal === undefined) delete g.localStorage; else g.localStorage = realLocal;
     if (realWindow === undefined) delete g.window; else g.window = realWindow;

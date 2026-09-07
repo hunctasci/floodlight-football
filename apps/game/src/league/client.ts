@@ -95,12 +95,13 @@ export function setDisplayName(v: string) {
 export function getServerUrl(): string {
   const saved = store.get('floodlight-server-url');
   if (saved) return saved;
-  // Same-origin by default: the production page is served by Caddy next to
-  // /socket + /api, so online + leagues work with zero setup (and stay on
-  // https, avoiding mixed-content blocks). Only the vite dev page (which has
-  // no backend on its origin) falls back to a local server port.
+  // Same-origin by default: production AND `npm run dev` serve the game +
+  // control plane from one Cloudflare origin (Worker + Static Assets), so
+  // online rooms work with zero setup (and stay on https, avoiding
+  // mixed-content blocks). Self-hosters point LEAGUE → SERVER at their Node
+  // reference server instead.
   try {
-    if (window.location.port !== '5173') return window.location.origin;
+    return window.location.origin;
   } catch { /* non-browser (tests): fall through */ }
   return 'http://127.0.0.1:8080';
 }

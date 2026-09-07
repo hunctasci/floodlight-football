@@ -3,22 +3,47 @@
 Three paths. Docker is for local parity / self-hosting only — it is never
 required by the Cloudflare path.
 
-## Client-only (Cloudflare game hosting, no backend)
+## Cloudflare production (primary)
 
-The production game is static (`apps/game/dist/`, see `wrangler.jsonc`) hosted
-on Cloudflare Workers Free as assets.
+One Cloudflare application (`apps/game/`, see `wrangler.jsonc`): the Worker
+serves the built game via Static Assets and the control-plane API from the
+same origin.
+
+```text
+Browser ── same origin ──► Worker + Static Assets
+  ├─ /               → game shell (SPA fallback)
+  ├─ /api/health     → {status, service} (+ /healthz alias)
+  ├─ POST /api/rooms → {roomCode, matchToken}
+  └─ /api/rooms/:code/socket → RoomDurableObject (one DO per room)
+```
 
 - Solo: entirely local (engine + renderer + input, no network).
-- Multiplayer: WebRTC P2P deterministic match via **serverless invite links**
-  (host creates an offer link, joiner opens it, reply code goes back — SDP
-  travels by copy-paste/chat app, no server in the loop).
+- Multiplayer: `CloudflareSignalingClient` coordinates rooms; the match
+  itself runs WebRTC P2P lockstep (3-byte inputs, hashes, resync).
+- Rooms: 6-char codes, 2 members max, ~2 h TTL (DO alarms), SQLite lifecycle
+  rows only, hibernated sockets with attachments. No D1, no KV, no Redis.
 - PWA: installable, offline app shell (production service worker only).
 
-This is the default: the game boots and plays even when every backend is down.
-Backend-required features (room codes, leagues) report `SERVER UNREACHABLE`
-instead of breaking local play.
+```sh
+npm run dev:game        # frontend + Worker + local DOs (vite plugin, no Docker)
+npm test                # all workspaces (game 142, server, protocol)
+npm run cf:check --workspace=floodlight-football   # Worker typecheck
+npm run build --workspace=floodlight-football      # client + Worker bundle
+npm run deploy          # build + wrangler deploy
+npx wrangler whoami     # check auth before deployment ops (never commit secrets)
+```
 
-## Node / self-host (Docker Compose)
+This is the default: the game boots and plays even when every backend is down.
+Backend-required features report `SERVER UNREACHABLE` instead of breaking
+local play.
+
+## Client-only (static, no backend)
+
+Any static host serving `dist/client/` (see the vite build output): solo
+play, PWA offline shell. No backend required. (Online needs the control
+plane; manual SDP helpers remain in code for tests/debugging only.)
+
+## Node / self-host reference (Docker Compose)
 
 ```text
 Browser (Caddy :80/:443)
@@ -48,23 +73,14 @@ docker build -f apps/server/Dockerfile .  # server image (CI also builds this)
   (never ship `change-me-in-production`), set `CLIENT_ORIGIN` to your game
   origin (default `*` is dev-only), set `DOMAIN` for Caddy TLS
   (`DOMAIN=football.example.com docker compose up -d`).
-- Dev without Docker: `npm run dev:game` (Vite `:5173`, falls back to
-  `http://127.0.0.1:8080` for the server URL) and `npm run dev:server`
-  (memory store; add `REDIS_URL=redis://localhost:6379` for the Redis path).
+- Dev without Docker: `npm run dev:game` (game + Worker + local DOs via the
+  Cloudflare Vite plugin) and `npm run dev:server` (memory store; add
+  `REDIS_URL=redis://localhost:6379` for the Redis path). Point the game's
+  LEAGUE → SERVER setting at the Node URL to exercise the reference backend.
 
-## Future Cloudflare-native coordination (not built)
+## Leagues / persistence (later)
 
-For user-friendly rooms/matchmaking later, without changing the match itself:
-
-```text
-Browser → Cloudflare Worker → Durable Object (room membership, signaling, presence, transient coordination)
-Browser → D1 (leagues, fixtures, results, rankings, profiles)
-```
-
-Match simulation/inputs stay WebRTC P2P unless future evidence justifies a
-change. The current Node `RoomStore`/`LeagueStore` interfaces and the shared
-`@floodlight/protocol` DTOs are the seam: a Worker/Durable-Object adapter can
-implement the same room contract, and D1 can implement the same league
-contract, with no protocol/domain-model break. No Supabase/Neon/Upstash/
-Firebase or other hosted DB was added in this pass — no new provider is needed
-today, and provider adapters stay optional.
+Friend leagues, profiles, results, and rankings need durable storage and are
+not built in this pass — that is when D1 enters, with its own ADR. No empty
+schemas were created for them. The current Node `LeagueStore` and the shared
+`@floodlight/protocol` DTOs are the seam a D1 adapter can implement later.

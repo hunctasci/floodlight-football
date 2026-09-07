@@ -7,33 +7,42 @@ polished 3D presentation — not a FIFA clone.
 ```mermaid
 flowchart LR
   P1[Browser A<br/>game + lockstep] <-->|WebRTC<br/>3-byte inputs| P2[Browser B<br/>game + lockstep]
-  P1 & P2 <-->|WS: rooms + SDP relay<br/>REST: leagues/results| API[apps/server<br/>Node + ws]
+  P1 & P2 <-->|rooms + SDP relay<br/>Worker + Durable Objects| CF[(Cloudflare<br/>control plane)]
+  P1 & P2 <-.->|self-host alt.<br/>WS rooms + leagues| API[apps/server<br/>Node reference]
   API <--> R[(Redis<br/>rooms/presence/rate-limit)]
   API <--> P[(Postgres<br/>leagues/results)]
 ```
 
 ```text
-                  Browser Game
-              TypeScript + Three.js
-                       │
-            deterministic simulation
-                       │
-             WebRTC lockstep match
-                  ↙           ↘
-              Player A       Player B
-
-              optional signaling
-                       │
-                  Backend
-             rooms / leagues
-                ↙         ↘
-             Redis      PostgreSQL
+                        Cloudflare
+                 Worker + Static Assets
+                         │
+                  Durable Objects
+               rooms · signaling
+                         │
+             ┌───────────┴───────────┐
+             │                       │
+         Browser A               Browser B
+             │                       │
+             └──── WebRTC P2P ───────┘
+                         │
+                 deterministic
+                    lockstep
 ```
 
-Solo and serverless-invite play work with no backend. Room codes and leagues
-need the Node server; a future Cloudflare-native path (Worker + Durable
-Object + D1) can replace Node room coordination while preserving the
-protocol/domain model. Docker is never required by the Cloudflare path.
+Solo needs no backend. Online rooms are coordinated by the Cloudflare
+control plane; match traffic stays peer-to-peer. The Node server remains as
+the self-hosted reference backend (rooms + leagues over WS/REST).
+
+Solo play works with no backend. Online room codes are
+coordinated by the Cloudflare control plane (Worker + Durable Object rooms,
+same origin as the game); no database, Redis, or login is involved — rooms
+are ephemeral (~2 h TTL) and match traffic stays WebRTC P2P. Leagues still
+need the Node reference server. The game falls back to the Node WS protocol
+automatically when the page is served next to Node instead of Cloudflare
+(Docker self-host). Docker is never required by the Cloudflare path. No D1
+yet — persistent data (profiles, leagues, results) comes later with the
+meta game.
 
 ## Interesting engineering problems
 
@@ -48,29 +57,37 @@ protocol/domain model. Docker is never required by the Cloudflare path.
   `InputFrame` namespace (`input/`).
 - Deterministic AI (carrier/support/chase/mark/keeper), all inside the sim.
 - Shared network protocol: zod WS + REST contracts, single source of truth
-  (`packages/protocol/`).
+  (`packages/protocol/`); the Cloudflare Worker validates the same shapes
+  without importing Node modules.
+- Cloudflare control plane: Worker + per-room Durable Objects (SQLite,
+  WebSocket hibernation, ~2 h TTL alarms), same origin as the game
+  (`apps/game/worker/`); data plane stays WebRTC P2P.
 - Redis-backed ephemeral rooms (TTL, presence, rate limits) with a memory
-  adapter for dev/tests.
+  adapter for dev/tests — Node reference backend only, never Cloudflare.
 - Postgres/Drizzle persistent league data (fixtures, dual-submit results,
   standings) with a memory adapter for dev/tests.
 - Dockerized self-host stack (Caddy + server + Redis + Postgres) with local
-  parity; Cloudflare Workers static hosting for the game itself.
+  parity; Cloudflare Workers Static Assets for the game itself.
 
 ## Quickstart
 
 ```sh
 npm install
-npm test                                  # all workspaces
-npm run dev:game                           # http://127.0.0.1:5173
-npm run dev:server                         # ws://127.0.0.1:8080/socket (memory store)
+npm test                                   # all workspaces
+npm run dev:game                           # game + Worker + local DOs (http://127.0.0.1:5173)
+npm run dev:server                         # Node reference backend (ws://127.0.0.1:8080/socket)
 REDIS_URL=redis://localhost:6379 npm run dev:server   # Redis store
-npm run build --workspace=floodlight-football         # game dist first
-docker compose up -d                       # full topology
+npm run build --workspace=floodlight-football         # client + Worker bundle
+npm run deploy                             # build + wrangler deploy to Cloudflare
+docker compose up -d                       # self-host topology (reference backend)
 ```
 
-Backend-optional: solo (`PLAY MATCH`, `DAILY CUP`) and `ONLINE MATCH →
-CREATE INVITE LINK` work with no server. Room codes (`CREATE/JOIN ROOM`) and
-leagues need the server and report `SERVER UNREACHABLE` clearly when it's down.
+Backend-optional: solo (`PLAY MATCH`, `DAILY CUP`) never needs a server.
+`ONLINE MATCH → PLAY WITH A FRIEND` creates a Cloudflare room and shares an
+invite link (or 6-letter code for `JOIN WITH CODE`) — no SDP copy-paste, no
+server URL to configure. The control plane reports connection problems with
+player-friendly messages; solo keeps working.
+Leagues need the Node reference server.
 
 Status: solo + 1v1 lockstep live. League REST is implemented server-side; the
 in-game league menu is gated `COMING SOON` until hosted. No 2v2 yet — the
@@ -81,11 +98,11 @@ design (see `docs/architecture.md`).
 
 | Path | What |
 |---|---|
-| `apps/game/` | Vite + Three.js client, deterministic sim, netcode (`src/net/`), input (`src/input/`), cameras (`src/render/`) |
-| `apps/server/` | Thin signaling + rooms + leagues (`src/server.ts`, `src/leagues/`, `src/db/`) |
+| `apps/game/` | Vite + Three.js client, deterministic sim, netcode (`src/net/`), input (`src/input/`), cameras (`src/render/`), Cloudflare control plane (`worker/`) |
+| `apps/server/` | Self-hosted/reference backend: signaling + rooms + leagues (`src/server.ts`, `src/leagues/`, `src/db/`) — not the production path |
 | `packages/protocol/` | Shared zod schemas: WS messages, REST DTOs — single source of truth |
-| `docs/architecture.md` | Client/sim/render/input/net/backend/Redis/Postgres/deployment/2v2 |
-| `docs/deployment.md` | Client-only vs Node/self-host vs future Cloudflare-native |
+| `docs/architecture.md` | Client/sim/render/input/net/control-plane/reference-backend/Redis/Postgres/deployment/2v2 |
+| `docs/deployment.md` | Cloudflare production vs Node/self-host reference |
 | `docs/gameplay-known-issues.md` | Frozen gameplay feel issues, reserved for the specialist pass |
 | `docs/adr/` | Architecture decision records (start here for *why*) |
 | `work/` | Session tuning notes |
@@ -93,7 +110,8 @@ design (see `docs/architecture.md`).
 Decisions: [P2P + thin backend](docs/adr/001-p2p-thin-backend.md) ·
 [no Kubernetes](docs/adr/002-no-kubernetes.md) ·
 [Postgres + Redis](docs/adr/003-postgres-redis.md) ·
-[guest + dual-submit](docs/adr/004-guest-dual-submit.md)
+[guest + dual-submit](docs/adr/004-guest-dual-submit.md) ·
+[Cloudflare control plane + P2P data plane](docs/adr/005-cloudflare-control-plane.md)
 
 ## Contributing
 

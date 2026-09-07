@@ -11,7 +11,10 @@
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "dev:game": "npm run dev --workspace=floodlight-football",
-    "dev:server": "npm run dev --workspace=@floodlight/server"
+    "dev:server": "npm run dev --workspace=@floodlight/server",
+    "cf:types": "npm run cf:types --workspace=floodlight-football",
+    "cf:check": "npm run cf:check --workspace=floodlight-football",
+    "deploy": "npm run deploy --workspace=floodlight-football"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

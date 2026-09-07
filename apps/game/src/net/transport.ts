@@ -61,20 +61,62 @@ function waitIceComplete(pc: RTCPeerConnection, timeoutMs = 4000): Promise<void>
   });
 }
 
-/** Signaling payload shape: matches the server's SdpSchema relay verbatim. */
+/** Signaling payload shape: matches the server's SignalPayloadSchema relay verbatim. */
 export interface SdpInit {
   type: RTCSdpType;
   sdp: string;
 }
 
-/** Browser WebRTC transport. Signaling (offer/answer exchange) stays outside:
- *  the F4 signal server relays it; manual copy-paste codes remain as fallback. */
+/** Trickle ICE candidate relayed through the same signaling channel. */
+export interface IceInit {
+  type: 'candidate';
+  candidate: string;
+  sdpMid?: string | null;
+  sdpMLineIndex?: number | null;
+}
+
+/** Any payload the control plane relays: SDP offer/answer or ICE candidate. */
+export type SignalPayload = SdpInit | IceInit;
+
+export function isIcePayload(p: SignalPayload): p is IceInit {
+  return (p as IceInit).type === 'candidate';
+}
+
+export function isSdpPayload(p: SignalPayload): p is SdpInit {
+  return (p as { type: string }).type !== 'candidate' && typeof (p as SdpInit).sdp === 'string';
+}
+
+/** Structural check for inbound signaling payloads (never throws). */
+export function isValidSignalPayload(v: unknown): v is SignalPayload {
+  if (!v || typeof v !== 'object') return false;
+  const p = v as Record<string, unknown>;
+  if (p.type === 'candidate') {
+    if (typeof p.candidate !== 'string' || p.candidate.length < 1 || p.candidate.length > 4096) return false;
+    if (p.sdpMid !== undefined && p.sdpMid !== null && typeof p.sdpMid !== 'string') return false;
+    const idx = p.sdpMLineIndex;
+    if (idx !== undefined && idx !== null) {
+      if (typeof idx !== 'number' || !Number.isInteger(idx) || idx < 0 || idx > 32) return false;
+    }
+    return true;
+  }
+  if (p.type !== 'offer' && p.type !== 'answer' && p.type !== 'pranswer') return false;
+  return typeof p.sdp === 'string' && p.sdp.length >= 1 && (p.sdp as string).length <= 16384;
+}
+
+/** Browser WebRTC transport. Signaling (offer/answer + trickle ICE) stays
+ *  outside: the Cloudflare control plane relays it; the data channel carries
+ *  gameplay. Legacy non-trickle helpers remain for tests/debugging. */
 export class RTCTransport implements DataTransport {
   onmessage: ((data: Uint8Array) => void) | null = null;
   onstate: ((s: TransportState) => void) | null = null;
+  /** Fires for each locally gathered ICE candidate (trickle flow). */
+  onCandidate: ((c: IceInit) => void) | null = null;
   private _state: TransportState = 'connecting';
   private pc: RTCPeerConnection;
   private dc: RTCDataChannel | null = null;
+  /** Remote candidates arriving before setRemoteDescription (flushed in order). */
+  private pendingRemote: IceInit[] = [];
+  private remoteReady = false;
 
   get state(): TransportState { return this._state; }
 
@@ -93,6 +135,95 @@ export class RTCTransport implements DataTransport {
     dc.onopen = () => this.setState('open');
     dc.onclose = () => this.setState('closed');
     dc.onmessage = (e) => this.onmessage?.(new Uint8Array(e.data as ArrayBuffer));
+  }
+
+  private watchIce() {
+    this.pc.onicecandidate = (e) => {
+      const c = e.candidate;
+      if (!c || !c.candidate) return;
+      this.onCandidate?.({
+        type: 'candidate',
+        candidate: c.candidate,
+        sdpMid: c.sdpMid,
+        sdpMLineIndex: c.sdpMLineIndex,
+      });
+    };
+  }
+
+  private watchConnection() {
+    this.pc.onconnectionstatechange = () => {
+      if (this.pc.connectionState === 'failed' || this.pc.connectionState === 'closed') {
+        this.setState('closed');
+      }
+    };
+  }
+
+  /** Queue or apply one remote ICE candidate (trickle flow, never throws). */
+  async addIceCandidate(init: SignalPayload): Promise<void> {
+    if (!init || (init as { type: string }).type !== 'candidate') return;
+    const c = init as IceInit;
+    if (typeof c.candidate !== 'string' || !c.candidate) return;
+    if (!this.remoteReady) {
+      this.pendingRemote.push(c);
+      return;
+    }
+    try {
+      await this.pc.addIceCandidate(
+        new RTCIceCandidate({
+          candidate: c.candidate,
+          sdpMid: c.sdpMid ?? undefined,
+          sdpMLineIndex: c.sdpMLineIndex ?? undefined,
+        }),
+      );
+    } catch {
+      /* stale candidate (e.g. after restart): connectivity continues without it */
+    }
+  }
+
+  private async flushRemote(): Promise<void> {
+    const q = this.pendingRemote;
+    this.pendingRemote = [];
+    for (const c of q) {
+      try {
+        await this.pc.addIceCandidate(
+          new RTCIceCandidate({
+            candidate: c.candidate,
+            sdpMid: c.sdpMid ?? undefined,
+            sdpMLineIndex: c.sdpMLineIndex ?? undefined,
+          }),
+        );
+      } catch {
+        /* ignore stale entries */
+      }
+    }
+  }
+
+  /** Host side (trickle): offer returns immediately; candidates flow via onCandidate. */
+  static async createOfferTrickle(stun = STUN): Promise<{ transport: RTCTransport; offer: SdpInit }> {
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: stun }] });
+    const t = new RTCTransport(pc);
+    const dc = pc.createDataChannel('game', { ordered: true });
+    t.wire(dc);
+    t.watchConnection();
+    t.watchIce();
+    await pc.setLocalDescription(await pc.createOffer());
+    const d = pc.localDescription!;
+    return { transport: t, offer: { type: d.type, sdp: d.sdp } };
+  }
+
+  /** Joiner side (trickle): answer returns immediately; candidates flow via onCandidate. */
+  static async acceptOfferTrickle(offer: SdpInit, stun = STUN): Promise<{ transport: RTCTransport; answer: SdpInit }> {
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: stun }] });
+    const t = new RTCTransport(pc);
+    pc.ondatachannel = (e) => t.wire(e.channel);
+    t.watchConnection();
+    t.watchIce();
+    await pc.setRemoteDescription(offer);
+    t.remoteReady = true;
+    await t.flushRemote();
+    await pc.setLocalDescription(await pc.createAnswer());
+    const d = pc.localDescription!;
+    return { transport: t, answer: { type: d.type, sdp: d.sdp } };
   }
 
   /** Host side: creates the offer + data channel, returns raw SDP for relay. */
@@ -125,6 +256,8 @@ export class RTCTransport implements DataTransport {
       if (pc.connectionState === 'failed' || pc.connectionState === 'closed') t.setState('closed');
     };
     await pc.setRemoteDescription(offer);
+    t.remoteReady = true;
+    await t.flushRemote();
     await pc.setLocalDescription(await pc.createAnswer());
     await waitIceComplete(pc);
     const d = pc.localDescription!;
@@ -141,6 +274,8 @@ export class RTCTransport implements DataTransport {
   /** Host side: completes the handshake with the joiner's raw answer. */
   async acceptAnswerSdp(answer: SdpInit): Promise<void> {
     await this.pc.setRemoteDescription(answer);
+    this.remoteReady = true;
+    await this.flushRemote();
   }
 
   /** Host side: completes the handshake with the joiner's answer. */

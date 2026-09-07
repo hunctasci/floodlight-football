@@ -1,8 +1,8 @@
 # Floodlight Football — architecture
 
 Arcade 11v11 browser football: deterministic fixed-step sim, Three.js
-presentation, P2P WebRTC lockstep for 1v1, thin Node backend for rooms and
-leagues. Solo and direct-invite play work with no backend.
+presentation, P2P WebRTC lockstep for 1v1, Cloudflare control plane for rooms
+and signaling in production. Solo play works with no backend.
 
 ## Layout
 
@@ -35,7 +35,14 @@ apps/game/src/
     driver.ts              # handshake, pump, pause/quit, drop recovery, resync
     transport.ts           # DataTransport (Loopback for tests, RTC for browsers)
     signal.ts              # seed negotiation, room-code envelope
-    autosignal.ts          # server-relayed signaling client (rooms + SDP relay)
+    signaling.ts           # SignalingClient contract (control-plane seam)
+    autosignal.ts          # Node reference signaling client (WS /socket)
+    cloudflare-signal.ts   # production signaling client (POST /api/rooms + per-room WS)
+
+  worker/
+    index.ts               # public Worker: /api/health, POST /api/rooms, per-room socket route
+    room.ts                # RoomDurableObject: hibernated SDP relay + presence (one DO per room)
+    room-logic.ts          # pure room helpers (codes, tokens, validation, limits) — unit-tested
 
 apps/server/src/
   server.ts                # HTTP (/healthz, /api/*) + WS (/socket) — signaling + league routes
@@ -111,13 +118,21 @@ Frozen by `tests/input-mapping.test.ts`. MatchEngine never sees DOM.
 (`humanTeam=0, remoteTeam=1`) and exchange 3-byte inputs per tick; a tick runs
 only when both sides' inputs are present. Hashes every `HASH_EVERY=15` ticks
 detect desyncs; host snapshots heal. Transport is a byte pipe (`Loopback` in
-tests, `RTCDataChannel` in browsers). Two flows:
+tests, `RTCDataChannel` in browsers). One player flow:
 
-- **Serverless invite links** (no backend): host `createOffer` → link carries
-  SDP → joiner `acceptOffer` → reply code back. Works offline/local.
-- **Server-relayed rooms**: `AutoSignal` (`/socket`) creates/joins a 6-char
-  room, relays SDP, both sides bind the WebRTC handshake to the room's
-  `matchToken` so stray peers can't land in a session.
+- **Cloudflare rooms (production)**: `CloudflareSignalingClient`
+  (`POST /api/rooms`, `WS /api/rooms/:code/socket`) creates/joins a 6-char
+  room on a per-room Durable Object, which relays SDP offer/answer, trickle
+  ICE candidates and presence between the two members
+  (TTL rooms, rate-limited creation, no room listing). The host shares an
+  invite link (`?room=CODE`, code only — no SDP, no secrets); tapping it and
+  typing the code converge on the same `joinRoom` path. Both sides bind the
+  WebRTC handshake to the room's `matchToken`, so a stray peer can never land
+  in a session. When the page is served next to Node instead (self-host),
+  the client falls back to `AutoSignal` (`/socket`) automatically.
+- **Manual SDP helpers retained** (`RTCTransport.createOffer`/`acceptOffer`,
+  `signal.encodeCode`): low-level fallback for tests/debugging only, not the
+  normal player path.
 
 Codec, framing, hash cadence, snapshot/resync, timing — all frozen and covered
 by `net-*.test.ts` + `determinism.test.ts`. No 4-player lockstep, rollback
@@ -128,35 +143,51 @@ redesign, authoritative server, matchmaking or spectator in this pass.
 `packages/protocol` is the contract boundary: zod `ClientMsg`/`ServerMsg`
 (room lifecycle + SDP relay), `RoomInfo`, `Health`, league DTOs
 (`League/Member/Fixture/StandingsRow`, create/join/start/submit/resolve).
-Game and server import it; neither duplicates protocol shapes. Gameplay stays
-in the game, server logic stays in the server — only shared wire contracts
-live here.
+The Node server imports it; the game keeps structural mirrors so the sim
+bundle stays decoupled; the Cloudflare Worker validates the same shapes with
+Web-standard code (no Node modules in the Worker). Gameplay stays in the
+game, room logic stays per-backend — only shared wire contracts live here.
 
 ## Backend
 
-Node + `ws`, structured pino logs, zod-validated WS + REST, per-IP sliding
-window rate limits, 64 KiB payload cap. Observability is structured logs only
-(service, level, err context) — no Prometheus/Grafana/OTel collectors in this
-pass; those are a future scaling concern once the self-host path needs SLOs. Responsibilities:
+Two backends, one contract, different roles:
 
-- signaling: room create/join/leave, member-only SDP relay, presence heartbeat
-- rooms: 6-char codes (no 0/O/1/I), 2 members max, TTL (default 2 h), empty
-  rooms deleted, never listed
-- leagues: create/join/start/submit/resolve, dual-submit agreement
-  (ADR-004), standings (3/1/0 → GD → GF → name)
-- health: `GET /healthz` → `{status, uptimeSec, redis}`
+**Production — Cloudflare control plane** (`apps/game/worker/`): Worker +
+per-room Durable Objects, same origin as the game (Static Assets). HTTP
+(`POST /api/rooms`, `GET /api/health`) + per-room WebSocket hibernation
+(`GET /api/rooms/:code/socket`), zod-mirrored validation, per-IP
+best-effort rate limits, 64 KiB payload cap, ~2 h room TTL via DO alarms.
+Observability is structured logs only. Responsibilities:
+
+- signaling: room create, member-only SDP relay, presence join/leave
+- rooms: 6-char codes (no 0/O/1/I), 2 members max, TTL (2 h), empty rooms
+  deleted, never listed
+- health: `GET /api/health` (alias `/healthz`) → `{status, service}`
+
+**Reference — Node self-host** (`apps/server/`): Node + `ws`, structured
+pino logs, zod-validated WS + REST, per-IP sliding-window rate limits, 64 KiB
+payload cap. Responsibilities: the same room semantics over `/socket`, plus
+league REST (create/join/start/submit/resolve, dual-submit agreement per
+ADR-004). Health: `GET /healthz` → `{status, uptimeSec, redis}`.
+
+The game probes Cloudflare first and falls back to the Node protocol, so
+Docker self-hosts keep working with zero client changes.
+
+Node league semantics (reference only): create/join/start/submit/resolve,
+dual-submit agreement (ADR-004), standings (3/1/0 → GD → GF → name).
 
 `RoomStore` (memory/Redis) and `LeagueStore` (memory/Postgres) provider
 separation is the key design: tests/dev run memory-only, prod swaps adapters
 via `REDIS_URL`/`DATABASE_URL` with no logic changes.
 
-## Redis — ephemeral only
+## Redis — ephemeral only (Node reference)
 
 Rooms (`room:{code}` JSON + TTL), presence heartbeats, sliding-window rate
 limits, signaling coordination. Atomic joins via Lua, one-round-trip rate
 limits via `MULTI`. Loss only drops live rooms, never history. Memory adapter
 for dev/tests, Docker Redis for local integration, supported self-host adapter
-in prod. Permanent league history never lives in Redis.
+in prod. Permanent league history never lives in Redis. Cloudflare production
+uses Durable Objects instead — no Redis there by design, not by omission.
 
 ## Postgres — durable only
 
@@ -166,13 +197,14 @@ state, no speculative future tables. Memory adapter for dev/tests.
 
 ## Deployment options
 
-- **Client-only** (Cloudflare Workers Free, static `dist/`): solo + direct
-  WebRTC invites, PWA offline shell. No backend required.
-- **Node/self-host** (Docker Compose: Caddy + server + Redis + Postgres):
-  adds room codes + league REST with local parity. See `docs/deployment.md`.
-- **Future Cloudflare-native**: Worker + Durable Object (rooms/signaling/
-  presence) + D1 (leagues/results), same protocol/domain model. Not built in
-  this pass — boundaries kept compatible (see below).
+- **Cloudflare production** (one application: Worker + Static Assets +
+  Durable Objects): full game, solo + room-code online via the control plane,
+  PWA offline shell. No backend data store required. See `docs/deployment.md`.
+- **Client-only** (static `dist/` anywhere): solo play,
+  PWA offline shell. No backend required. (Online needs the control plane.)
+- **Node/self-host reference** (Docker Compose: Caddy + server + Redis +
+  Postgres): same room semantics over `/socket` plus league REST, with local
+  parity. The game auto-falls-back to it when served next to Node.
 
 Docker containers are never required by the Cloudflare path.
 

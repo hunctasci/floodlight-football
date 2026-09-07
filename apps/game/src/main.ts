@@ -8,16 +8,22 @@ import { createKeyboardState, keyDown, keyUp, isBlockedKey, clearKeyboardEdges, 
 import { buildInputFrame } from './input/input';
 import { setupTouchControls } from './ui/touch-controls';
 import { NetDriver } from './net/driver';
-import { RTCTransport } from './net/transport';
-import { AutoSignal, SignalError } from './net/autosignal';
-import { makeClientId, encodeCode } from './net/signal';
+import { RTCTransport, isIcePayload } from './net/transport';
+import type { SignalPayload } from './net/transport';
+import { AutoSignal } from './net/autosignal';
+import { CloudflareSignalingClient } from './net/cloudflare-signal';
+import type { SignalingClient } from './net/signaling';
+import { makeClientId } from './net/signal';
+import {
+  buildInviteUrl, canShare, copyText, friendlyNetError, inviteCodeFromSearch, normalizeRoomCode,
+} from './net/invite';
 import {
   LeagueApi, LeagueApiError, dailyKey, dailySeed, getClientId, getDailyBest, getDisplayName, getLeagueCode, getServerUrl,
   normalizeCode, parseScore, setDailyBest, setDisplayName, setLeagueCode, setServerUrl, tableLine,
   type Fixture, type League,
 } from './league/client';
 
-type Screen = 'title'|'team'|'match'|'pause'|'half'|'full'|'online'|'invitehost'|'invitejoin'|'netcreate'|'netjoin'|'netready'
+type Screen = 'title'|'team'|'match'|'pause'|'half'|'full'|'online'|'host'|'join'|'joining'|'netready'
   |'league'|'leaguecreate'|'leaguejoin'|'leagueserver'|'leagueview'|'leaguesubmit'|'leagueresolve'|'leaguescore';
 const app=document.querySelector<HTMLDivElement>('#app')!;
 const renderer=new GameRenderer(app); const audio=new MatchAudio();
@@ -28,21 +34,22 @@ const NET_LIVE = true;
 // Friend leagues need the signaling/league server; COMING SOON until hosted.
 const LEAGUES_LIVE = false;
 let titleNote = '';
-// Online (server-relayed P2P lockstep) state. Null driver = local AI match.
+// Online (Cloudflare-room P2P lockstep) state. Null driver = local AI match.
 let net: NetDriver | null = null;
 let viewTeam: TeamId = 0;
 let netStatus = '', netBusy = false;
 let netOffer: RTCTransport | null = null;
 // Daily Cup state: seeded engine + best-score persistence (visual only).
 let dailyMode = false;
-// Room session: 6-char code the friend types, token binding the handshake.
-let sig: AutoSignal | null = null;
+// Room session: 6-char code the friend taps or types; the matchToken binding
+// the handshake arrives over the room socket (never in the URL, never logged).
+let sig: SignalingClient | null = null;
 let roomCode = '', matchToken = '', peerId = '';
 let peerReady = false, iAmReady = false;
-// Serverless invite-link flow: host holds the pending offer transport, the
-// link carries the SDP; the joiner holds the reply code to send back.
-let inviteLink = '', inviteReply = '', invitePrefill = '';
-let inviteOffer: RTCTransport | null = null;
+// Shareable invite for the current host room (code only, no SDP/secrets).
+let inviteUrl = '', copyNote = '';
+// Pending auto-join code from an invite link (startup ?room=…).
+let pendingInvite: string | null = null;
 // League (F4b REST) state. Null data = not loaded yet; msg surfaces API errors.
 let leagueData: League | null = null, leagueMsg = '', leagueBusy = false;
 let leagueActions: string[] = [], leaguePick: Fixture[] = [];
@@ -119,10 +126,9 @@ function launchNet(driver: NetDriver) {
 function closeNet() {
   if (net) { try { net.quit(); } catch { /* link already dead */ } net = null; }
   if (netOffer) { try { netOffer.close(); } catch { /* already gone */ } netOffer = null; }
-  if (inviteOffer) { try { inviteOffer.close(); } catch { /* already gone */ } inviteOffer = null; }
   if (sig) { try { sig.close(); } catch { /* already gone */ } sig = null; }
   roomCode = ''; matchToken = ''; peerId = '';
-  inviteLink = ''; inviteReply = ''; invitePrefill = '';
+  inviteUrl = ''; copyNote = '';
   peerReady = false; iAmReady = false;
   netStatus = ''; netBusy = false;
   viewTeam = 0; renderer.setFollow(null, null);
@@ -166,11 +172,10 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
   if(screen==='title') { const items=LEAGUES_LIVE?['PLAY MATCH','ONLINE MATCH','DAILY CUP','LEAGUE']:['PLAY MATCH','ONLINE MATCH','DAILY CUP','LEAGUE · COMING SOON']; panel(`<div class="eyebrow">ARCADE FOOTBALL · 1998</div><div class="title">FLOODLIGHT<br>FOOTBALL</div><div class="subtitle">SATURDAY CUP</div>${titleNote?`<div class="message">${titleNote}</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">${isTouchDevice ? 'TOUCH READY · TAP OK' : 'KEYBOARD ONLY · PRESS ENTER'}<br>ARROWS TO MOVE · S PASS · W THROUGH · A CROSS · D SHOOT · C CAMERA${isTouchDevice ? '<br>OR LEFT STICK + BUTTONS' : ''}</div>`); wireMenuItems(); return; }
   if(screen==='team') { const t=TEAMS[teamIndex],o=TEAMS[(teamIndex+1)%TEAMS.length]; panel(`<div class="eyebrow">CHOOSE YOUR CLUB</div><div class="title" style="font-size:34px">SATURDAY CUP</div><div class="team-row"><div class="team-card active"><div class="team-swatch" style="background:${t.color}"></div>${t.name}<br><small>${t.city}</small></div><div class="team-card"><div class="team-swatch" style="background:${o.color}"></div>${o.name}<br><small>OPPONENT</small></div></div><div class="menu-item selected">${duration/60} MINUTE HALVES</div><div class="hint">← / → CHANGE TEAM · ↑ / ↓ CHANGE LENGTH<br>ENTER KICK OFF · ESC BACK</div>`); return; }
   if(screen==='pause') { const items=['RESUME','RESTART MATCH','MAIN MENU']; panel(`<div class="eyebrow">MATCH PAUSED</div><div class="title" style="font-size:38px">PAUSE</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">ARROWS MOVE · E/SHIFT SPRINT · S PASS/TACKLE · W THROUGH · A CROSS · D SHOOT/SLIDE<br>Q/SPACE SWITCH · C CAMERA (${renderer.cameraLabel()}) · ↑ / ↓ SELECT · ENTER CONFIRM · ESC RESUME</div>`); return; }
-  if(screen==='online') { const items=['CREATE INVITE LINK','CREATE ROOM','JOIN ROOM','BACK']; panel(`<div class="eyebrow">PLAY ONLINE · P2P LOCKSTEP</div><div class="title" style="font-size:38px">ONLINE</div><div class="subtitle">${TEAMS[teamIndex].short} · ${duration/60} MIN HALVES</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">INVITE LINK WORKS WITH NO SERVER · ROOM CODES NEED A LEAGUE SERVER<br>↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
-  if(screen==='invitehost') { panel(`<div class="eyebrow">SERVERLESS 2-PLAYER · YOU ARE TEAM 1</div><div class="title" style="font-size:38px">INVITE</div><div class="subtitle">${netStatus || '…'}</div>${inviteLink?`<textarea class="netpaste scorebox netcode" id="invitelink" rows="2" readonly>${inviteLink}</textarea><div class="hint">TAP TO COPY · SEND IT IN ANY CHAT APP</div><textarea class="netpaste scorebox" id="inviteanswer" rows="1" placeholder="PASTE THE REPLY CODE"></textarea><div class="menu-item netbtn" data-act="invite-answer">▶ CONNECT</div>`:''}<div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
-  if(screen==='invitejoin') { panel(`<div class="eyebrow">SERVERLESS 2-PLAYER · YOU ARE TEAM 2</div><div class="title" style="font-size:38px">JOIN</div><div class="subtitle">${netStatus || 'PASTE THE INVITE LINK'}</div>${!inviteReply&&!net?`<textarea class="netpaste scorebox" id="invitecode" rows="2" placeholder="PASTE THE INVITE LINK OR CODE">${invitePrefill}</textarea><div class="menu-item netbtn" data-act="invite-open">▶ OPEN INVITE</div>`:''}${inviteReply?`<textarea class="netpaste scorebox netcode" id="invitereply" rows="2" readonly>${inviteReply}</textarea><div class="hint">TAP TO COPY · SEND THIS REPLY BACK — THE MATCH CONNECTS ITSELF</div>`:''}<div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
-  if(screen==='netcreate') { panel(`<div class="eyebrow">HOST A ROOM · YOU ARE TEAM 1</div><div class="title" style="font-size:52px">${roomCode || '···'}</div><div class="subtitle">${netStatus || '…'}</div><div class="hint">READ THE CODE TO YOUR FRIEND<br>VIA ${getServerUrl()}</div><div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
-  if(screen==='netjoin') { panel(`<div class="eyebrow">JOIN A ROOM · YOU ARE TEAM 2</div><div class="title" style="font-size:38px">JOIN</div><div class="subtitle">${netStatus || 'TYPE THE HOST CODE'}</div>${roomCode ? '' : `<textarea class="netpaste scorebox" style="width:180px" id="netcode" rows="1" maxlength="6" placeholder="ABCDEF"></textarea><div class="menu-item netbtn" data-act="join">▶ JOIN ROOM</div>`}<div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div><div class="hint">VIA ${getServerUrl()} · CHANGE IN LEAGUE → SERVER</div>`); return; }
+  if(screen==='online') { const items=['PLAY WITH A FRIEND','JOIN WITH CODE','BACK']; panel(`<div class="eyebrow">PLAY ONLINE · FRIEND MATCH</div><div class="title" style="font-size:38px">ONLINE</div><div class="subtitle">${TEAMS[teamIndex].short} · ${duration/60} MIN HALVES</div>${netStatus?`<div class="subtitle">${netStatus}</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
+  if(screen==='host') { const share = canShare(); panel(`<div class="eyebrow">SHARE THE LINK · YOU ARE TEAM 1</div><div class="title" style="font-size:52px">${roomCode || '···'}</div><div class="subtitle">${netStatus || '…'}</div>${inviteUrl?`<textarea class="netpaste scorebox netcode" id="invitelink" rows="2" readonly>${inviteUrl}</textarea>${copyNote?`<div class="hint">${copyNote}</div>`:''}<div class="menu-item netbtn" data-act="copy">▶ COPY LINK</div>${share?`<div class="menu-item netbtn" data-act="share">▶ SHARE</div>`:''}`:''}<div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
+  if(screen==='join') { panel(`<div class="eyebrow">ENTER THE FRIEND CODE</div><div class="title" style="font-size:38px">JOIN</div><div class="subtitle">${netStatus || 'TYPE THE 6-LETTER CODE'}</div>${roomCode ? '' : `<textarea class="netpaste scorebox" style="width:180px" id="netcode" rows="1" maxlength="6" placeholder="ABCDEF"></textarea><div class="menu-item netbtn" data-act="join">▶ JOIN</div>`}<div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
+  if(screen==='joining') { panel(`<div class="eyebrow">JOINING MATCH…</div><div class="title" style="font-size:38px">${roomCode || '···'}</div><div class="subtitle">${netStatus || 'JOINING MATCH…'}</div><div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
   if(screen==='netready') { const items=["I'M READY",'CANCEL']; panel(`<div class="eyebrow">ROOM ${roomCode} · ${TEAMS[teamIndex].short} · ${duration/60} MIN</div><div class="title" style="font-size:38px">READY?</div><div class="subtitle">YOU ${iAmReady ? 'READY ✓' : '…'} · FRIEND ${peerReady ? 'READY ✓' : '…'}</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">BOTH SIDES PRESS READY — THEN KICK OFF</div>`); return; }
   if(screen==='league') { const items=['OPEN LEAGUE','CREATE LEAGUE','JOIN LEAGUE','SERVER','BACK']; const saved=getLeagueCode(); panel(`<div class="eyebrow">FRIEND LEAGUES · ROUND ROBIN</div><div class="title" style="font-size:38px">LEAGUE</div><div class="subtitle">${saved ? 'SAVED CODE ' + saved : getServerUrl()}</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
   if(screen==='leaguecreate') { panel(`<div class="eyebrow">START A FRIEND LEAGUE</div><div class="title" style="font-size:34px">CREATE</div><textarea class="netpaste" id="lgname" rows="2" placeholder="LEAGUE NAME"></textarea><textarea class="netpaste" id="lgwho" rows="1" placeholder="YOUR NICKNAME">${getDisplayName()}</textarea><div class="menu-item netbtn" data-act="do-create">▶ CREATE LEAGUE</div><div class="menu-item netbtn" data-act="back">▶ BACK</div><div class="subtitle">${leagueMsg}</div>`); return; }
@@ -234,118 +239,201 @@ function deadNet(message: string) {
   netGen++; closeNet();
   netStatus = message; screen = 'online'; menuIndex = 0; menuDirty = true;
 }
-const netMsg = (e: unknown) => e instanceof SignalError ? e.message : 'CONNECTION FAILED';
+const netMsg = (e: unknown) => friendlyNetError(e);
 function hookDriver(d: NetDriver) {
   attachDriver(d); net = d;
 }
-/** Host flow: create a room, read out the code, auto-connect on join. */
+/**
+ * Online signaling always targets the same origin that served the game
+ * (Worker + Static Assets, no backend configuration). The Node server stays
+ * as the self-hosted reference: if this origin speaks the legacy /socket
+ * protocol instead (Docker/Caddy self-host), fall back to it. Either way the
+ * match itself stays WebRTC P2P; solo never gets here.
+ */
+async function connectSignal(): Promise<SignalingClient> {
+  const base = location.origin;
+  const cf = new CloudflareSignalingClient();
+  try {
+    await cf.connect(base, 5000);
+    return cf;
+  } catch {
+    /* not a Cloudflare control plane — try the Node reference */
+  }
+  const legacy = new AutoSignal();
+  await legacy.connect(base);
+  return legacy;
+}
+function webrtcSupported(): boolean {
+  return typeof RTCPeerConnection !== 'undefined';
+}
+/** Wire trickle ICE both ways between one transport and the room socket. */
+function relayIce(transport: RTCTransport, signal: SignalingClient, peer: () => string | null) {
+  transport.onCandidate = (c) => {
+    const to = peer();
+    if (!to) return;
+    try {
+      signal.sendSignal(to, c);
+    } catch {
+      /* socket closing; the data channel may still connect */
+    }
+  };
+}
+/** Host flow: create the Cloudflare room FIRST, then produce the invite URL. */
 function startHost() {
   if (netBusy) return; netBusy = true;
+  if (!webrtcSupported()) {
+    deadNet('THIS BROWSER CAN’T PLAY ONLINE — TRY CHROME OR SAFARI');
+    return;
+  }
   const token = ++netGen;
-  const alive = () => token === netGen && screen === 'netcreate';
-  const fini = (s: AutoSignal) => { try { s.close(); } catch { /* gone */ } };
-  netStatus = 'CONNECTING…'; menuDirty = true;
-  const signal = new AutoSignal(); sig = signal;
-  signal.connect(getServerUrl()).then(async () => {
+  const alive = () => token === netGen && screen === 'host';
+  const fini = (s: SignalingClient) => { try { s.close(); } catch { /* gone */ } };
+  netStatus = 'CREATING ROOM…'; inviteUrl = ''; copyNote = ''; menuDirty = true;
+  void (async () => {
+    let signal: SignalingClient;
+    try {
+      signal = await connectSignal();
+    } catch (e) { if (alive()) deadNet(netMsg(e)); return; }
     if (!alive()) return fini(signal);
+    sig = signal;
+    signal.onPeerJoined = (peer) => {
+      if (!alive() || peerId) return;
+      peerId = peer; netStatus = 'FRIEND FOUND… CONNECTING…'; menuDirty = true;
+      void (async () => {
+        try {
+          const { transport, offer } = await RTCTransport.createOfferTrickle();
+          if (!alive()) { transport.close(); return; }
+          netOffer = transport;
+          relayIce(transport, signal, () => (alive() ? peerId : null));
+          signal.sendSignal(peer, offer);
+          netStatus = 'CONNECTING…'; menuDirty = true;
+        } catch { if (alive()) deadNet('THIS BROWSER CAN’T PLAY ONLINE — TRY CHROME OR SAFARI'); }
+      })();
+    };
+    signal.onPeerSignal = (from, payload) => {
+      if (!alive() || from !== peerId || !netOffer) return;
+      if (isIcePayload(payload)) {
+        void netOffer.addIceCandidate(payload).catch(() => {});
+        return;
+      }
+      if (payload.type !== 'answer') return;
+      const offer = netOffer; netOffer = null;
+      void offer.acceptAnswerSdp(payload).then(() => {
+        if (!alive()) { offer.close(); return; }
+        netStatus = 'CONNECTED'; menuDirty = true;
+        hookDriver(new NetDriver(offer, { host: true, teamIndex, duration, matchToken }));
+      }).catch(() => { if (alive()) deadNet(netMsg('negotiation failed')); });
+    };
+    signal.onPeerLeft = () => { if (alive()) deadNet('FRIEND LEFT'); };
     try {
       const created = await signal.createRoom(getClientId());
       if (!alive()) return fini(signal);
       roomCode = created.roomCode; matchToken = created.matchToken;
+      inviteUrl = buildInviteUrl(location.origin, location.pathname, roomCode);
       netStatus = 'WAITING FOR FRIEND…'; menuDirty = true;
     } catch (e) { if (alive()) deadNet(netMsg(e)); }
-  }).catch((e) => { if (alive()) deadNet(netMsg(e)); });
-  signal.onPeerJoined = (peer) => {
-    if (!alive() || peerId) return;
-    peerId = peer; netStatus = 'FRIEND JOINED · CONNECTING…'; menuDirty = true;
-    void (async () => {
-      try {
-        const { transport, offer } = await RTCTransport.createOfferSdp();
-        if (!alive()) { transport.close(); return; }
-        netOffer = transport;
-        signal.sendSignal(peer, offer);
-        netStatus = 'CONNECTING…'; menuDirty = true;
-      } catch { if (alive()) deadNet('WEBRTC UNAVAILABLE HERE'); }
-    })();
-  };
-  signal.onPeerSignal = (from, sdp) => {
-    if (!alive() || from !== peerId || !netOffer || sdp.type !== 'answer') return;
-    const offer = netOffer; netOffer = null;
-    void offer.acceptAnswerSdp(sdp).then(() => {
-      if (!alive()) { offer.close(); return; }
-      hookDriver(new NetDriver(offer, { host: true, teamIndex, duration, matchToken }));
-    }).catch(() => { if (alive()) deadNet('BAD ANSWER'); });
-  };
-  signal.onPeerLeft = () => { if (alive()) deadNet('FRIEND LEFT'); };
+  })();
 }
-/** Guest flow: type the host code, land directly in the room. */
-function startJoin(code: string) {
+/**
+ * Single Cloudflare join implementation. Both the tapped invite link and the
+ * manually typed code converge here: joinRoom(code) → signaling → WebRTC →
+ * NetDriver → ready lobby. No reply codes, no SDP in the UI.
+ */
+function cloudJoin(code: string) {
   if (netBusy) return; netBusy = true;
+  if (!webrtcSupported()) {
+    deadNet('THIS BROWSER CAN’T PLAY ONLINE — TRY CHROME OR SAFARI');
+    return;
+  }
+  const normalized = normalizeRoomCode(code);
+  if (!normalized) {
+    netGen++; closeNet();
+    netStatus = 'INVITE EXPIRED — ASK FOR A NEW LINK'; screen = 'online'; menuIndex = 0; menuDirty = true;
+    return;
+  }
   const token = ++netGen;
-  const alive = () => token === netGen && screen === 'netjoin';
-  const fini = (s: AutoSignal) => { try { s.close(); } catch { /* gone */ } };
-  netStatus = 'JOINING…'; menuDirty = true;
-  const signal = new AutoSignal(); sig = signal;
-  signal.connect(getServerUrl()).then(async () => {
-    if (!alive()) return fini(signal);
+  const alive = () => token === netGen && (screen === 'join' || screen === 'joining');
+  const fini = (s: SignalingClient) => { try { s.close(); } catch { /* gone */ } };
+  netStatus = 'JOINING MATCH…'; menuDirty = true;
+  void (async () => {
+    let signal: SignalingClient;
     try {
-      const joined = await signal.joinRoom(code, getClientId());
+      signal = await connectSignal();
+    } catch (e) {
+      if (alive()) {
+        netGen++; closeNet();
+        netStatus = netMsg(e); screen = 'online'; menuIndex = 0; menuDirty = true;
+      }
+      return;
+    }
+    if (!alive()) return fini(signal);
+    sig = signal;
+    let answered = false;
+    signal.onPeerSignal = (from, payload) => {
+      if (!alive() || net || answered) return;
+      if (isIcePayload(payload)) {
+        // Candidate arriving before the offer (reordered relay): stash it and
+        // flush into the answer transport once it exists.
+        pendingCandidates.push(payload);
+        return;
+      }
+      if (payload.type !== 'offer') return;
+      answered = true;
+      peerId = from; netStatus = 'FRIEND FOUND… CONNECTING…'; menuDirty = true;
+      void RTCTransport.acceptOfferTrickle(payload).then(({ transport, answer }) => {
+        if (!alive()) { transport.close(); return; }
+        relayIce(transport, signal, () => (alive() ? peerId : null));
+        for (const c of pendingCandidates) void transport.addIceCandidate(c).catch(() => {});
+        pendingCandidates = [];
+        try { signal.sendSignal(from, answer); }
+        catch { transport.close(); if (alive()) failJoin('SIGNAL LOST'); return; }
+        netStatus = 'CONNECTED'; menuDirty = true;
+        hookDriver(new NetDriver(transport, { host: false, matchToken }));
+      }).catch(() => { if (alive()) failJoin('negotiation failed'); });
+    };
+    let pendingCandidates: SignalPayload[] = [];
+    const failJoin = (reason: unknown) => {
+      if (!alive()) return;
+      netGen++; closeNet();
+      netStatus = netMsg(reason); screen = 'online'; menuIndex = 0; menuDirty = true;
+    };
+    signal.onPeerLeft = () => { if (alive()) failJoin('HOST LEFT'); };
+    try {
+      const joined = await signal.joinRoom(normalized, getClientId());
       if (!alive()) return fini(signal);
       roomCode = joined.roomCode; matchToken = joined.matchToken;
-      netStatus = 'JOINED · WAITING FOR HOST…'; menuDirty = true;
-    } catch (e) { if (alive()) deadNet(netMsg(e)); }
-  }).catch((e) => { if (alive()) deadNet(netMsg(e)); });
-  signal.onPeerSignal = (from, sdp) => {
-    if (!alive() || net || sdp.type !== 'offer') return;
-    peerId = from; netStatus = 'CONNECTING…'; menuDirty = true;
-    void RTCTransport.acceptOfferSdp(sdp).then(({ transport, answer }) => {
-      if (!alive()) { transport.close(); return; }
-      try { signal.sendSignal(from, answer); }
-      catch { transport.close(); if (alive()) deadNet('SIGNAL LOST'); return; }
-      hookDriver(new NetDriver(transport, { host: false, matchToken }));
-    }).catch(() => { if (alive()) deadNet('BAD ROOM CODE'); });
-  };
-  signal.onPeerLeft = () => { if (alive()) deadNet('HOST LEFT'); };
+      netStatus = joined.peers.length > 0 ? 'FRIEND FOUND… CONNECTING…' : 'CONNECTING… WAITING FOR HOST…';
+      menuDirty = true;
+    } catch (e) { if (alive()) failJoin(e); }
+  })();
 }
 function doJoin() {
-  const code = normalizeCode(areaVal('netcode'));
-  if (!code) { netStatus = 'BAD CODE — 6 LETTERS, NO 0/O/1/I'; menuDirty = true; return; }
-  startJoin(code);
+  const raw = areaVal('netcode');
+  const code = normalizeRoomCode(raw) ?? raw;
+  if (!normalizeRoomCode(raw)) {
+    netStatus = 'INVALID CODE — CHECK AND TRY AGAIN'; menuDirty = true; return;
+  }
+  cloudJoin(code);
 }
-// --- Serverless invite links: WebRTC handshake carried by copy-paste, no server at all. ---
-function startInviteHost() {
-  if (netBusy) return; netBusy = true;
-  const token = ++netGen;
-  const alive = () => token === netGen && screen === 'invitehost';
-  netStatus = 'CREATING INVITE…'; menuDirty = true;
-  void RTCTransport.createOfferSdp().then(({ transport, offer }) => {
-    if (!alive()) { transport.close(); return; }
-    inviteOffer = transport;
-    inviteLink = `${location.origin}${location.pathname}?invite=${encodeCode({ sdp: offer })}`;
-    netStatus = 'SEND THIS LINK TO YOUR FRIEND'; menuDirty = true;
-  }).catch(() => { if (alive()) deadNet('WEBRTC UNAVAILABLE HERE'); });
+function doCopyLink() {
+  if (!inviteUrl) return;
+  void copyText(inviteUrl).then((ok) => {
+    copyNote = ok ? 'LINK COPIED — SEND IT TO YOUR FRIEND' : 'TAP THE LINK TO SELECT IT';
+    menuDirty = true;
+  });
 }
-function doInviteAnswer() {
-  const code = areaVal('inviteanswer');
-  if (!code || !inviteOffer) return;
-  const offer = inviteOffer; inviteOffer = null;
-  netStatus = 'CONNECTING…'; menuDirty = true;
-  offer.acceptAnswer(code).then(() => hookDriver(new NetDriver(offer, { host: true, teamIndex, duration })))
-    .catch(() => { if (screen === 'invitehost') deadNet('BAD REPLY CODE'); });
-}
-function startInviteJoin(raw: string) {
-  if (netBusy) return; netBusy = true;
-  const token = ++netGen;
-  const alive = () => token === netGen && screen === 'invitejoin';
-  netStatus = 'OPENING INVITE…'; menuDirty = true;
-  const m = raw.match(/invite=([A-Za-z0-9\-_]+)/);
-  const code = m ? m[1] : raw.trim();
-  void RTCTransport.acceptOffer(code).then(({ transport, answer }) => {
-    if (!alive()) { transport.close(); return; }
-    inviteReply = answer;
-    netStatus = 'SEND THE REPLY BACK'; menuDirty = true;
-    hookDriver(new NetDriver(transport, { host: false }));
-  }).catch(() => { if (alive()) deadNet('BAD INVITE LINK'); });
+function doShareLink() {
+  if (!inviteUrl) return;
+  try {
+    const p = (navigator as Navigator & { share?: (d: { title?: string; text?: string; url?: string }) => Promise<void> }).share?.({
+      title: 'Floodlight Football',
+      text: `Join my Floodlight match — code ${roomCode}`,
+      url: inviteUrl,
+    });
+    void p?.catch(() => { doCopyLink(); });
+  } catch {
+    doCopyLink();
+  }
 }
 function doReady() {
   if (!net || iAmReady) return;
@@ -418,24 +506,20 @@ function handleMenuEnter(act?: string) {
   }
   else if (screen === 'team') launch();
   else if (screen === 'online') {
-    if (menuIndex === 0) { screen = 'invitehost'; menuIndex = 0; netStatus = ''; inviteLink = ''; inviteReply = ''; startInviteHost(); }
-    else if (menuIndex === 1) { screen = 'netcreate'; menuIndex = 0; roomCode = ''; netStatus = ''; startHost(); }
-    else if (menuIndex === 2) { screen = 'netjoin'; menuIndex = 0; roomCode = ''; netStatus = ''; }
-    else screen = 'title';
+    if (menuIndex === 0) { screen = 'host'; menuIndex = 0; roomCode = ''; netStatus = ''; inviteUrl = ''; copyNote = ''; startHost(); }
+    else if (menuIndex === 1) { screen = 'join'; menuIndex = 0; roomCode = ''; netStatus = ''; }
+    else { screen = 'title'; menuIndex = 0; netStatus = ''; }
   }
-  else if (screen === 'invitehost') {
+  else if (screen === 'host') {
     if (act === 'cancel') cancelNet();
-    else if (act === 'invite-answer') doInviteAnswer();
+    else if (act === 'copy') doCopyLink();
+    else if (act === 'share') doShareLink();
   }
-  else if (screen === 'invitejoin') {
-    if (act === 'cancel') cancelNet();
-    else if (act === 'invite-open') { const raw = areaVal('invitecode'); if (raw) startInviteJoin(raw); else { netStatus = 'PASTE THE INVITE LINK FIRST'; menuDirty = true; } }
-  }
-  else if (screen === 'netcreate') {
-    if (act === 'cancel') cancelNet();
-  }
-  else if (screen === 'netjoin') {
+  else if (screen === 'join') {
     if (act === 'cancel') cancelNet(); else if (act === 'join') doJoin();
+  }
+  else if (screen === 'joining') {
+    if (act === 'cancel') cancelNet();
   }
   else if (screen === 'netready') {
     if (menuIndex === 0) doReady(); else cancelNet();
@@ -498,7 +582,7 @@ function handleMenuEnter(act?: string) {
   }
   menuDirty = true;
 }
-function handleMenu(){if(pressed.size||released.size||touch.pressed.size||touch.released.size)menuDirty=true;if(hit('KeyM')){muted=audio.toggle();consume('KeyM')}if(screen==='match'){if(hit('Escape')){consume('Escape');openPause()}if(hit('KeyC')){camNote=renderer.cycleCamera();camNoteAt=performance.now();consume('KeyC')}return}const confirm=hit('Enter');if(confirm)consume('Enter');const up=hit('KeyW')||hit('ArrowUp'),dn=hit('KeyS')||hit('ArrowDown');if(screen==='title'){if(up||dn)menuIndex=(menuIndex+(up?3:1))%4;if(hit('Escape'))menuIndex=0;if(confirm)handleMenuEnter()}else if(screen==='team'){if(hit('KeyA')||hit('ArrowLeft'))teamIndex=(teamIndex+3)%4;if(hit('KeyD')||hit('ArrowRight'))teamIndex=(teamIndex+1)%4;if(hit('KeyW')||hit('ArrowUp'))duration=duration===180?600:duration===300?180:300;if(hit('KeyS')||hit('ArrowDown'))duration=duration===180?300:duration===300?600:180;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='online'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+3)%4;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%4;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='invitehost'||screen==='invitejoin'){if(hit('Escape'))cancelNet();else if(confirm&&screen==='invitejoin'&&!net&&!inviteReply)handleMenuEnter('invite-open')}else if(screen==='netcreate'){if(hit('Escape'))cancelNet();}else if(screen==='netjoin'){if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter('join');}else if(screen==='netready'){if(up||dn)menuIndex=1-menuIndex;if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter();}else if(screen==='league'){if(up)menuIndex=(menuIndex+4)%5;if(dn)menuIndex=(menuIndex+1)%5;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='leaguecreate'||screen==='leaguejoin'||screen==='leagueserver'){if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leagueview'){const n=Math.max(1,leagueActions.length);if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguesubmit'||screen==='leagueresolve'){const n=leaguePick.length+1;if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='leagueview';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguescore'){if(hit('Escape')){screen=scoreMode==='resolve'?'leagueresolve':'leaguesubmit';menuIndex=0}else if(confirm)handleMenuEnter()}else if(screen==='pause'){if(hit('Escape'))resumePlay();if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}else if(screen==='half'){if(confirm)handleMenuEnter()}else if(screen==='full'){if(up)menuIndex=(menuIndex+2)%3;if(dn)menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}menu();}
+function handleMenu(){if(pressed.size||released.size||touch.pressed.size||touch.released.size)menuDirty=true;if(hit('KeyM')){muted=audio.toggle();consume('KeyM')}if(screen==='match'){if(hit('Escape')){consume('Escape');openPause()}if(hit('KeyC')){camNote=renderer.cycleCamera();camNoteAt=performance.now();consume('KeyC')}return}const confirm=hit('Enter');if(confirm)consume('Enter');const up=hit('KeyW')||hit('ArrowUp'),dn=hit('KeyS')||hit('ArrowDown');if(screen==='title'){if(up||dn)menuIndex=(menuIndex+(up?3:1))%4;if(hit('Escape'))menuIndex=0;if(confirm)handleMenuEnter()}else if(screen==='team'){if(hit('KeyA')||hit('ArrowLeft'))teamIndex=(teamIndex+3)%4;if(hit('KeyD')||hit('ArrowRight'))teamIndex=(teamIndex+1)%4;if(hit('KeyW')||hit('ArrowUp'))duration=duration===180?600:duration===300?180:300;if(hit('KeyS')||hit('ArrowDown'))duration=duration===180?300:duration===300?600:180;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='online'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='host'){if(hit('Escape'))cancelNet();}else if(screen==='join'){if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter('join');}else if(screen==='joining'){if(hit('Escape'))cancelNet();}else if(screen==='netready'){if(up||dn)menuIndex=1-menuIndex;if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter();}else if(screen==='league'){if(up)menuIndex=(menuIndex+4)%5;if(dn)menuIndex=(menuIndex+1)%5;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='leaguecreate'||screen==='leaguejoin'||screen==='leagueserver'){if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leagueview'){const n=Math.max(1,leagueActions.length);if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguesubmit'||screen==='leagueresolve'){const n=leaguePick.length+1;if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='leagueview';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguescore'){if(hit('Escape')){screen=scoreMode==='resolve'?'leagueresolve':'leaguesubmit';menuIndex=0}else if(confirm)handleMenuEnter()}else if(screen==='pause'){if(hit('Escape'))resumePlay();if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}else if(screen==='half'){if(confirm)handleMenuEnter()}else if(screen==='full'){if(up)menuIndex=(menuIndex+2)%3;if(dn)menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}menu();}
 function frame(now:number){const raw=Math.min(.1,(now-last)/1000);last=now;let stepped=false;if(screen==='match'){handleMenu();if(screen==='match'){if(net&&net.session){net.poll();const f=input();net.frame(f);stepped=true;for(const e of net.session.lastEvents)audio.event(e);renderer.setFollow(engine.controlOf(viewTeam),engine.targetOf(viewTeam));}else{acc+=raw*(performance.now()<slowmoUntil?.35:1);let first=true;while(acc>=1/60){const f=input();if(!first){f.pass=false;f.through=false;f.cross=false;f.shootPressed=false;f.shootReleased=false;f.switchPlayer=false}engine.update(1/60,f);for(const e of engine.events.splice(0)){audio.event(e);if(e.type==='shot'){renderer.impact(e.power??28);if(Math.abs(engine.state.ball.x)>28)slowmoUntil=performance.now()+460}if(e.type==='tackle'&&e.slide){renderer.impact(9);slowmoUntil=performance.now()+260}}first=false;stepped=true;acc-=1/60}}const s=engine.state;if(s.phase==='halftime'){screen='half';menuDirty=true;audio.event({type:'whistle'})}if(s.phase==='fulltime'){screen='full';menuIndex=0;menuDirty=true;audio.event({type:'whistle'});if(dailyMode)setDailyBest(s.score[0])}renderer.render(s,raw);const cine=renderer.inCinematic();barTop.classList.toggle('on',cine);barBottom.classList.toggle('on',cine);if(now-hudAt>66){hud(s);hudAt=now}}}else {renderer.render(engine.state,raw,screen==='title'||screen==='team');barTop.classList.remove('on');barBottom.classList.remove('on');handleMenu()}updateTouchVisibility();if(import.meta.env.DEV&&now-devStatusAt>100){const s=engine.state,p=s.players[s.controlled],b=s.ball;document.body.dataset.match=JSON.stringify({phase:s.phase,screen,half:s.half,elapsed:s.elapsed,time:s.time,score:s.score,controlled:s.controlled,player:{x:p?.x,z:p?.z,vx:p?.vx,vz:p?.vz},ball:{x:b.x,z:b.z,y:b.y,owner:b.owner,flight:b.flight},stats:s.stats});devStatusAt=now}if(screen!=='match'||stepped){clearKeyboardEdges(kb);clearTouchEdges(touch)}requestAnimationFrame(frame)}
 addEventListener('resize',()=>renderer.resize());
 // PWA: offline app shell in production only (never cache dev iterations).
@@ -506,9 +590,24 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
 }
 if(import.meta.env.DEV) Object.assign(window,{__retro:{get engine(){return engine},snapshot:()=>JSON.parse(JSON.stringify(engine.state)),start:launch}});
-// Invite links (?invite=…): land the joiner straight on the JOIN screen.
+// Invite links (?room=CODE): skip the menu, join the Cloudflare room directly.
+// The URL carries only the public code — the matchToken arrives over the
+// room socket. Legacy ?invite= links (SDP blobs) show an expiry notice.
 if (NET_LIVE) {
-  const inviteParam = new URLSearchParams(location.search).get('invite');
-  if (inviteParam) { screen = 'invitejoin'; invitePrefill = inviteParam; }
+  const roomParam = inviteCodeFromSearch(location.search);
+  if (roomParam) {
+    screen = 'joining'; roomCode = roomParam; pendingInvite = roomParam;
+    try { history.replaceState(null, '', location.pathname); } catch { /* keep the URL */ }
+  } else if (new URLSearchParams(location.search).has('invite')) {
+    netStatus = 'THAT INVITE LINK EXPIRED — ASK FOR A NEW LINK';
+    screen = 'online'; menuIndex = 0;
+    try { history.replaceState(null, '', location.pathname); } catch { /* keep the URL */ }
+  }
 }
-menu();requestAnimationFrame(frame);
+menu();
+if (pendingInvite) {
+  const code = pendingInvite;
+  pendingInvite = null;
+  cloudJoin(code);
+}
+requestAnimationFrame(frame);
