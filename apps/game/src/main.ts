@@ -2,8 +2,11 @@ import './style.css';
 import { MatchEngine } from './engine';
 import { GameRenderer } from './renderer';
 import { EMPTY_INPUT, TEAMS, type InputFrame, type MatchState, type TeamId } from './types';
-import { MatchAudio } from './audio';
-import { createTouchState, touchDown, touchUp, setStick, releaseStick, clearTouchEdges, resetTouch, stickSprint, TOUCH_BUTTONS, TOUCH_MENU } from './touch';
+import { MatchAudio } from './audio/audio';
+import { createTouchState, clearTouchEdges, resetTouch } from './input/touch';
+import { createKeyboardState, keyDown, keyUp, isBlockedKey, clearKeyboardEdges, resetKeyboard } from './input/keyboard';
+import { buildInputFrame } from './input/input';
+import { setupTouchControls } from './ui/touch-controls';
 import { NetDriver } from './net/driver';
 import { RTCTransport } from './net/transport';
 import { AutoSignal, SignalError } from './net/autosignal';
@@ -12,7 +15,7 @@ import {
   LeagueApi, LeagueApiError, dailyKey, dailySeed, getClientId, getDailyBest, getDisplayName, getLeagueCode, getServerUrl,
   normalizeCode, parseScore, setDailyBest, setDisplayName, setLeagueCode, setServerUrl, tableLine,
   type Fixture, type League,
-} from './league';
+} from './league/client';
 
 type Screen = 'title'|'team'|'match'|'pause'|'half'|'full'|'online'|'invitehost'|'invitejoin'|'netcreate'|'netjoin'|'netready'
   |'league'|'leaguecreate'|'leaguejoin'|'leagueserver'|'leagueview'|'leaguesubmit'|'leagueresolve'|'leaguescore';
@@ -62,7 +65,9 @@ async function refreshLeague(silent = false) {
   } catch (e) { leagueMsg = e instanceof LeagueApiError ? e.message : 'LEAGUE LOAD FAILED'; }
   leagueBusy = false; menuDirty = true;
 }
-const down=new Set<string>(), pressed=new Set<string>(), released=new Set<string>(); let shootWasDown=false;
+const kb = createKeyboardState();
+const down = kb.down, pressed = kb.pressed, released = kb.released;
+let shootWasDown = false;
 const touch=createTouchState();
 const isTouchDevice=matchMedia('(pointer: coarse)').matches||'ontouchstart' in window;
 const ui=document.createElement('div');ui.className='ui';app.append(ui);
@@ -71,10 +76,9 @@ const barBottom=document.createElement('div');barBottom.className='cinebar botto
 let camNote='',camNoteAt=0;let slowmoUntil=0;
 const radar=document.createElement('canvas'); radar.className='radar';radar.width=308;radar.height=184;
 function keyName(e:KeyboardEvent){return e.code}
-const blocked=['KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE','KeyC','KeyI','KeyJ','KeyK','KeyL','Space','ShiftLeft','ShiftRight','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','Escape','KeyM'];
-addEventListener('keydown',e=>{if((e.target as HTMLElement)?.tagName==='TEXTAREA')return;if(blocked.includes(keyName(e)))e.preventDefault(); if(!down.has(keyName(e)))pressed.add(keyName(e));down.add(keyName(e));audio.enable();});
-addEventListener('keyup',e=>{if((e.target as HTMLElement)?.tagName==='TEXTAREA')return;if(blocked.includes(keyName(e)))e.preventDefault(); released.add(keyName(e)); down.delete(keyName(e));});
-addEventListener('blur',()=>{down.clear();pressed.clear();released.clear();resetTouch(touch);if(screen==='match')openPause();});document.addEventListener('visibilitychange',()=>{if(document.hidden&&screen==='match')openPause();});
+addEventListener('keydown',e=>{if((e.target as HTMLElement)?.tagName==='TEXTAREA')return;if(isBlockedKey(keyName(e)))e.preventDefault(); keyDown(kb, keyName(e));audio.enable();});
+addEventListener('keyup',e=>{if((e.target as HTMLElement)?.tagName==='TEXTAREA')return;if(isBlockedKey(keyName(e)))e.preventDefault(); keyUp(kb, keyName(e));});
+addEventListener('blur',()=>{resetKeyboard(kb);resetTouch(touch);if(screen==='match')openPause();});document.addEventListener('visibilitychange',()=>{if(document.hidden&&screen==='match')openPause();});
 const hit=(k:string)=>pressed.has(k)||touch.pressed.has(k); const held=(k:string)=>down.has(k)||touch.down.has(k);
 const consume=(k:string)=>{pressed.delete(k);touch.pressed.delete(k);};
 function launch(){closeNet();dailyMode=false;engine=new MatchEngine(teamIndex,flowTest?8:duration,Math.floor(Math.random()*999999));viewTeam=0;renderer.setFollow(null,null);screen='match';menuIndex=0;audio.event({type:'whistle'});}
@@ -129,72 +133,18 @@ function resumePlay(){screen='match';engine.state.paused=false;if(net)net.setPau
 // Kamera butonu da yok: sol ustteki kamera cipine dokunmak kamerayi degistirir (masaustunde C tusu ayni).
 ui.addEventListener('click',(e)=>{if(screen!=='match')return;const t=(e.target as HTMLElement).closest?.('.scoreboard,.camchip');if(!t)return;if(t.classList.contains('camchip')){camNote=renderer.cycleCamera();camNoteAt=performance.now();menuDirty=true}else openPause();});
 // --- Touch controls (mobile): joystick + buttons emit the same key codes ---
-let touchLayer: HTMLDivElement | null = null, stickZone: HTMLElement | null = null, stickNub: HTMLElement | null = null, menuPad: HTMLElement | null = null, matchPad: HTMLElement | null = null;
-const STICK_R = 56;
-function bindHold(el: Element, code: string) {
-  const start = (e: Event) => { e.preventDefault(); touchDown(touch, code); audio.enable(); };
-  const end = (e: Event) => { e.preventDefault(); touchUp(touch, code); };
-  el.addEventListener('touchstart', start, { passive: false });
-  el.addEventListener('touchend', end); el.addEventListener('touchcancel', end);
-}
-if (isTouchDevice) {
-  touchLayer = document.createElement('div'); touchLayer.className = 'touch'; touchLayer.id = 'touch';
-  touchLayer.innerHTML = `
-    <div class="stick-zone"><div class="stick-base"><div class="stick-nub"></div></div></div>
-    <div class="match-pad">
-      <button class="tbtn tswitch" data-code="KeyQ">SWITCH</button>
-      <button class="tbtn tpass" data-code="KeyS">PASS</button>
-      <button class="tbtn tthru" data-code="KeyW">THRU</button>
-      <button class="tbtn tcross" data-code="KeyA">CROSS</button>
-      <button class="tbtn tshoot" data-code="KeyD">SHOOT</button>
-    </div>
-    <div class="menu-pad">
-      <button class="tbtn mup" data-code="ArrowUp">▲</button>
-      <button class="tbtn mleft" data-code="ArrowLeft">◀</button>
-      <button class="tbtn mok" data-code="Enter">OK</button>
-      <button class="tbtn mright" data-code="ArrowRight">▶</button>
-      <button class="tbtn mdown" data-code="ArrowDown">▼</button>
-      <button class="tbtn mback" data-code="Escape">BACK</button>
-    </div>`;
-  app.append(touchLayer);
-  stickZone = touchLayer.querySelector('.stick-zone') as HTMLElement;
-  stickNub = touchLayer.querySelector('.stick-nub') as HTMLElement;
-  menuPad = touchLayer.querySelector('.menu-pad') as HTMLElement;
-  matchPad = touchLayer.querySelector('.match-pad') as HTMLElement;
-  touchLayer.querySelectorAll('button[data-code]').forEach(b => bindHold(b, (b as HTMLElement).dataset.code!));
-  let stickId: number | null = null, anchorX = 0, anchorY = 0;
-  stickZone.addEventListener('touchstart', (e: Event) => {
-    e.preventDefault(); const t = (e as TouchEvent).changedTouches[0];
-    stickId = t.identifier; anchorX = t.clientX; anchorY = t.clientY; audio.enable();
-  }, { passive: false });
-  stickZone.addEventListener('touchmove', (e: Event) => {
-    e.preventDefault();
-    for (const t of Array.from((e as TouchEvent).changedTouches)) if (t.identifier === stickId) {
-      const dx = (t.clientX - anchorX) / STICK_R, dz = (t.clientY - anchorY) / STICK_R;
-      setStick(touch, dx, dz);
-      const n = Math.hypot(dx, dz), cl = n > 1 ? 1 / n : 1;
-      stickNub!.style.transform = `translate(${(dx * cl * 34).toFixed(1)}px,${(dz * cl * 34).toFixed(1)}px)`;
-    }
-  }, { passive: false });
-  const zoneEnd = (e: Event) => {
-    for (const t of Array.from((e as TouchEvent).changedTouches)) if (t.identifier === stickId) {
-      stickId = null; releaseStick(touch); stickNub!.style.transform = '';
-    }
-  };
-  stickZone.addEventListener('touchend', zoneEnd); stickZone.addEventListener('touchcancel', zoneEnd);
-}
+// DOM lives in ui/touch-controls.ts; app orchestration (screen, audio) stays here.
+const touchControls = setupTouchControls(app, touch, isTouchDevice, () => audio.enable());
+const touchLayer = touchControls.touchLayer;
+
 function updateTouchVisibility() {
-  if (!touchLayer || !menuPad || !matchPad || !stickZone) return;
-  const inMatch = screen === 'match';
-  matchPad.classList.toggle('hidden', !inMatch);
-  stickZone.classList.toggle('hidden', !inMatch);
-  menuPad.classList.toggle('hidden', inMatch);
+  touchControls.updateVisibility(screen);
 }
 function input():InputFrame {
-// FIFA PC (arrow-keys) layout: arrows move/aim, S pass, W through, A cross/lob, D shoot, E/Shift sprint, Q/Space switch.
-// Legacy J/L/I/K aliases kept so old muscle memory still works.
-// Touch joystick vector is merged in so mobile plays the identical sim.
-let x=(held('ArrowRight')?1:0)-(held('ArrowLeft')?1:0)+touch.stickX,z=(held('ArrowDown')?1:0)-(held('ArrowUp')?1:0)+touch.stickZ;const n=Math.hypot(x,z);if(n>1){x/=n;z/=n}const sh=held('KeyD')||held('KeyK');const out={x,z,sprint:held('ShiftLeft')||held('ShiftRight')||held('KeyE')||stickSprint(touch),pass:hit('KeyS')||hit('KeyJ'),through:hit('KeyW')||hit('KeyL'),cross:hit('KeyA')||hit('KeyI'),shootPressed:hit('KeyD')||hit('KeyK'),shootHeld:sh,shootReleased:released.has('KeyD')||released.has('KeyK')||touch.released.has('KeyD')||(!sh&&shootWasDown),switchPlayer:hit('Space')||hit('KeyQ')};shootWasDown=sh;return out;}
+  const { frame, shootWasDown: next } = buildInputFrame(kb, touch, shootWasDown);
+  shootWasDown = next;
+  return frame;
+}
 function clock(s:MatchState){const football=Math.min(45,Math.floor(s.elapsed/s.halfDuration*45));return `${s.half===2?45+football:football}'`}
 function drawRadar(s:MatchState,vt:TeamId,ctl:number){const c=radar.getContext('2d')!;c.clearRect(0,0,308,184);c.fillStyle='#1b6b43';c.fillRect(0,0,308,184);c.strokeStyle='#f8efdb';c.lineWidth=2;c.strokeRect(3,3,302,178);c.beginPath();c.moveTo(154,3);c.lineTo(154,181);c.stroke();for(const p of s.players){c.fillStyle=p.team===vt?'#f7bf30':'#ef4054';c.beginPath();c.arc((p.x/46+1)*154,(p.z/29+1)*92, p.id===ctl?6:4,0,7);c.fill()}c.fillStyle='#fff';c.beginPath();c.arc((s.ball.x/46+1)*154,(s.ball.z/29+1)*92,4,0,7);c.fill();}
 function hud(s:MatchState){const vt=net?viewTeam:s.humanTeam,ctl=net?engine.controlOf(vt):s.controlled;const me=s.players[ctl];const my=s.teams[vt],away=s.teams[1-vt];const how=s.phase==='corner'?'ARROWS AIM · A CROSS · S SHORT':s.phase==='throwin'?'ARROWS AIM · S THROW':s.phase==='goalkick'?'S SHORT · D LONG': 'ARROWS AIM · S KICK OFF';const restart=s.restart?`${s.teams[s.restart.team].name.toUpperCase()} ${s.phase==='throwin'?'THROW-IN':s.phase==='corner'?'CORNER':s.phase==='goalkick'?'GOAL KICK':'KICKOFF'}${s.restart.team===vt?`<small>${how}</small>`:'<small>OPPONENT TAKING RESTART</small>'}`:'';const toast=performance.now()-camNoteAt<1600?`<div class="camtoast">📷 ${camNote}</div>`:'';const holder=s.ball.owner===null?null:s.players[s.ball.owner];const keeperHint=holder&&holder.keeper&&holder.team===vt?`<div class="keeper-hint">🧤 KEEPER · ARROWS AIM<small>S SHORT · W THROUGH · D/A LONG</small></div>`:holder&&holder.keeper?`<div class="keeper-hint">🧤 OPPONENT KEEPER PROTECTED<small>THEY'LL BACK OFF — PRESSURE COMES LATER</small></div>`:'';ui.innerHTML=`<div class="scoreboard"><div class="club">${my.short}</div><div class="score">${s.score[vt]} – ${s.score[1-vt]}</div><div class="club">${away.short}</div><div class="clock">${s.half===1?'1ST':'2ND'} ${clock(s)}</div></div><div class="attack">YOU: ${my.name.toUpperCase()}<br>ATTACK ${s.attack[vt]>0?'→':'←'}</div><div class="camchip">📷 ${renderer.cameraLabel()}</div><div class="player-info">▲ ${me?.name||'PLAYER'}<div class="stamina"><i style="width:${(me?.stamina||0)*100}%"></i></div></div>${s.charge>0?`<div class="charge"><i style="width:${Math.min(100,s.charge/.6*100)}%"></i></div>`:''}<div class="strip">${isTouchDevice ? 'STICK MOVE · SPRINT HOLD · PASS · THRU · CROSS · SHOOT (HOLD=POWER)<br>SWITCH · CAM · PAUSE' : 'ARROWS MOVE · E/SHIFT SPRINT · S PASS / TACKLE · W THROUGH · A CROSS · D SHOOT (HOLD=POWER · E+D DRIVEN) / SLIDE<br>Q/SPACE SWITCH · C CAMERA · ESC PAUSE · M ' + (muted ? 'UNMUTE' : 'MUTE')}</div>${toast}${keeperHint}${!restart&&s.messageTime>0?`<div class="message">${s.message}<small>${s.phase==='goal'?'KICKOFF IN A MOMENT':''}</small></div>`:''}${restart?`<div class="message">${restart}</div>`:''}`;ui.append(barTop,barBottom,radar);drawRadar(s,vt,ctl);}
@@ -549,7 +499,7 @@ function handleMenuEnter(act?: string) {
   menuDirty = true;
 }
 function handleMenu(){if(pressed.size||released.size||touch.pressed.size||touch.released.size)menuDirty=true;if(hit('KeyM')){muted=audio.toggle();consume('KeyM')}if(screen==='match'){if(hit('Escape')){consume('Escape');openPause()}if(hit('KeyC')){camNote=renderer.cycleCamera();camNoteAt=performance.now();consume('KeyC')}return}const confirm=hit('Enter');if(confirm)consume('Enter');const up=hit('KeyW')||hit('ArrowUp'),dn=hit('KeyS')||hit('ArrowDown');if(screen==='title'){if(up||dn)menuIndex=(menuIndex+(up?3:1))%4;if(hit('Escape'))menuIndex=0;if(confirm)handleMenuEnter()}else if(screen==='team'){if(hit('KeyA')||hit('ArrowLeft'))teamIndex=(teamIndex+3)%4;if(hit('KeyD')||hit('ArrowRight'))teamIndex=(teamIndex+1)%4;if(hit('KeyW')||hit('ArrowUp'))duration=duration===180?600:duration===300?180:300;if(hit('KeyS')||hit('ArrowDown'))duration=duration===180?300:duration===300?600:180;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='online'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+3)%4;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%4;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='invitehost'||screen==='invitejoin'){if(hit('Escape'))cancelNet();else if(confirm&&screen==='invitejoin'&&!net&&!inviteReply)handleMenuEnter('invite-open')}else if(screen==='netcreate'){if(hit('Escape'))cancelNet();}else if(screen==='netjoin'){if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter('join');}else if(screen==='netready'){if(up||dn)menuIndex=1-menuIndex;if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter();}else if(screen==='league'){if(up)menuIndex=(menuIndex+4)%5;if(dn)menuIndex=(menuIndex+1)%5;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='leaguecreate'||screen==='leaguejoin'||screen==='leagueserver'){if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leagueview'){const n=Math.max(1,leagueActions.length);if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguesubmit'||screen==='leagueresolve'){const n=leaguePick.length+1;if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='leagueview';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguescore'){if(hit('Escape')){screen=scoreMode==='resolve'?'leagueresolve':'leaguesubmit';menuIndex=0}else if(confirm)handleMenuEnter()}else if(screen==='pause'){if(hit('Escape'))resumePlay();if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}else if(screen==='half'){if(confirm)handleMenuEnter()}else if(screen==='full'){if(up)menuIndex=(menuIndex+2)%3;if(dn)menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}menu();}
-function frame(now:number){const raw=Math.min(.1,(now-last)/1000);last=now;let stepped=false;if(screen==='match'){handleMenu();if(screen==='match'){if(net&&net.session){net.poll();const f=input();net.frame(f);stepped=true;for(const e of net.session.lastEvents)audio.event(e);renderer.setFollow(engine.controlOf(viewTeam),engine.targetOf(viewTeam));}else{acc+=raw*(performance.now()<slowmoUntil?.35:1);let first=true;while(acc>=1/60){const f=input();if(!first){f.pass=false;f.through=false;f.cross=false;f.shootPressed=false;f.shootReleased=false;f.switchPlayer=false}engine.update(1/60,f);for(const e of engine.events.splice(0)){audio.event(e);if(e.type==='shot'){renderer.impact(e.power??28);if(Math.abs(engine.state.ball.x)>28)slowmoUntil=performance.now()+460}if(e.type==='tackle'&&e.slide){renderer.impact(9);slowmoUntil=performance.now()+260}}first=false;stepped=true;acc-=1/60}}const s=engine.state;if(s.phase==='halftime'){screen='half';menuDirty=true;audio.event({type:'whistle'})}if(s.phase==='fulltime'){screen='full';menuIndex=0;menuDirty=true;audio.event({type:'whistle'});if(dailyMode)setDailyBest(s.score[0])}renderer.render(s,raw);const cine=renderer.inCinematic();barTop.classList.toggle('on',cine);barBottom.classList.toggle('on',cine);if(now-hudAt>66){hud(s);hudAt=now}}}else {renderer.render(engine.state,raw,screen==='title'||screen==='team');barTop.classList.remove('on');barBottom.classList.remove('on');handleMenu()}updateTouchVisibility();if(import.meta.env.DEV&&now-devStatusAt>100){const s=engine.state,p=s.players[s.controlled],b=s.ball;document.body.dataset.match=JSON.stringify({phase:s.phase,screen,half:s.half,elapsed:s.elapsed,time:s.time,score:s.score,controlled:s.controlled,player:{x:p?.x,z:p?.z,vx:p?.vx,vz:p?.vz},ball:{x:b.x,z:b.z,y:b.y,owner:b.owner,flight:b.flight},stats:s.stats});devStatusAt=now}if(screen!=='match'||stepped){pressed.clear();released.clear();clearTouchEdges(touch)}requestAnimationFrame(frame)}
+function frame(now:number){const raw=Math.min(.1,(now-last)/1000);last=now;let stepped=false;if(screen==='match'){handleMenu();if(screen==='match'){if(net&&net.session){net.poll();const f=input();net.frame(f);stepped=true;for(const e of net.session.lastEvents)audio.event(e);renderer.setFollow(engine.controlOf(viewTeam),engine.targetOf(viewTeam));}else{acc+=raw*(performance.now()<slowmoUntil?.35:1);let first=true;while(acc>=1/60){const f=input();if(!first){f.pass=false;f.through=false;f.cross=false;f.shootPressed=false;f.shootReleased=false;f.switchPlayer=false}engine.update(1/60,f);for(const e of engine.events.splice(0)){audio.event(e);if(e.type==='shot'){renderer.impact(e.power??28);if(Math.abs(engine.state.ball.x)>28)slowmoUntil=performance.now()+460}if(e.type==='tackle'&&e.slide){renderer.impact(9);slowmoUntil=performance.now()+260}}first=false;stepped=true;acc-=1/60}}const s=engine.state;if(s.phase==='halftime'){screen='half';menuDirty=true;audio.event({type:'whistle'})}if(s.phase==='fulltime'){screen='full';menuIndex=0;menuDirty=true;audio.event({type:'whistle'});if(dailyMode)setDailyBest(s.score[0])}renderer.render(s,raw);const cine=renderer.inCinematic();barTop.classList.toggle('on',cine);barBottom.classList.toggle('on',cine);if(now-hudAt>66){hud(s);hudAt=now}}}else {renderer.render(engine.state,raw,screen==='title'||screen==='team');barTop.classList.remove('on');barBottom.classList.remove('on');handleMenu()}updateTouchVisibility();if(import.meta.env.DEV&&now-devStatusAt>100){const s=engine.state,p=s.players[s.controlled],b=s.ball;document.body.dataset.match=JSON.stringify({phase:s.phase,screen,half:s.half,elapsed:s.elapsed,time:s.time,score:s.score,controlled:s.controlled,player:{x:p?.x,z:p?.z,vx:p?.vx,vz:p?.vz},ball:{x:b.x,z:b.z,y:b.y,owner:b.owner,flight:b.flight},stats:s.stats});devStatusAt=now}if(screen!=='match'||stepped){clearKeyboardEdges(kb);clearTouchEdges(touch)}requestAnimationFrame(frame)}
 addEventListener('resize',()=>renderer.resize());
 // PWA: offline app shell in production only (never cache dev iterations).
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

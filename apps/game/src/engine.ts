@@ -1,16 +1,10 @@
 import { EMPTY_INPUT, FIELD, TEAMS, type Ball, type GameEvent, type InputFrame, type MatchState, type Player, type Restart, type TeamId, type Vec } from './types';
+import { clamp, distance, direction, length, other } from './game/math';
+import { TUNING } from './game/tuning';
+
+export { TUNING } from './game/tuning';
 
 const L = FIELD.halfLength, W = FIELD.halfWidth, R = FIELD.ballRadius;
-export const TUNING = {
-  speed: 7.4, sprint: 10.2, jog: 4.2, acceleration: 22, deceleration: 29, turn: 17,
-  pass: 19, through: 25, shot: 28, tackle: 1.9, slideTackle: 2.45, keeperSpeed: 6.8,
-  controlRadius: 1.55, receiverRadius: 2.3, keeperReach: 1.7, keeperDiveReach: 2.4,
-};
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-const length = (x: number, z: number) => Math.hypot(x, z);
-const distance = (a: Vec, b: Vec) => length(a.x - b.x, a.z - b.z);
-const direction = (x: number, z: number): Vec => { const d = length(x, z); return d > .001 ? { x: x / d, z: z / d } : { x: 0, z: 0 }; };
-const other = (t: TeamId) => (1 - t) as TeamId;
 
 /** Full deterministic snapshot: state plus every RNG/private field the sim reads. */
 export interface EngineSnapshot {

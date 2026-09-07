@@ -1,6 +1,7 @@
 # Local parity + single-VPS production topology.
-# Postgres runs idle until F4b wires leagues/results; included now so the
-# topology (and volumes/backups) is settled once.
+# Docker is for local parity / integration / self-hosting only — it is NOT
+# the Cloudflare Workers production path (see docs/deployment.md).
+# Production: set POSTGRES_PASSWORD and CLIENT_ORIGIN in .env (see .env.example).
 services:
   server:
     build:
@@ -12,11 +13,18 @@ services:
       DATABASE_URL: postgres://retro:${POSTGRES_PASSWORD:-change-me-in-production}@postgres:5432/retro
       ROOM_TTL_SEC: 7200
       LOG_LEVEL: info
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-*}
     depends_on:
       redis:
-        condition: service_started
+        condition: service_healthy
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz | grep -q '\"status\":\"ok\"'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
     expose:
       - 8080
@@ -27,6 +35,11 @@ services:
 
   redis:
     image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
     expose:
       - 6379
@@ -60,7 +73,8 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
-      - server
+      server:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:

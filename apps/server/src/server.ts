@@ -9,7 +9,8 @@ import type { ServerConfig } from './config.js';
 import type { Logger } from './log.js';
 import { RoomError, RoomManager } from './rooms.js';
 import type { RoomStore } from './store.js';
-import { LeagueError, LeagueManager, type LeagueStore } from './leagues.js';
+import { LeagueError, LeagueManager } from './leagues/service.js';
+import type { LeagueStore } from './leagues/store.js';
 
 interface Peer {
   ws: WebSocket;

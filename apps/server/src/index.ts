@@ -2,7 +2,7 @@ import { loadConfig } from './config.js';
 import { createLogger } from './log.js';
 import { MemoryStore } from './store.js';
 import { RedisStore } from './redis-store.js';
-import { MemoryLeagueStore, type LeagueStore } from './leagues.js';
+import { MemoryLeagueStore, type LeagueStore } from './leagues/store.js';
 import { createPgLeagueStore, runMigrations } from './db/pg-leagues.js';
 import { createApp } from './server.js';
 

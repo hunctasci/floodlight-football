@@ -3,12 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "dev:game": "npm run dev --workspace=floodlight-football",
     "dev:server": "npm run dev --workspace=@floodlight/server"
   },
-  "engines": { "node": "^20.19.0 || >=22.12.0" }
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.129.0"
+  }
 }

@@ -4,7 +4,7 @@ import { drizzle, type PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import postgres, { type Sql } from 'postgres';
 import type { FixtureStatus, LeagueStatus, Member } from '@floodlight/protocol';
 import * as schema from './schema.js';
-import type { FixtureRecord, LeagueRecord, LeagueStore, NewFixture, SubmissionRecord } from '../leagues.js';
+import type { FixtureRecord, LeagueRecord, LeagueStore, NewFixture, SubmissionRecord } from '../leagues/store.js';
 
 const toMs = (d: Date) => d.getTime();
 const byId = (r: typeof schema.leagues.$inferSelect): LeagueRecord => ({
