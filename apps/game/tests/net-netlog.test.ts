@@ -6,6 +6,15 @@ import { dirname, join } from 'node:path';
 import {
   candidateFamily, netlog, redactCandidate, shortPeer,
 } from '../src/net/netlog.ts';
+import { buildIceServers, persistTurnConfig, readTurnConfig } from '../src/net/transport.ts';
+
+const memStore = () => {
+  const m = new Map<string, string>();
+  return {
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => { m.set(k, v); },
+  };
+};
 
 const here = dirname(fileURLToPath(import.meta.url));
 const mainSrc = readFileSync(join(here, '..', 'src', 'main.ts'), 'utf8');
@@ -72,6 +81,63 @@ test('transport uses redundant STUN, bundle+MUX and state watchers', () => {
   assert.ok(transportSrc.includes('onIceDebug'), 'redacted ICE hook');
 });
 
+// Optional TURN relay: parsed from ?turn* or sticky storage, creds never logged.
+test('TURN config parses, validates and prefers explicit params', () => {
+  assert.equal(readTurnConfig('', memStore()), null, 'absent → no relay');
+  assert.deepEqual(
+    readTurnConfig('?turn=turn:127.0.0.1:3478&turnuser=u&turnpass=p', memStore()),
+    { urls: 'turn:127.0.0.1:3478', username: 'u', credential: 'p' },
+  );
+  assert.deepEqual(
+    readTurnConfig('?turn=turns:relay.example.com:5349&turnuser=u&turnpass=p', memStore())?.urls,
+    'turns:relay.example.com:5349',
+  );
+  assert.equal(readTurnConfig('?turn=turn:127.0.0.1:3478', memStore()), null, 'username+password required');
+  assert.equal(
+    readTurnConfig('?turn=https://evil.example/x&turnuser=u&turnpass=p', memStore()),
+    null,
+    'only turn:/turns: schemes accepted',
+  );
+  const store = memStore();
+  store.setItem('floodlight-turn-url', 'turn:10.0.0.9:3478');
+  store.setItem('floodlight-turn-user', 'stored');
+  store.setItem('floodlight-turn-pass', 's3cret');
+  assert.equal(readTurnConfig('', store)?.username, 'stored', 'storage fallback works');
+  assert.equal(
+    readTurnConfig('?turn=turn:127.0.0.1:3478&turnuser=param&turnpass=pw', store)?.username,
+    'param',
+    'explicit params win over storage',
+  );
+});
+
+test('TURN persist stores params per-browser, credentials stay out of logs', () => {
+  const store = memStore();
+  assert.equal(persistTurnConfig('', store), false, 'nothing to persist');
+  assert.equal(
+    persistTurnConfig('?turn=turn:127.0.0.1:3478&turnuser=u&turnpass=p', store),
+    true,
+  );
+  assert.equal(store.getItem('floodlight-turn-url'), 'turn:127.0.0.1:3478');
+  netlog.clear();
+  netlog.log('info', `turn=${readTurnConfig('', store) ? 'on' : 'off'}`);
+  const dump = netlog.dump();
+  assert.ok(dump.includes('turn=on'), 'relay presence is diagnosable');
+  assert.ok(!dump.includes('floodlight-turn-pass'), 'no credential keys in logs');
+  netlog.clear();
+});
+
+test('ICE servers always include STUN, TURN only when configured', () => {
+  const plain = buildIceServers('stun:stun.l.google.com:19302', null);
+  assert.ok(plain.some((s) => String(s.urls).includes('stun.l.google.com')), 'STUN present');
+  assert.ok(!plain.some((s) => String(s.urls).startsWith('turn')), 'no relay by default');
+  const relayed = buildIceServers('stun:stun.l.google.com:19302', {
+    urls: 'turn:127.0.0.1:3478', username: 'u', credential: 'p',
+  });
+  const turn = relayed.find((s) => String(s.urls).startsWith('turn'));
+  assert.ok(turn, 'relay appended when configured');
+  assert.equal((turn as { username: string }).username, 'u');
+});
+
 test('main exposes copyable redacted diagnostics, never secrets', () => {
   assert.ok(mainSrc.includes('COPY DEBUG LOG'), 'player-facing log action');
   assert.ok(mainSrc.includes('doCopyLog'), 'copy handler');
@@ -80,4 +146,7 @@ test('main exposes copyable redacted diagnostics, never secrets', () => {
   const hookEnd = mainSrc.indexOf('});', hookStart);
   const hookBlock = mainSrc.slice(hookStart, hookEnd);
   assert.ok(!hookBlock.includes('matchToken'), 'token never via test hook');
+  assert.ok(!hookBlock.includes('turnpass'), 'relay credentials never via test hook');
+  assert.ok(mainSrc.includes("turn=${readTurnConfig() ? 'on' : 'off'}"), 'relay presence logged per session');
+  assert.ok(mainSrc.includes('persistTurnConfig(location.search)'), 'relay params persist before invites clear the query');
 });

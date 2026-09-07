@@ -57,13 +57,105 @@ function iceServers(stun: string): RTCIceServer[] {
   return [{ urls }];
 }
 
+export interface TurnConfig {
+  urls: string;
+  username: string;
+  credential: string;
+}
+
+const TURN_KEYS = ['floodlight-turn-url', 'floodlight-turn-user', 'floodlight-turn-pass'] as const;
+
+/** Minimal store shape so Node tests can inject a fake (no DOM needed). */
+interface TurnStore {
+  getItem(k: string): string | null;
+  setItem(k: string, v: string): void;
+}
+
+function domTurnStore(): TurnStore | null {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    return {
+      getItem: (k) => localStorage.getItem(k),
+      setItem: (k, v) => localStorage.setItem(k, v),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Optional TURN relay for networks where direct pairs fail (same-NAT
+ * hairpin, mDNS unresolvable cross-browser, UDP-filtered Wi-Fi).
+ * Sources: `?turn=turn:host:3478&turnuser=u&turnpass=p` (one-off, also
+ * persisted per-browser) or localStorage `floodlight-turn-*` (sticky).
+ * Credentials are NEVER logged — only turn=on/off appears in diagnostics.
+ */
+export function readTurnConfig(
+  search = '',
+  store: TurnStore | null = domTurnStore(),
+): TurnConfig | null {
+  let urls = '';
+  let username = '';
+  let credential = '';
+  try {
+    const q = new URLSearchParams(search.startsWith('?') ? search : `?${search}`);
+    urls = (q.get('turn') ?? '').trim().slice(0, 256);
+    username = (q.get('turnuser') ?? '').trim().slice(0, 128);
+    credential = (q.get('turnpass') ?? '').trim().slice(0, 256);
+  } catch {
+    /* malformed query: fall through to storage */
+  }
+  if (!urls && store) {
+    try {
+      urls = (store.getItem(TURN_KEYS[0]) ?? '').trim().slice(0, 256);
+      username = (store.getItem(TURN_KEYS[1]) ?? '').trim().slice(0, 128);
+      credential = (store.getItem(TURN_KEYS[2]) ?? '').trim().slice(0, 256);
+    } catch {
+      /* private mode */
+    }
+  }
+  if (!/^(turn|turns):[^/\s]+:\d{1,5}$/i.test(urls)) return null;
+  if (!username || !credential) return null;
+  return { urls, username, credential };
+}
+
+/** Persist `?turn*` params per-browser so the invite flow keeps working. */
+export function persistTurnConfig(search = '', store: TurnStore | null = domTurnStore()): boolean {
+  const cfg = readTurnConfig(search, null);
+  if (!cfg || !store) return false;
+  try {
+    store.setItem(TURN_KEYS[0], cfg.urls);
+    store.setItem(TURN_KEYS[1], cfg.username);
+    store.setItem(TURN_KEYS[2], cfg.credential);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Full ICE server list: redundant STUN plus TURN relay when configured. */
+export function buildIceServers(stun: string, turn: TurnConfig | null): RTCIceServer[] {
+  const servers = iceServers(stun);
+  if (turn) servers.push({ urls: turn.urls, username: turn.username, credential: turn.credential });
+  return servers;
+}
+
 /** DataChannel-only needs max-bundle + MUX; ignored where unsupported. */
 function pcConfig(stun: string): RTCConfiguration {
   return {
-    iceServers: iceServers(stun),
+    iceServers: buildIceServers(stun, readTurnConfig(bootQuery())),
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
   };
+}
+
+/** Current page query for boot-time config (safe under Node tests). */
+function bootQuery(): string {
+  try {
+    return typeof location !== 'undefined' ? location.search : '';
+  } catch {
+    return '';
+  }
 }
 
 function waitIceComplete(pc: RTCPeerConnection, timeoutMs = 4000): Promise<void> {

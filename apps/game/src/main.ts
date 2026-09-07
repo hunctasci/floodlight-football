@@ -9,7 +9,7 @@ import { buildInputFrame } from './input/input';
 import { SimulationClock, TICK_DT } from './game/clock';
 import { setupTouchControls } from './ui/touch-controls';
 import { NetDriver } from './net/driver';
-import { RTCTransport, isIcePayload } from './net/transport';
+import { RTCTransport, isIcePayload, persistTurnConfig, readTurnConfig } from './net/transport';
 import { AutoSignal } from './net/autosignal';
 import { CloudflareSignalingClient } from './net/cloudflare-signal';
 import type { SignalingClient } from './net/signaling';
@@ -427,7 +427,7 @@ function startHost() {
   netlog.clear();
   for (const k of Object.keys(iceLogStats.sent)) delete iceLogStats.sent[k];
   for (const k of Object.keys(iceLogStats.recv)) delete iceLogStats.recv[k];
-  netlog.log('info', `host start room peer=${shortPeer(myPeerId)} ua=${browserTag()}`);
+  netlog.log('info', `host start room peer=${shortPeer(myPeerId)} ua=${browserTag()} turn=${readTurnConfig() ? 'on' : 'off'}`);
   mpState = 'creating-room';
   netStatus = 'CREATING ROOM…'; inviteUrl = ''; copyNote = ''; menuDirty = true;
   void (async () => {
@@ -537,7 +537,7 @@ function cloudJoin(code: string) {
   netlog.clear();
   for (const k of Object.keys(iceLogStats.sent)) delete iceLogStats.sent[k];
   for (const k of Object.keys(iceLogStats.recv)) delete iceLogStats.recv[k];
-  netlog.log('info', `guest join ${code} peer=${shortPeer(myPeerId)} ua=${browserTag()}`);
+  netlog.log('info', `guest join ${code} peer=${shortPeer(myPeerId)} ua=${browserTag()} turn=${readTurnConfig() ? 'on' : 'off'}`);
   mpState = 'joining-room';
   netStatus = 'JOINING MATCH…'; menuDirty = true;
   void (async () => {
@@ -859,6 +859,10 @@ if (import.meta.env.DEV || e2eMode) {
     },
   });
 }
+// Optional TURN relay (`?turn=turn:host:port&turnuser=u&turnpass=p`, also
+// sticky per-browser): persisted before invite handling clears the query.
+// Credentials never enter logs, URLs built by the game, or the room.
+try { persistTurnConfig(location.search); } catch { /* best-effort */ }
 // Invite links (?room=CODE): skip the menu, join the Cloudflare room directly.
 // The URL carries only the public code — the matchToken arrives over the
 // room socket. Legacy ?invite= links (SDP blobs) show an expiry notice.
