@@ -163,7 +163,7 @@ test('P0.3 no automatic switch while defending without input', () => {
   assert.equal(s.controlled, defender.id, 'manually positioned defender is not stolen');
 });
 
-test('P0.3 A is a firm long pass: one edge, one flat kick, same nomination rules', () => {
+test('P0.3 W (Triangle) is a firm through pass: one edge, one flat kick, same nomination rules', () => {
   const { g, s, p } = sandbox(700);
   const mate = s.players.find((q) => q.team === 0 && !q.keeper && q.id !== p.id)!;
   mate.x = 22; mate.z = -2; mate.vx = mate.vz = 0;
@@ -180,7 +180,7 @@ test('P0.3 A is a firm long pass: one edge, one flat kick, same nomination rules
   assert.equal(s.controlled, p.id, 'control stays until reception');
 });
 
-test('P0.3 W is a lofted cross into the box from wide areas', () => {
+test('P0.3 A (Square) is a lofted cross into the box from wide areas', () => {
   const { g, s, p } = sandbox(701);
   p.x = 27; p.z = 21; p.facingX = 1; p.facingZ = 0;
   Object.assign(s.ball, {

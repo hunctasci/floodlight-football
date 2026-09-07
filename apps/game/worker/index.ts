@@ -14,12 +14,18 @@
 
 import { RoomDurableObject } from './room';
 import { CLIENT_ID_RE, ROOM_CODE_RE, createRateLimiter, makeMatchToken, makeRoomCode } from './room-logic';
+import { resolveTurnServers } from './turn';
 
 export { RoomDurableObject };
 
 interface Env {
   ROOMS: DurableObjectNamespace;
   ASSETS?: Fetcher;
+  TURN_URLS?: string;
+  TURN_USERNAME?: string;
+  TURN_PASSWORD?: string;
+  TURN_SHARED_SECRET?: string;
+  TURN_TTL_SEC?: string;
 }
 
 const JSON_HEADERS = { 'content-type': 'application/json', 'cache-control': 'no-store' };
@@ -41,6 +47,17 @@ export default {
 
     if (request.method === 'GET' && (path === '/api/health' || path === '/healthz')) {
       return json({ status: 'ok', service: 'floodlight' });
+    }
+
+    // TURN relay credentials for networks where direct pairs fail (NAT
+    // hairpin, mDNS-unresolvable hosts, UDP-filtered Wi-Fi). Rate-limited
+    // like room creation; credentials are short-lived when minted via REST.
+    // Unconfigured deployments answer `{iceServers: []}` (STUN-only).
+    if (request.method === 'GET' && path === '/api/turn') {
+      const ip = getIp(request);
+      if (!limiter.allow(`turn:${ip}`, 30, 60)) return json({ error: 'rate limited, slow down' }, 429);
+      const { servers } = await resolveTurnServers(env);
+      return json({ iceServers: servers });
     }
 
     if (request.method === 'POST' && path === '/api/rooms') {

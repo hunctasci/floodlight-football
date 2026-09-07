@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createTouchState, touchDown, touchUp, setStick, releaseStick, clearTouchEdges, resetTouch, stickSprint, TOUCH_BUTTONS } from '../src/touch.ts';
+import { touchButtonLabels } from '../src/ui/touch-controls.ts';
 
 test('button press fires edge once while held', () => {
   const t = createTouchState();
@@ -53,4 +54,29 @@ test('analog sprint engages only at the stick rim', () => {
   setStick(t, 0, 1); assert.equal(stickSprint(t), true, 'rim push sprints');
   setStick(t, 3, 4); assert.equal(stickSprint(t), true, 'overdrag clamps to rim, still sprint');
   releaseStick(t); assert.equal(stickSprint(t), false, 'released stick never sprints');
+});
+
+test('FIFA cluster codes match the keyboard (KeyS/KeyA/KeyW/KeyK)', () => {
+  assert.equal(TOUCH_BUTTONS.pass, 'KeyS');
+  assert.equal(TOUCH_BUTTONS.cross, 'KeyA');
+  assert.equal(TOUCH_BUTTONS.thru, 'KeyW');
+  assert.equal(TOUCH_BUTTONS.shoot, 'KeyK');
+  assert.equal(TOUCH_BUTTONS.switch, 'KeyQ');
+});
+
+test('FIFA labels swap offense/defense with PlayStation shapes', () => {
+  const off = touchButtonLabels(true);
+  assert.equal(off.pass.main, 'PASS');
+  assert.equal(off.cross.main, 'CROSS');
+  assert.equal(off.thru.main, 'THRU');
+  assert.equal(off.shoot.main, 'SHOOT');
+  const def = touchButtonLabels(false);
+  assert.equal(def.pass.main, 'CONTAIN');
+  assert.equal(def.cross.main, 'SLIDE');
+  assert.equal(def.thru.main, 'RUSH');
+  assert.equal(def.shoot.main, 'TACKLE');
+  assert.equal(def.pass.sub, 'X');
+  assert.equal(def.cross.sub, '□');
+  assert.equal(def.thru.sub, '△');
+  assert.equal(def.shoot.sub, '○');
 });

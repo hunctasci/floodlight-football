@@ -39,18 +39,18 @@ test('arrows move; WASD are actions, never movement', () => {
   }
 });
 
-test('FIFA action cluster: Space switch, S pass, A long, D shoot, W cross', () => {
+test('FIFA action cluster: Space switch, S pass (X), A cross (Square), D shoot (Circle), W through (Triangle)', () => {
   const touch = createTouchState();
   assert.equal(buildInputFrame(kbWith('Space'), touch, false).frame.switchPlayer, true);
   assert.equal(buildInputFrame(kbWith('KeyQ'), touch, false).frame.switchPlayer, true);
   assert.equal(buildInputFrame(kbWith('KeyS'), touch, false).frame.pass, true);
   assert.equal(buildInputFrame(kbWith('KeyJ'), touch, false).frame.pass, true);
-  assert.equal(buildInputFrame(kbWith('KeyA'), touch, false).frame.through, true);
-  assert.equal(buildInputFrame(kbWith('KeyW'), touch, false).frame.cross, true);
+  assert.equal(buildInputFrame(kbWith('KeyW'), touch, false).frame.through, true);
+  assert.equal(buildInputFrame(kbWith('KeyA'), touch, false).frame.cross, true);
   assert.equal(buildInputFrame(kbWith('KeyK'), touch, false).frame.shootPressed, true);
   assert.equal(buildInputFrame(kbWith('KeyD'), touch, false).frame.shootPressed, true);
   assert.equal(buildInputFrame(kbWith('MouseL'), touch, false).frame.shootPressed, true);
-  // Sprint lives on E/Shift/stick only — W is the cross button now.
+  // Sprint lives on E/Shift/stick only — W is the through button now.
   assert.equal(buildInputFrame(kbWith('KeyW'), touch, false).frame.sprint, false);
   assert.equal(buildInputFrame(kbWith('KeyE'), touch, false).frame.sprint, true);
 });
@@ -101,6 +101,22 @@ test('touch buttons emit the same codes as keyboard', () => {
   r = buildInputFrame(kb, touch, r.shootWasDown);
   assert.equal(r.frame.shootReleased, true);
   assert.equal(r.frame.shootHeld, false);
+});
+
+test('touch FIFA cluster matches the keyboard codes (KeyS/KeyA/KeyW)', () => {
+  const kb = createKeyboardState();
+  let touch = createTouchState();
+  touchDown(touch, TOUCH_BUTTONS.pass);
+  assert.equal(buildInputFrame(kb, touch, false).frame.pass, true);
+  touch = createTouchState();
+  touchDown(touch, TOUCH_BUTTONS.cross);
+  assert.equal(buildInputFrame(kb, touch, false).frame.cross, true);
+  touch = createTouchState();
+  touchDown(touch, TOUCH_BUTTONS.thru);
+  assert.equal(buildInputFrame(kb, touch, false).frame.through, true);
+  assert.equal(TOUCH_BUTTONS.pass, 'KeyS');
+  assert.equal(TOUCH_BUTTONS.cross, 'KeyA');
+  assert.equal(TOUCH_BUTTONS.thru, 'KeyW');
 });
 
 test('touch stick merges with keyboard and normalizes', () => {

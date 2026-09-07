@@ -19,14 +19,15 @@ One controlled footballer per human. The same three ideas on both devices:
 | Move | Arrow keys | Left stick (rim = sprint) |
 | Sprint | E / Shift | Push the stick to the rim (latches until ~0.82) |
 | Switch defender | Space (Q works too) | SWITCH button |
-| Pass / standing tackle | S, tap or hold | PASS button, tap or hold |
-| Long pass | A — firm driven ball to a teammate | — (hold PASS to lead instead) |
-| Shoot / slide tackle | D, tap or hold — quick finish on your facing (or hold LMB, drag to aim, release) | Hold SHOOT, drag on it to aim, release |
-| Cross | W — lofted delivery into the box | — (lead into the box with held PASS) |
+| Pass (X) / contain | S, tap = feet, hold = into space | PASS / CONTAIN button (label follows possession) |
+| Lob pass / cross (Square) / slide tackle | A — lofted delivery into the box | CROSS / SLIDE button |
+| Shoot (Circle) / standing tackle | D, tap or hold — quick finish on your facing (or hold LMB, drag to aim, release) | SHOOT / TACKLE button (hold + drag to aim) |
+| Through pass (Triangle) / rush | W — firm driven ball to a teammate | THRU / RUSH button |
 | Camera / pause | C / Esc | HUD chip / scoreboard |
 
-On defence: S = standing challenge, D = slide, Space = switch.
-As keeper, S = short outlet, D = long clearance. There are no finesse or
+On defence (FIFA): S (X) = contain/pressure, D (Circle) = standing tackle,
+A (Square) = slide tackle, W (Triangle) = rush/pressure, Space = switch.
+As keeper, S = short outlet, W = through outlet, A/D = long clearance. There are no finesse or
 sprint-modified shot variants — see Shooting. There is no stamina meter:
 sprint already costs through longer touches and heavier turning.
 
@@ -141,8 +142,9 @@ No ball-chasing pile. Each side holds persistent roles with ~20% hysteresis
 ## Restarts
 
 ~450 ms setup, your early input is buffered, and a ~4 s timeout takes a safe
-short default so nobody stalls (online included). PASS = short, SHOOT = long
-(corners, goal kicks); throw-ins and kickoffs play short to a chosen outlet.
+short default so nobody stalls (online included). S (X) = short,
+D (Circle) / W (Triangle) / A (Square) = long (corners, goal kicks);
+throw-ins and kickoffs play short to a chosen outlet.
 
 ## Readability checklist (the playtest gate)
 

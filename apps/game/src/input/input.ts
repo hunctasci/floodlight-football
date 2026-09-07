@@ -5,13 +5,19 @@ import { stickSprint, type TouchState } from './touch';
 /**
  * Unified input layer: raw browser device state -> simulation InputFrame.
  *
- * Desktop: arrows move, action cluster acts —
- *   Space switch, S pass (tap = feet, hold = into space), A long pass,
- *   D shoot (tap/hold, quick low finish on the facing without mouse aim),
- *   W cross, E/Shift sprint, Q switch alias. Mouse hold/drag/release aims
- *   + fires with placement; KeyK aliases shoot, KeyJ aliases pass.
+ * Desktop: arrows move, action cluster acts (FIFA layout on the WASD diamond):
+ *   S (X / down) pass (tap = feet, hold = into space),
+ *   A (Square / left) lob pass / cross,
+ *   W (Triangle / up) through pass,
+ *   D (Circle / right) shoot (tap/hold, quick low finish on the facing
+ *   without mouse aim), Space switch, E/Shift sprint, Q switch alias.
+ *   Mouse hold/drag/release aims + fires with placement;
+ *   KeyK aliases shoot, KeyJ aliases pass.
+ * Defense (same buttons, FIFA): S (X) contain/pressure, D (Circle) standing
+ *   tackle, A (Square) slide tackle, W (Triangle) rush/pressure.
  *
- * Touch: left stick moves (rim = sprint), PASS / SHOOT / SWITCH buttons.
+ * Touch: left stick moves (rim = sprint), FIFA action buttons
+ *   PASS/CONTAIN · CROSS/SLIDE · THRU/RUSH · SHOOT/TACKLE + SWITCH.
  * Aim on touch comes from dragging on the SHOOT control (fed through the
  * same aimU/aimV fields by the DOM layer).
  *
@@ -73,9 +79,9 @@ export function buildInputFrame(
       touch.released.has('KeyS') ||
       touch.released.has('KeyJ') ||
       (!passDown && passWasDown),
-    // A = firm long pass, W = lofted cross: immediate edge actions.
-    through: hit('KeyA'),
-    cross: hit('KeyW'),
+    // W (Triangle) = through pass, A (Square) = lobbed cross: immediate edges.
+    through: hit('KeyW'),
+    cross: hit('KeyA'),
     shootPressed: hit('MouseL') || hit('KeyK') || hit('KeyD'),
     shootHeld: sh,
     shootReleased:

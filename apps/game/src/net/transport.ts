@@ -140,10 +140,72 @@ export function buildIceServers(stun: string, turn: TurnConfig | null): RTCIceSe
   return servers;
 }
 
+/** Manual `?turn*`/storage relay as an RTCIceServer (highest precedence). */
+export function turnConfigToServer(turn: TurnConfig): RTCIceServer {
+  return { urls: turn.urls, username: turn.username, credential: turn.credential };
+}
+
+function isUsableServer(s: unknown): s is RTCIceServer {
+  if (!s || typeof s !== 'object') return false;
+  const urls = (s as { urls?: unknown }).urls;
+  const list = Array.isArray(urls) ? urls : [urls];
+  if (list.length === 0 || list.length > 4) return false;
+  return list.every((u) => typeof u === 'string' && /^(turn|turns|stun):[^/\s]+:\d{1,5}$/i.test(u.trim()));
+}
+
+/**
+ * Fetch relay servers from the control plane (`GET /api/turn`). Fail-open:
+ * any error, timeout or malformed shape means STUN-only (`[]`), never a
+ * lobby failure — relay is an optimization, not a requirement to try P2P.
+ */
+export async function fetchEndpointTurnServers(
+  baseHttp: string,
+  fetchFn: (url: string, init?: RequestInit) => Promise<Response> = (url, init) => fetch(url, init),
+  timeoutMs = 3000,
+): Promise<RTCIceServer[]> {
+  const base = baseHttp.replace(/\/+$/, '');
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetchFn(base + '/api/turn', { signal: ctrl.signal });
+    if (!res.ok) return [];
+    const body = (await res.json().catch(() => null)) as { iceServers?: unknown } | null;
+    const list = body && Array.isArray(body.iceServers) ? body.iceServers : [];
+    return (list as unknown[]).filter(isUsableServer).slice(0, 4);
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/**
+ * Relay servers for one session: manual `?turn*`/storage override (highest
+ * precedence) plus control-plane `GET /api/turn`. Fail-open — `[]` means
+ * STUN-only and P2P is still attempted. Source is logged, never credentials.
+ */
+export async function resolveExtraServers(
+  baseHttp: string,
+  fetchFn: (url: string, init?: RequestInit) => Promise<Response> = (url, init) => fetch(url, init),
+  timeoutMs = 3000,
+): Promise<{ servers: RTCIceServer[]; source: string }> {
+  const manual = readTurnConfig();
+  let endpoint: RTCIceServer[] = [];
+  try {
+    endpoint = await fetchEndpointTurnServers(baseHttp, fetchFn, timeoutMs);
+  } catch {
+    endpoint = [];
+  }
+  const servers = [...(manual ? [turnConfigToServer(manual)] : []), ...endpoint];
+  const source =
+    manual && endpoint.length > 0 ? 'manual+endpoint' : manual ? 'manual' : endpoint.length > 0 ? 'endpoint' : 'off';
+  return { servers, source };
+}
+
 /** DataChannel-only needs max-bundle + MUX; ignored where unsupported. */
-function pcConfig(stun: string): RTCConfiguration {
+function pcConfig(stun: string, extra: RTCIceServer[] = []): RTCConfiguration {
   return {
-    iceServers: buildIceServers(stun, readTurnConfig(bootQuery())),
+    iceServers: [...buildIceServers(stun, readTurnConfig(bootQuery())), ...extra.filter(isUsableServer).slice(0, 4)],
     bundlePolicy: 'max-bundle',
     rtcpMuxPolicy: 'require',
   };
@@ -198,6 +260,53 @@ export function isSdpPayload(p: SignalPayload): p is SdpInit {
 function iceFamilyOf(candidate: string): string {
   const m = /\styp\s+(host|srflx|prflx|relay)\b/i.exec(candidate);
   return m ? m[1].toLowerCase() : 'unknown';
+}
+
+type StatsLike = { type: string; [k: string]: unknown };
+/** Structural (not nominal): real RTCPeerConnection and test fakes qualify. */
+type StatsSource = { getStats(): Promise<Iterable<unknown>> };
+
+/**
+ * One-line nominated-pair summary from getStats (types/protocols/counters
+ * only — never addresses). Distinguishes the three failure modes that look
+ * identical in state logs: no pair formed, pair nominated but consent lost,
+ * pair connected with no bytes flowing.
+ */
+export async function summarizeStats(pc: StatsSource): Promise<string> {
+  let report: StatsLike[];
+  try {
+    report = [...(await pc.getStats())].filter(
+      (s): s is StatsLike => !!s && typeof s === 'object' && typeof (s as StatsLike).type === 'string',
+    );
+  } catch {
+    return 'stats unavailable';
+  }
+  const pairs = report.filter((s) => s.type === 'candidate-pair');
+  if (pairs.length === 0) return 'pairs=0 (no checks started)';
+  const byId = new Map<string, StatsLike>(report.map((s) => [String(s.id ?? ''), s]));
+  const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  const pick =
+    pairs.find((p) => p.selected === true) ??
+    pairs.find((p) => p.nominated === true) ??
+    pairs.find((p) => p.state === 'succeeded') ??
+    pairs.find((p) => p.state === 'in-progress') ??
+    pairs[0];
+  const fam = (id: unknown, key: 'local-candidate' | 'remote-candidate'): string => {
+    const c = byId.get(String(id ?? ''));
+    const t = c && typeof c.candidateType === 'string' ? c.candidateType : 'unknown';
+    void key;
+    return t;
+  };
+  const local = fam(pick.localCandidateId, 'local-candidate');
+  const remote = fam(pick.remoteCandidateId, 'remote-candidate');
+  const proto = typeof pick.protocol === 'string' ? pick.protocol : '?';
+  const state = typeof pick.state === 'string' ? pick.state : '?';
+  const rttSec = num(pick.currentRoundTripTime);
+  const sent = num(pick.bytesSent) ?? 0;
+  const recv = num(pick.bytesReceived) ?? 0;
+  const nominated = pairs.filter((p) => p.nominated === true).length;
+  return `pair=${local}-${remote}/${proto} state=${state} nominated=${nominated}`
+    + ` rtt=${rttSec === null ? '?' : Math.round(rttSec * 1000) + 'ms'} sent=${sent}B recv=${recv}B`;
 }
 
 /** Structural check for inbound signaling payloads (never throws). */
@@ -388,8 +497,8 @@ export class RTCTransport implements DataTransport {
   }
 
   /** Host side (trickle): offer returns immediately; candidates flow via onCandidate. */
-  static async createOfferTrickle(stun = STUN): Promise<{ transport: RTCTransport; offer: SdpInit }> {
-    const pc = new RTCPeerConnection(pcConfig(stun));
+  static async createOfferTrickle(stun = STUN, extra: RTCIceServer[] = []): Promise<{ transport: RTCTransport; offer: SdpInit }> {
+    const pc = new RTCPeerConnection(pcConfig(stun, extra));
     const t = new RTCTransport(pc);
     const dc = pc.createDataChannel('game', { ordered: true });
     t.wire(dc);
@@ -401,8 +510,8 @@ export class RTCTransport implements DataTransport {
   }
 
   /** Joiner side (trickle): answer returns immediately; candidates flow via onCandidate. */
-  static async acceptOfferTrickle(offer: SdpInit, stun = STUN): Promise<{ transport: RTCTransport; answer: SdpInit }> {
-    const pc = new RTCPeerConnection(pcConfig(stun));
+  static async acceptOfferTrickle(offer: SdpInit, stun = STUN, extra: RTCIceServer[] = []): Promise<{ transport: RTCTransport; answer: SdpInit }> {
+    const pc = new RTCPeerConnection(pcConfig(stun, extra));
     const t = new RTCTransport(pc);
     pc.ondatachannel = (e) => t.wire(e.channel);
     t.watchConnection();

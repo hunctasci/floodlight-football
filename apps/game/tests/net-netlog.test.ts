@@ -6,7 +6,10 @@ import { dirname, join } from 'node:path';
 import {
   candidateFamily, netlog, redactCandidate, shortPeer,
 } from '../src/net/netlog.ts';
-import { buildIceServers, persistTurnConfig, readTurnConfig } from '../src/net/transport.ts';
+import {
+  buildIceServers, fetchEndpointTurnServers, persistTurnConfig, readTurnConfig,
+  resolveExtraServers, summarizeStats,
+} from '../src/net/transport.ts';
 
 const memStore = () => {
   const m = new Map<string, string>();
@@ -138,6 +141,69 @@ test('ICE servers always include STUN, TURN only when configured', () => {
   assert.equal((turn as { username: string }).username, 'u');
 });
 
+test('endpoint TURN fetch is fail-open and validates shapes', async () => {
+  const ok = (async () => ({
+    ok: true,
+    json: async () => ({ iceServers: [{ urls: 'turn:10.0.0.1:3478', username: 'u', credential: 'p' }] }),
+  })) as unknown as (url: string, init?: RequestInit) => Promise<Response>;
+  assert.equal((await fetchEndpointTurnServers('https://g.example', ok)).length, 1);
+
+  const evil = (async () => ({
+    ok: true,
+    json: async () => ({ iceServers: [{ urls: 'https://evil.example/x', username: 'u', credential: 'p' }] }),
+  })) as unknown as (url: string, init?: RequestInit) => Promise<Response>;
+  assert.deepEqual(await fetchEndpointTurnServers('https://g.example', evil), [], 'non-turn URLs dropped');
+
+  const down = (async () => ({ ok: false, status: 500, json: async () => ({}) })) as unknown as (
+    url: string,
+    init?: RequestInit,
+  ) => Promise<Response>;
+  assert.deepEqual(await fetchEndpointTurnServers('https://g.example', down), [], 'HTTP errors → STUN-only');
+
+  const dead = (async () => { throw new Error('down'); }) as (
+    url: string,
+    init?: RequestInit,
+  ) => Promise<Response>;
+  assert.deepEqual(await fetchEndpointTurnServers('https://g.example', dead, 10), [], 'network errors → STUN-only');
+});
+
+test('session relay resolution merges endpoint servers, fail-open', async () => {
+  const withRelay = (async () => ({
+    ok: true,
+    json: async () => ({ iceServers: [{ urls: 'turn:10.0.0.9:3478', username: 'u', credential: 'p' }] }),
+  })) as unknown as (url: string, init?: RequestInit) => Promise<Response>;
+  const got = await resolveExtraServers('https://g.example', withRelay);
+  assert.equal(got.source, 'endpoint');
+  assert.equal(got.servers.length, 1);
+
+  const bare = (async () => ({ ok: true, json: async () => ({ iceServers: [] }) })) as unknown as (
+    url: string,
+    init?: RequestInit,
+  ) => Promise<Response>;
+  const off = await resolveExtraServers('https://g.example', bare);
+  assert.deepEqual(off, { servers: [], source: 'off' });
+});
+
+test('stats summaries name the pair without addresses', async () => {
+  const empty = await summarizeStats({ getStats: async () => [] });
+  assert.equal(empty, 'pairs=0 (no checks started)');
+
+  const report = [
+    { type: 'local-candidate', id: 'l1', candidateType: 'host' },
+    { type: 'remote-candidate', id: 'r1', candidateType: 'srflx' },
+    {
+      type: 'candidate-pair', id: 'p1', localCandidateId: 'l1', remoteCandidateId: 'r1',
+      protocol: 'udp', state: 'in-progress', nominated: true,
+      currentRoundTripTime: 0.012, bytesSent: 10, bytesReceived: 0,
+    },
+  ];
+  const sum = await summarizeStats({ getStats: async () => report });
+  assert.ok(sum.includes('pair=host-srflx/udp'), `names families: ${sum}`);
+  assert.ok(sum.includes('state=in-progress'), 'pair state present');
+  assert.ok(sum.includes('12ms'), 'RTT rendered');
+  assert.ok(!sum.includes('192.168'), 'no addresses leak');
+});
+
 test('main exposes copyable redacted diagnostics, never secrets', () => {
   assert.ok(mainSrc.includes('COPY DEBUG LOG'), 'player-facing log action');
   assert.ok(mainSrc.includes('doCopyLog'), 'copy handler');
@@ -147,6 +213,9 @@ test('main exposes copyable redacted diagnostics, never secrets', () => {
   const hookBlock = mainSrc.slice(hookStart, hookEnd);
   assert.ok(!hookBlock.includes('matchToken'), 'token never via test hook');
   assert.ok(!hookBlock.includes('turnpass'), 'relay credentials never via test hook');
-  assert.ok(mainSrc.includes("turn=${readTurnConfig() ? 'on' : 'off'}"), 'relay presence logged per session');
+  assert.ok(mainSrc.includes('relay source='), 'relay source logged per session');
   assert.ok(mainSrc.includes('persistTurnConfig(location.search)'), 'relay params persist before invites clear the query');
+  assert.ok(mainSrc.includes('resolveExtraServers(location.origin)'), 'relay resolved alongside signaling');
+  assert.ok(mainSrc.includes('summarizeStats('), 'nominated-pair snapshots wired');
+  assert.ok(mainSrc.includes('startStatsWatch('), 'periodic stats watch during negotiation');
 });

@@ -9,7 +9,9 @@ import { buildInputFrame } from './input/input';
 import { SimulationClock, TICK_DT } from './game/clock';
 import { setupTouchControls } from './ui/touch-controls';
 import { NetDriver } from './net/driver';
-import { RTCTransport, isIcePayload, persistTurnConfig, readTurnConfig } from './net/transport';
+import {
+  RTCTransport, isIcePayload, persistTurnConfig, resolveExtraServers, summarizeStats,
+} from './net/transport';
 import { AutoSignal } from './net/autosignal';
 import { CloudflareSignalingClient } from './net/cloudflare-signal';
 import type { SignalingClient } from './net/signaling';
@@ -198,6 +200,7 @@ function closeNegTransport() {
   resetNegotiationState(neg);
 }
 function closeNet() {
+  stopStatsWatch();
   if (net) { try { net.quit(); } catch { /* link already dead */ } net = null; }
   closeNegTransport();
   if (sig) { try { sig.close(); } catch { /* already gone */ } sig = null; }
@@ -229,7 +232,7 @@ function input():InputFrame {
 }
 function clock(s:MatchState){const football=Math.min(45,Math.floor(s.elapsed/s.halfDuration*45));return `${s.half===2?45+football:football}'`}
 function drawRadar(s:MatchState,vt:TeamId,ctl:number){const c=radar.getContext('2d')!;c.clearRect(0,0,308,184);c.fillStyle='#1b6b43';c.fillRect(0,0,308,184);c.strokeStyle='#f8efdb';c.lineWidth=2;c.strokeRect(3,3,302,178);c.beginPath();c.moveTo(154,3);c.lineTo(154,181);c.stroke();for(const p of s.players){c.fillStyle=p.team===vt?'#f7bf30':'#ef4054';c.beginPath();c.arc((p.x/46+1)*154,(p.z/29+1)*92, p.id===ctl?6:4,0,7);c.fill()}c.fillStyle='#fff';c.beginPath();c.arc((s.ball.x/46+1)*154,(s.ball.z/29+1)*92,4,0,7);c.fill();}
-function hud(s:MatchState){const vt=net?viewTeam:s.humanTeam,ctl=net?engine.controlOf(vt):s.controlled;const me=s.players[ctl];const my=s.teams[vt],away=s.teams[1-vt];const how=s.phase==='corner'?'AIM · D LONG · S SHORT':s.phase==='throwin'?'AIM · S THROW':s.phase==='goalkick'?'S SHORT · D LONG': 'AIM · S KICK OFF';const restart=s.restart?`${s.teams[s.restart.team].name.toUpperCase()} ${s.phase==='throwin'?'THROW-IN':s.phase==='corner'?'CORNER':s.phase==='goalkick'?'GOAL KICK':'KICKOFF'}${s.restart.team===vt?`<small>${how}</small>`:'<small>OPPONENT TAKING RESTART</small>'}`:'';const toast=performance.now()-camNoteAt<1600?`<div class="camtoast">📷 ${camNote}</div>`:'';const holder=s.ball.owner===null?null:s.players[s.ball.owner];const keeperHint=holder&&holder.keeper&&holder.team===vt?`<div class="keeper-hint">🧤 KEEPER<small>S SHORT · D LONG</small></div>`:holder&&holder.keeper?`<div class="keeper-hint">🧤 OPPONENT KEEPER HAS IT<small>SHAPE UP — PRESSURE AFTER RELEASE</small></div>`:'';const aimU=mouseAim.down?mouseAim.aimU:(touch.aimU||0),aimV=mouseAim.down?mouseAim.aimV:(touch.aimV||0);const reticle=s.charge>0?`<div class="reticle"><div class="rgoal"><div class="rposts"></div><i class="raim" style="left:${(50+aimU*46).toFixed(1)}%;bottom:${(8+aimV*80).toFixed(1)}%"></i></div><small>AIM ${aimU===0&&aimV===0?'LOW FINISH':'PLACED'} · POWER ${Math.min(100,s.charge/.45*100).toFixed(0)}%</small></div>`:'';ui.innerHTML=`<div class="scoreboard"><div class="club">${my.short}</div><div class="score">${s.score[vt]} – ${s.score[1-vt]}</div><div class="club">${away.short}</div><div class="clock">${s.half===1?'1ST':'2ND'} ${clock(s)}</div></div><div class="attack">YOU: ${my.name.toUpperCase()}<br>ATTACK ${s.attack[vt]>0?'→':'←'}</div><div class="camchip">📷 ${renderer.cameraLabel()}</div><div class="player-info">▲ ${me?.name||'PLAYER'}</div>${s.charge>0?`<div class="charge"><i style="width:${Math.min(100,s.charge/.45*100)}%"></i></div>`:''}${reticle}<div class="strip">${isTouchDevice ? 'STICK MOVE · RIM SPRINT · PASS TAP/HOLD=LEAD<br>SHOOT HOLD+DRAG=AIM · SWITCH' : 'ARROWS MOVE · S PASS · A LONG · D SHOOT · W CROSS · SPACE SWITCH<br>E/SHIFT SPRINT · C CAMERA · ESC PAUSE · M ' + (muted ? 'UNMUTE' : 'MUTE')}</div>${toast}${keeperHint}${!restart&&s.messageTime>0?`<div class="message">${s.message}<small>${s.phase==='goal'?'KICKOFF IN A MOMENT':''}</small></div>`:''}${restart?`<div class="message">${restart}</div>`:''}`;ui.append(barTop,barBottom,radar);drawRadar(s,vt,ctl);}
+function hud(s:MatchState){const vt=net?viewTeam:s.humanTeam,ctl=net?engine.controlOf(vt):s.controlled;const me=s.players[ctl];const my=s.teams[vt],away=s.teams[1-vt];const how=s.phase==='corner'?'AIM · A/D/W LONG · S SHORT':s.phase==='throwin'?'AIM · S THROW':s.phase==='goalkick'?'S SHORT · A/D/W LONG': 'AIM · S KICK OFF';const restart=s.restart?`${s.teams[s.restart.team].name.toUpperCase()} ${s.phase==='throwin'?'THROW-IN':s.phase==='corner'?'CORNER':s.phase==='goalkick'?'GOAL KICK':'KICKOFF'}${s.restart.team===vt?`<small>${how}</small>`:'<small>OPPONENT TAKING RESTART</small>'}`:'';const toast=performance.now()-camNoteAt<1600?`<div class="camtoast">📷 ${camNote}</div>`:'';const holder=s.ball.owner===null?null:s.players[s.ball.owner];const keeperHint=holder&&holder.keeper&&holder.team===vt?`<div class="keeper-hint">🧤 KEEPER<small>S SHORT · A/D/W LONG</small></div>`:holder&&holder.keeper?`<div class="keeper-hint">🧤 OPPONENT KEEPER HAS IT<small>SHAPE UP — PRESSURE AFTER RELEASE</small></div>`:'';touchControls.updateOffense(holder !== null && holder.team === vt);const aimU=mouseAim.down?mouseAim.aimU:(touch.aimU||0),aimV=mouseAim.down?mouseAim.aimV:(touch.aimV||0);const reticle=s.charge>0?`<div class="reticle"><div class="rgoal"><div class="rposts"></div><i class="raim" style="left:${(50+aimU*46).toFixed(1)}%;bottom:${(8+aimV*80).toFixed(1)}%"></i></div><small>AIM ${aimU===0&&aimV===0?'LOW FINISH':'PLACED'} · POWER ${Math.min(100,s.charge/.45*100).toFixed(0)}%</small></div>`:'';ui.innerHTML=`<div class="scoreboard"><div class="club">${my.short}</div><div class="score">${s.score[vt]} – ${s.score[1-vt]}</div><div class="club">${away.short}</div><div class="clock">${s.half===1?'1ST':'2ND'} ${clock(s)}</div></div><div class="attack">YOU: ${my.name.toUpperCase()}<br>ATTACK ${s.attack[vt]>0?'→':'←'}</div><div class="camchip">📷 ${renderer.cameraLabel()}</div><div class="player-info">▲ ${me?.name||'PLAYER'}</div>${s.charge>0?`<div class="charge"><i style="width:${Math.min(100,s.charge/.45*100)}%"></i></div>`:''}${reticle}<div class="strip">${isTouchDevice ? 'STICK MOVE · RIM SPRINT<br>PASS/CONTAIN · CROSS/SLIDE · THRU/RUSH · SHOOT/TACKLE · SWITCH' : 'ARROWS MOVE · S PASS · A CROSS · D SHOOT · W THROUGH · SPACE SWITCH<br>E/SHIFT SPRINT · C CAMERA · ESC PAUSE · M ' + (muted ? 'UNMUTE' : 'MUTE')}</div>${toast}${keeperHint}${!restart&&s.messageTime>0?`<div class="message">${s.message}<small>${s.phase==='goal'?'KICKOFF IN A MOMENT':''}</small></div>`:''}${restart?`<div class="message">${restart}</div>`:''}`;ui.append(barTop,barBottom,radar);drawRadar(s,vt,ctl);}
 function panel(content:string){ui.innerHTML=`<div class="screen"><div class="panel">${content}</div></div>`;wireMenuItems();}
 /** Touch/mouse: tapping a menu item selects it (keyboard flow unchanged). */
 function wireMenuItems() {
@@ -266,9 +269,9 @@ function waitSteps(): string {
     + `<div class="waitsteps" data-testid="wait-steps">${steps}</div>`;
 }
 function menu(){ if(!menuDirty)return; menuDirty=false;
-  if(screen==='title') { const items=LEAGUES_LIVE?['PLAY MATCH','ONLINE MATCH','DAILY CUP','LEAGUE']:['PLAY MATCH','ONLINE MATCH','DAILY CUP','LEAGUE · COMING SOON']; panel(`<div class="eyebrow">ARCADE FOOTBALL · 1998</div><div class="title">FLOODLIGHT<br>FOOTBALL</div><div class="subtitle">SATURDAY CUP</div>${titleNote?`<div class="message">${titleNote}</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">${isTouchDevice ? 'TOUCH READY · TAP OK' : 'KEYBOARD ONLY · PRESS ENTER'}<br>ARROWS MOVE · S PASS · A LONG · D SHOOT · W CROSS · SPACE SWITCH${isTouchDevice ? '<br>OR LEFT STICK + BUTTONS' : ''}</div>`); wireMenuItems(); return; }
+  if(screen==='title') { const items=LEAGUES_LIVE?['PLAY MATCH','ONLINE MATCH','DAILY CUP','LEAGUE']:['PLAY MATCH','ONLINE MATCH','DAILY CUP','LEAGUE · COMING SOON']; panel(`<div class="eyebrow">ARCADE FOOTBALL · 1998</div><div class="title">FLOODLIGHT<br>FOOTBALL</div><div class="subtitle">SATURDAY CUP</div>${titleNote?`<div class="message">${titleNote}</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">${isTouchDevice ? 'TOUCH READY · TAP OK' : 'KEYBOARD ONLY · PRESS ENTER'}<br>ARROWS MOVE · S PASS · A CROSS · D SHOOT · W THROUGH · SPACE SWITCH${isTouchDevice ? '<br>OR LEFT STICK + BUTTONS' : ''}</div>`); wireMenuItems(); return; }
   if(screen==='team') { const t=TEAMS[teamIndex],o=TEAMS[(teamIndex+1)%TEAMS.length]; panel(`<div class="eyebrow">CHOOSE YOUR CLUB</div><div class="title" style="font-size:34px">SATURDAY CUP</div><div class="team-row"><div class="team-card active"><div class="team-swatch" style="background:${t.color}"></div>${t.name}<br><small>${t.city}</small></div><div class="team-card"><div class="team-swatch" style="background:${o.color}"></div>${o.name}<br><small>OPPONENT</small></div></div><div class="menu-item selected">${duration/60} MINUTE HALVES</div><div class="hint">← / → CHANGE TEAM · ↑ / ↓ CHANGE LENGTH<br>ENTER KICK OFF · ESC BACK</div>`); return; }
-  if(screen==='pause') { const items=['RESUME','RESTART MATCH','MAIN MENU']; panel(`<div class="eyebrow">MATCH PAUSED</div><div class="title" style="font-size:38px">PAUSE</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">ARROWS MOVE · S PASS/TACKLE · A LONG · D/MOUSE SHOOT/SLIDE · W CROSS<br>SPACE SWITCH · E/SHIFT SPRINT · C CAMERA (${renderer.cameraLabel()}) · ↑ / ↓ SELECT · ENTER CONFIRM · ESC RESUME</div>`); return; }
+  if(screen==='pause') { const items=['RESUME','RESTART MATCH','MAIN MENU']; panel(`<div class="eyebrow">MATCH PAUSED</div><div class="title" style="font-size:38px">PAUSE</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">ARROWS MOVE · S PASS/CONTAIN · D/MOUSE SHOOT/TACKLE · A CROSS/SLIDE · W THROUGH<br>SPACE SWITCH · E/SHIFT SPRINT · C CAMERA (${renderer.cameraLabel()}) · ↑ / ↓ SELECT · ENTER CONFIRM · ESC RESUME</div>`); return; }
   if(screen==='online') { const items=['PLAY WITH A FRIEND','JOIN WITH CODE','BACK']; panel(`<div class="eyebrow">PLAY ONLINE · FRIEND MATCH</div><div class="title" style="font-size:38px" data-testid="online-title">ONLINE</div><div class="subtitle">${TEAMS[teamIndex].short} · ${duration/60} MIN HALVES</div>${netStatus?`<div class="subtitle" data-testid="online-status">${netStatus}</div><div class="menu-item netbtn" data-act="copylog" data-testid="copy-debug-log">▶ COPY DEBUG LOG</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-testid="online-${x.toLowerCase().replace(/[^a-z]+/g, '-')}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
   if(screen==='host') { const share = canShare(); panel(`<div class="eyebrow">SHARE THE LINK · YOU ARE TEAM 1</div><div class="title" style="font-size:52px" data-testid="room-code">${roomCode || '···'}</div><div class="subtitle" data-testid="host-status">${netStatus || '…'}</div>${waitSteps()}${inviteUrl?`<textarea class="netpaste netcode" id="invitelink" data-testid="invite-url" rows="2" readonly>${inviteUrl}</textarea>${copyNote?`<div class="hint">${copyNote}</div>`:''}<div class="menu-item netbtn" data-act="copy">▶ COPY LINK</div>${share?`<div class="menu-item netbtn" data-act="share">▶ SHARE</div>`:''}`:''}<div class="menu-item netbtn" data-act="copylog" data-testid="copy-debug-log">▶ COPY DEBUG LOG</div><div class="menu-item netbtn" data-act="cancel" data-testid="host-cancel">▶ CANCEL</div>`); return; }
   if(screen==='join') { panel(`<div class="eyebrow">ENTER THE FRIEND CODE</div><div class="title" style="font-size:38px">JOIN</div><div class="subtitle" data-testid="join-status">${netStatus || 'TYPE THE 6-LETTER CODE'}</div>${roomCode ? '' : `<textarea class="netpaste netcode" id="netcode" data-testid="join-code-input" rows="1" maxlength="6" placeholder="ABCDEF" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"></textarea><div class="menu-item netbtn" data-act="join" data-testid="join-submit">▶ JOIN</div>`}<div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
@@ -330,18 +333,41 @@ function wrapDcState(t: RTCTransport, role: string) {
   const prev = t.onstate;
   t.onstate = (s) => {
     netlog.log('dc', `${role} datachannel=${s}`);
+    if (s === 'closed') {
+      // Best-effort final pair diagnosis (consent lost vs no pair at all).
+      void summarizeStats(t.peerConnection)
+        .then((sum) => netlog.log('stats', `${role} final ${sum}`))
+        .catch(() => {});
+    }
     try { prev?.(s); } catch { /* driver handler */ }
   };
+}
+/** Shared fetch with a stable identity (bare `fetch` loses `this` in Chrome). */
+const boundFetch: (url: string, init?: RequestInit) => Promise<Response> = (url, init) => fetch(url, init);
+let statsTimer: ReturnType<typeof setInterval> | undefined;
+function stopStatsWatch() {
+  if (statsTimer !== undefined) { clearInterval(statsTimer); statsTimer = undefined; }
+}
+/** Nominated-pair snapshots while the lobby handshake is pending. */
+function startStatsWatch(t: RTCTransport, role: string, token: number) {
+  stopStatsWatch();
+  statsTimer = setInterval(() => {
+    if (token !== netGen || net?.session) { stopStatsWatch(); return; }
+    void summarizeStats(t.peerConnection)
+      .then((sum) => { if (token === netGen) netlog.log('stats', `${role} ${sum}`); })
+      .catch(() => {});
+  }, 2500);
 }
 function attachDriver(d: NetDriver) {
   d.onEvent = (e) => {
     if (e.type === 'connected') {
       netlog.log('driver', 'handshake connected → READY lobby');
+      stopStatsWatch();
       screen = 'netready'; menuIndex = 0; peerReady = false; iAmReady = false; menuDirty = true;
       mpState = 'connected';
     }
     else if (e.type === 'peerReady') { netlog.log('driver', 'peer ready'); peerReady = true; menuDirty = true; if (mpState === 'connected') mpState = 'ready'; }
-    else if (e.type === 'started') { netlog.log('driver', 'both ready → kickoff'); mpState = 'playing'; launchNet(d); }
+    else if (e.type === 'started') { netlog.log('driver', 'both ready → kickoff'); stopStatsWatch(); mpState = 'playing'; launchNet(d); }
     else if (e.type === 'peerPaused') {
       if (e.paused) openPause();
       else if (screen === 'pause' && !engine.state.paused) screen = 'match';
@@ -448,13 +474,20 @@ function startHost() {
   netlog.clear();
   for (const k of Object.keys(iceLogStats.sent)) delete iceLogStats.sent[k];
   for (const k of Object.keys(iceLogStats.recv)) delete iceLogStats.recv[k];
-  netlog.log('info', `host start room peer=${shortPeer(myPeerId)} ua=${browserTag()} turn=${readTurnConfig() ? 'on' : 'off'}`);
+  netlog.log('info', `host start room peer=${shortPeer(myPeerId)} ua=${browserTag()}`);
   mpState = 'creating-room';
   netStatus = 'CREATING ROOM…'; inviteUrl = ''; copyNote = ''; menuDirty = true;
   void (async () => {
     let signal: SignalingClient;
+    let extraServers: RTCIceServer[] = [];
     try {
-      signal = await connectSignal();
+      const [sigConnected, relay] = await Promise.all([
+        connectSignal(),
+        resolveExtraServers(location.origin),
+      ]);
+      signal = sigConnected;
+      extraServers = relay.servers;
+      netlog.log('signal', `relay source=${relay.source}`);
     } catch (e) { if (alive()) { mpState = 'error'; deadNet(netMsg(e)); } return; }
     if (!alive()) return fini(signal);
     sig = signal;
@@ -466,12 +499,13 @@ function startHost() {
       netStatus = 'FRIEND FOUND… CONNECTING…'; menuDirty = true;
       void (async () => {
         try {
-          const { transport, offer } = await RTCTransport.createOfferTrickle();
+          const { transport, offer } = await RTCTransport.createOfferTrickle(undefined, extraServers);
           if (!alive()) { transport.close(); return; }
           // Attach BEFORE sending the offer so early trickle candidates have
           // a target; flush anything queued while the offer was being built.
           const queued = attachNegotiationTransport(neg, transport);
           watchTransport(transport, 'host');
+          startStatsWatch(transport, 'host', token);
           for (const c of queued) void transport.addIceCandidate(c).catch(() => {});
           relayIce(transport, signal, () => (token === netGen ? peerId : null));
           signal.sendSignal(peer, offer);
@@ -558,13 +592,20 @@ function cloudJoin(code: string) {
   netlog.clear();
   for (const k of Object.keys(iceLogStats.sent)) delete iceLogStats.sent[k];
   for (const k of Object.keys(iceLogStats.recv)) delete iceLogStats.recv[k];
-  netlog.log('info', `guest join ${code} peer=${shortPeer(myPeerId)} ua=${browserTag()} turn=${readTurnConfig() ? 'on' : 'off'}`);
+  netlog.log('info', `guest join ${code} peer=${shortPeer(myPeerId)} ua=${browserTag()}`);
   mpState = 'joining-room';
   netStatus = 'JOINING MATCH…'; menuDirty = true;
   void (async () => {
     let signal: SignalingClient;
+    let extraServers: RTCIceServer[] = [];
     try {
-      signal = await connectSignal();
+      const [sigConnected, relay] = await Promise.all([
+        connectSignal(),
+        resolveExtraServers(location.origin),
+      ]);
+      signal = sigConnected;
+      extraServers = relay.servers;
+      netlog.log('signal', `relay source=${relay.source}`);
     } catch (e) {
       if (alive()) {
         netGen++; closeNet(); mpState = 'error';
@@ -595,12 +636,13 @@ function cloudJoin(code: string) {
       netlog.log('signal', `offer recv from=${shortPeer(from)}`);
       mpState = 'negotiating';
       netStatus = 'FRIEND FOUND… CONNECTING…'; menuDirty = true;
-      void RTCTransport.acceptOfferTrickle(payload).then(({ transport, answer }) => {
+      void RTCTransport.acceptOfferTrickle(payload, undefined, extraServers).then(({ transport, answer }) => {
         if (!alive()) { transport.close(); return; }
         // Attach BEFORE sending the answer; flush pre-offer candidates in
         // order, keep the reference for post-offer candidates.
         const queued = attachNegotiationTransport(neg, transport);
         watchTransport(transport, 'guest');
+        startStatsWatch(transport, 'guest', token);
         relayIce(transport, signal, () => (token === netGen ? peerId : null));
         for (const c of queued) void transport.addIceCandidate(c).catch(() => {});
         try { signal.sendSignal(from, answer); }

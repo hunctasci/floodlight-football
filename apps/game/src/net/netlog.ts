@@ -24,7 +24,7 @@
  *   methodology). Full candidate lines never enter this log.
  */
 
-export type NetLogKind = 'signal' | 'sdp' | 'ice' | 'pc' | 'dc' | 'driver' | 'error' | 'info';
+export type NetLogKind = 'signal' | 'sdp' | 'ice' | 'pc' | 'dc' | 'driver' | 'error' | 'info' | 'stats';
 
 export interface NetLogEntry {
   at: number;

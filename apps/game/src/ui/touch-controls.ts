@@ -9,6 +9,8 @@ export interface TouchControls {
   menuPad: HTMLElement | null;
   matchPad: HTMLElement | null;
   updateVisibility(screen: string): void;
+  /** Swap the action-button labels between offense and defense (FIFA). */
+  updateOffense(offense: boolean): void;
 }
 
 function bindHold(touch: TouchState, onEnable: () => void, el: Element, code: string) {
@@ -26,6 +28,35 @@ function bindHold(touch: TouchState, onEnable: () => void, el: Element, code: st
   el.addEventListener('touchcancel', end);
 }
 
+/**
+ * FIFA button labels per phase, DOM-free so headless tests can pin them.
+ * PlayStation shape in `sub`, action word in `main`. Codes match the
+ * keyboard cluster: KeyS = X, KeyA = Square, KeyW = Triangle, KeyK = Circle.
+ */
+export function touchButtonLabels(offense: boolean): {
+  pass: { main: string; sub: string };
+  cross: { main: string; sub: string };
+  thru: { main: string; sub: string };
+  shoot: { main: string; sub: string };
+} {
+  return offense
+    ? {
+        pass: { main: 'PASS', sub: 'X' },
+        cross: { main: 'CROSS', sub: '□' },
+        thru: { main: 'THRU', sub: '△' },
+        shoot: { main: 'SHOOT', sub: '○' },
+      }
+    : {
+        pass: { main: 'CONTAIN', sub: 'X' },
+        cross: { main: 'SLIDE', sub: '□' },
+        thru: { main: 'RUSH', sub: '△' },
+        shoot: { main: 'TACKLE', sub: '○' },
+      };
+}
+
+function labelHTML(l: { main: string; sub: string }): string {
+  return `${l.main}<small>${l.sub}</small>`;
+}
 /**
  * Touch-control DOM (mobile): joystick + buttons emit the same key codes as
  * the keyboard so the sim sees one unified namespace. Moved verbatim from
@@ -52,8 +83,10 @@ export function setupTouchControls(
     <div class="stick-zone"><div class="stick-base"><div class="stick-nub"></div></div></div>
     <div class="match-pad">
       <button class="tbtn tswitch" data-code="KeyQ">SWITCH</button>
-      <button class="tbtn tpass" data-code="KeyS">PASS</button>
-      <button class="tbtn tshoot" data-code="KeyK">SHOOT</button>
+      <button class="tbtn tthru" data-code="KeyW">THRU<small>△</small></button>
+      <button class="tbtn tcross" data-code="KeyA">CROSS<small>□</small></button>
+      <button class="tbtn tpass" data-code="KeyS">PASS<small>X</small></button>
+      <button class="tbtn tshoot" data-code="KeyK">SHOOT<small>○</small></button>
     </div>
     <div class="menu-pad">
       <button class="tbtn mup" data-code="ArrowUp">▲</button>
@@ -138,6 +171,22 @@ export function setupTouchControls(
     stickZone.addEventListener('touchcancel', zoneEnd);
   }
 
+  // Last applied phase: labels only touch the DOM on change, never per frame.
+  let lastOffense: boolean | null = null;
+  const applyLabels = (offense: boolean) => {
+    if (!touchLayer || lastOffense === offense) return;
+    lastOffense = offense;
+    const L = touchButtonLabels(offense);
+    const set = (code: string, html: string) => {
+      const b = touchLayer.querySelector(`button[data-code="${code}"]`);
+      if (b) b.innerHTML = html;
+    };
+    set(TOUCH_BUTTONS.pass, labelHTML(L.pass));
+    set(TOUCH_BUTTONS.cross, labelHTML(L.cross));
+    set(TOUCH_BUTTONS.thru, labelHTML(L.thru));
+    set(TOUCH_BUTTONS.shoot, labelHTML(L.shoot));
+  };
+
   return {
     touchLayer,
     stickZone,
@@ -150,6 +199,9 @@ export function setupTouchControls(
       matchPad.classList.toggle('hidden', !inMatch);
       stickZone.classList.toggle('hidden', !inMatch);
       menuPad.classList.toggle('hidden', inMatch);
+    },
+    updateOffense(offense: boolean) {
+      applyLabels(offense);
     },
   };
 }

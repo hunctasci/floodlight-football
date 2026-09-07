@@ -705,6 +705,12 @@ export class MatchEngine {
           this.cancelAction(p.team); return;
         }
         if (input.through) { this.pass(p, this.bestTarget(p, aim, true), true); this.keeperHold[p.team] = 0; return; }
+        // FIFA keeper: A (Square) lob outlet, D (Circle) long clearance.
+        if (input.cross) {
+          this.beginAction(p.team, p.id, 'outlet-long', input);
+          this.keeperKick(p, aim); this.keeperHold[p.team] = 0;
+          this.cancelAction(p.team); return;
+        }
         if (input.shootPressed) {
           this.beginAction(p.team, p.id, 'outlet-long', input);
           this.keeperKick(p, aim); this.keeperHold[p.team] = 0;
@@ -890,8 +896,9 @@ export class MatchEngine {
       }
       if (i.shootPressed) { this.beginAction(team, p.id, 'shot', i); setCharge(0); setCharging(p.id); }
       if (i.shootHeld && charging === p.id) setCharge(Math.min(.45, charge + dt));
-      // A = firm long pass, W = lofted cross: immediate edge actions, one
-      // kick each, same nomination rules as the held pass.
+      // FIFA offense: W (Triangle) = firm through pass, A (Square) = lofted
+      // cross: immediate edge actions, one kick each, same nomination
+      // rules as the held pass.
       if (i.through) { this.longPass(p, raw); this.cancelShot(peer); this.cancelAction(team); return; }
       if (i.cross) { this.cross(p, raw); this.cancelShot(peer); this.cancelAction(team); return; }
       if ((i.shootReleased && charging === p.id) || (charging === p.id && charge >= .45)) {
@@ -913,9 +920,13 @@ export class MatchEngine {
           s.message = s.ball.y > 1.25 ? 'HEADER!' : 'FIRST TIME!'; s.messageTime = .7;
         }
       }
-      // Modern ayrım: S = kademeli/standing tackle, D = kayarak/slide müdahale.
+      // FIFA defense: S (X) contain/pressure = standing tackle,
+      // D (Circle) = standing tackle/push-pull, W (Triangle) = rush/pressure,
+      // A (Square) = slide tackle. Every button stays live on both phases.
       else if (i.pass) { this.beginAction(team, p.id, 'challenge', i); this.tackle(p, false); this.cancelAction(team); }
-      else if (i.shootPressed) { this.beginAction(team, p.id, 'slide', i); this.tackle(p, true); this.cancelAction(team); }
+      else if (i.shootPressed) { this.beginAction(team, p.id, 'challenge', i); this.tackle(p, false); this.cancelAction(team); }
+      else if (i.through) { this.beginAction(team, p.id, 'challenge', i); this.tackle(p, false); this.cancelAction(team); }
+      else if (i.cross) { this.beginAction(team, p.id, 'slide', i); this.tackle(p, true); this.cancelAction(team); }
     }
   }
   private cancelShot(peer = false) {
@@ -1014,9 +1025,10 @@ export class MatchEngine {
     s.stats.passes[p.team]++;
   }
   /**
-   * A = firm long pass: one edge, one kick. Same cone nomination as the held
-   * pass, but paced flat and hard (26–31 m/s) straight to feet — for
-   * switching play, not for leading runners (hold S for that).
+   * W (Triangle) = firm through pass: one edge, one kick. Same cone
+   * nomination as the held pass, but paced flat and hard (26–31 m/s)
+   * straight to feet — for switching play, not for leading runners
+   * (hold S for that).
    */
   private longPass(p: Player, aim: Vec) {
     const s = this.state;
@@ -1527,8 +1539,9 @@ export class MatchEngine {
   }
   /**
    * Restarts: ~450ms setup, buffered human input, and a ~4s decision
-   * timeout with a deterministic safe default (short outlet). PASS takes
-   * it short, SHOOT takes it long. No indefinite stalling, online or solo.
+   * timeout with a deterministic safe default (short outlet). FIFA restarts:
+   * S (X) takes it short, D (Circle) / W (Triangle) / A (Square) take it
+   * long. No indefinite stalling, online or solo.
    */
   private takeRestart(dt: number, i: InputFrame, peer: InputFrame = EMPTY_INPUT) {
     const s = this.state, r = s.restart; if (!r) return;
@@ -1536,17 +1549,22 @@ export class MatchEngine {
     const human = r.team === s.humanTeam || r.team === s.remoteTeam;
     const f = r.team === s.humanTeam ? i : r.team === s.remoteTeam ? peer : EMPTY_INPUT;
     const p = s.players[r.taker], a = s.attack[r.team], phase = s.phase;
-    const edge = f.pass || f.shootPressed;
+    // Any action edge counts: S short, D/W/A long. The buffer collapses all
+    // long variants into `shoot` so the release logic stays two-way.
+    const edge = f.pass || f.shootPressed || f.through || f.cross;
     if (r.wait > 0) {
       // Setup window: buffer the first edge + aim so an early press is not lost.
       if (human && edge && !this.restartBuf) {
-        this.restartBuf = { pass: !!f.pass, shoot: !!f.shootPressed, x: f.x, z: f.z };
+        this.restartBuf = { pass: !!f.pass, shoot: !!(f.shootPressed || f.through || f.cross), x: f.x, z: f.z };
       }
       return;
     }
     const buf = this.restartBuf; this.restartBuf = null;
-    const pass = f.pass || !!buf?.pass, shoot = f.shootPressed || !!buf?.shoot;
-    const fx = edge ? f.x : (buf?.x ?? 0), fz = edge ? f.z : (buf?.z ?? 0);
+    const pass = f.pass || !!buf?.pass;
+    const shoot = f.shootPressed || f.through || f.cross || !!buf?.shoot;
+    // Aim comes from the live edge when one is held, else the buffered aim.
+    const liveEdge = f.pass || f.shootPressed || f.through || f.cross;
+    const fx = liveEdge ? f.x : (buf?.x ?? 0), fz = liveEdge ? f.z : (buf?.z ?? 0);
     if (human && !(pass || shoot) && r.wait > -4) return;
     if (!human && r.wait > -.7) return;
     const aim = (Math.hypot(fx, fz) > .1 && human) || (buf && Math.hypot(buf.x, buf.z) > .1)

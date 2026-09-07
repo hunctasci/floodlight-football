@@ -121,8 +121,9 @@ raw browser input → device state → InputFrame → simulation
 - `input/touch.ts`: `TouchState` + stick dead-zone/normalize + rim-sprint
   hysteresis (0.92 enter / 0.82 leave) + SHOOT drag-aim.
 - `input/input.ts`: `buildInputFrame(kb, touch, shootWasDown, carry)` —
-  arrows move, `E/Shift`/rim sprint, `S` pass (tap/hold), `A` long pass,
-  `D/KeyK`/mouse shoot with reticle aim, `W` cross, `Space/Q` switch,
+  arrows move, `E/Shift`/rim sprint, FIFA cluster `S` (X) pass (tap/hold),
+  `A` (Square) lob/cross, `W` (Triangle) through, `D/KeyK`/mouse (Circle)
+  shoot with reticle aim, `Space/Q` switch,
   unified press/hold/release carry. Axes and aim quantized to the wire format.
 
 Frozen by `tests/input-mapping.test.ts`. MatchEngine never sees DOM.
