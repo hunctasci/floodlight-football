@@ -52,7 +52,7 @@ export function setupTouchControls(
     <div class="stick-zone"><div class="stick-base"><div class="stick-nub"></div></div></div>
     <div class="match-pad">
       <button class="tbtn tswitch" data-code="KeyQ">SWITCH</button>
-      <button class="tbtn tpass" data-code="Space">PASS</button>
+      <button class="tbtn tpass" data-code="KeyS">PASS</button>
       <button class="tbtn tshoot" data-code="KeyK">SHOOT</button>
     </div>
     <div class="menu-pad">

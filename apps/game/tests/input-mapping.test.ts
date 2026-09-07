@@ -39,24 +39,20 @@ test('arrows move; WASD are actions, never movement', () => {
   }
 });
 
-test('FIFA action cluster: S pass, D shoot, A/Q switch, W/E/Shift sprint', () => {
+test('FIFA action cluster: Space switch, S pass, A long, D shoot, W cross', () => {
   const touch = createTouchState();
-  assert.equal(buildInputFrame(kbWith('Space'), touch, false).frame.pass, true);
-  assert.equal(buildInputFrame(kbWith('KeyJ'), touch, false).frame.pass, true);
+  assert.equal(buildInputFrame(kbWith('Space'), touch, false).frame.switchPlayer, true);
+  assert.equal(buildInputFrame(kbWith('KeyQ'), touch, false).frame.switchPlayer, true);
   assert.equal(buildInputFrame(kbWith('KeyS'), touch, false).frame.pass, true);
+  assert.equal(buildInputFrame(kbWith('KeyJ'), touch, false).frame.pass, true);
+  assert.equal(buildInputFrame(kbWith('KeyA'), touch, false).frame.through, true);
+  assert.equal(buildInputFrame(kbWith('KeyW'), touch, false).frame.cross, true);
   assert.equal(buildInputFrame(kbWith('KeyK'), touch, false).frame.shootPressed, true);
   assert.equal(buildInputFrame(kbWith('KeyD'), touch, false).frame.shootPressed, true);
   assert.equal(buildInputFrame(kbWith('MouseL'), touch, false).frame.shootPressed, true);
-  assert.equal(buildInputFrame(kbWith('KeyQ'), touch, false).frame.switchPlayer, true);
-  assert.equal(buildInputFrame(kbWith('KeyA'), touch, false).frame.switchPlayer, true);
-  assert.equal(buildInputFrame(kbWith('KeyW'), touch, false).frame.sprint, true);
-  // No dedicated open-play THROUGH/CROSS buttons: lead passes derive from
-  // hold-PASS and long restarts from SHOOT inside the sim.
-  for (const k of ['KeyW', 'KeyA']) {
-    const f = buildInputFrame(kbWith(k), touch, false).frame;
-    assert.equal(f.through, false, `${k} is not through`);
-    assert.equal(f.cross, false, `${k} is not cross`);
-  }
+  // Sprint lives on E/Shift/stick only — W is the cross button now.
+  assert.equal(buildInputFrame(kbWith('KeyW'), touch, false).frame.sprint, false);
+  assert.equal(buildInputFrame(kbWith('KeyE'), touch, false).frame.sprint, true);
 });
 
 test('sprint from Shift/E or stick rim', () => {
@@ -145,7 +141,7 @@ test('shoot hold/release flow across devices (shootWasDown unified)', () => {
 test('pass hold/release flow (passWasDown unified)', () => {
   const kb = createKeyboardState();
   const touch = createTouchState();
-  keyDown(kb, 'Space');
+  keyDown(kb, 'KeyS');
   let r = buildInputFrame(kb, touch, false, {});
   assert.equal(r.frame.pass, true);
   assert.equal(r.frame.passHeld, true);
@@ -154,7 +150,7 @@ test('pass hold/release flow (passWasDown unified)', () => {
   r = buildInputFrame(kb, touch, false, { passWasDown: r.passWasDown });
   assert.equal(r.frame.pass, false, 'press edge fires once');
   assert.equal(r.frame.passHeld, true, 'hold persists');
-  keyUp(kb, 'Space');
+  keyUp(kb, 'KeyS');
   r = buildInputFrame(kb, touch, false, { passWasDown: r.passWasDown });
   assert.equal(r.frame.passReleased, true);
   clearKeyboardEdges(kb);
@@ -165,10 +161,10 @@ test('pass hold/release flow (passWasDown unified)', () => {
 test('keyboard edge semantics: press fires once while held', () => {
   const kb = createKeyboardState();
   const touch = createTouchState();
-  keyDown(kb, 'Space');
+  keyDown(kb, 'KeyS');
   assert.equal(buildInputFrame(kb, touch, false).frame.pass, true);
   clearKeyboardEdges(kb);
-  keyDown(kb, 'Space'); // still held: no new edge
+  keyDown(kb, 'KeyS'); // still held: no new edge
   assert.equal(buildInputFrame(kb, touch, false).frame.pass, false);
 });
 

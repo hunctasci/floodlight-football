@@ -77,10 +77,10 @@ export function resetTouch(t: TouchState) {
 
 /** Button code map for the on-screen match controls: three permanent action
  *  buttons only (PASS / SHOOT / SWITCH). Sprint lives on the joystick rim,
- *  lead passes come from holding PASS, long keeper balls from SHOOT. */
+ *  lead passes come from holding PASS, long balls from the desktop A key. */
 export const TOUCH_BUTTONS = {
   shoot: 'KeyK',
-  pass: 'Space',
+  pass: 'KeyS',
   switch: 'KeyQ',
 } as const;
 

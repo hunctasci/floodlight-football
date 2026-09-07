@@ -5,12 +5,11 @@ import { stickSprint, type TouchState } from './touch';
 /**
  * Unified input layer: raw browser device state -> simulation InputFrame.
  *
- * Desktop (FIFA-style): arrows move, left-hand cluster acts —
- *   S pass (tap = feet, hold = into space), D shoot (tap/hold, quick low
- *   finish on the facing without mouse aim), A/Q switch, W/E/Shift sprint.
- * Mouse hold/drag/release aims + fires with placement; Space aliases pass,
- * KeyK aliases shoot, KeyJ aliases pass. Arrows are the only keyboard
- * movement (WASD are actions, not aliases).
+ * Desktop: arrows move, action cluster acts —
+ *   Space switch, S pass (tap = feet, hold = into space), A long pass,
+ *   D shoot (tap/hold, quick low finish on the facing without mouse aim),
+ *   W cross, E/Shift sprint, Q switch alias. Mouse hold/drag/release aims
+ *   + fires with placement; KeyK aliases shoot, KeyJ aliases pass.
  *
  * Touch: left stick moves (rim = sprint), PASS / SHOOT / SWITCH buttons.
  * Aim on touch comes from dragging on the SHOOT control (fed through the
@@ -55,9 +54,9 @@ export function buildInputFrame(
   }
   // Stick sprint latches: enter at the rim, release below it (hysteresis).
   const stickOn = stickSprint(touch, extra?.stickSprintOn ?? false);
-  // S is the pass button (Space + KeyJ alias, neither conflicts with arrows).
-  const passDown = held('Space') || held('KeyJ') || held('KeyS');
-  const passHit = hit('Space') || hit('KeyJ') || hit('KeyS');
+  // S is the pass button (KeyJ legacy alias); Space switches.
+  const passDown = held('KeyS') || held('KeyJ');
+  const passHit = hit('KeyS') || hit('KeyJ');
   const passWasDown = extra?.passWasDown ?? false;
   const sh = held('MouseL') || held('KeyK') || held('KeyD');
   // Shot aim: mouse drag wins, else the SHOOT-control drag on touch.
@@ -65,20 +64,18 @@ export function buildInputFrame(
   const frame: InputFrame = {
     x: Q1(x),
     z: Q1(z),
-    sprint: held('ShiftLeft') || held('ShiftRight') || held('KeyE') || held('KeyW') || stickOn,
+    sprint: held('ShiftLeft') || held('ShiftRight') || held('KeyE') || stickOn,
     pass: passHit,
     passHeld: passDown,
     passReleased:
-      kb.released.has('Space') ||
-      kb.released.has('KeyJ') ||
       kb.released.has('KeyS') ||
-      touch.released.has('Space') ||
+      kb.released.has('KeyJ') ||
+      touch.released.has('KeyS') ||
       touch.released.has('KeyJ') ||
       (!passDown && passWasDown),
-    // Legacy dedicated buttons: no longer produced. Hold-PASS derives lead
-    // passes and SHOOT selects long restarts inside the sim.
-    through: false,
-    cross: false,
+    // A = firm long pass, W = lofted cross: immediate edge actions.
+    through: hit('KeyA'),
+    cross: hit('KeyW'),
     shootPressed: hit('MouseL') || hit('KeyK') || hit('KeyD'),
     shootHeld: sh,
     shootReleased:
@@ -87,7 +84,7 @@ export function buildInputFrame(
       kb.released.has('KeyD') ||
       touch.released.has('KeyK') ||
       (!sh && shootWasDown),
-    switchPlayer: hit('KeyQ') || hit('KeyA'),
+    switchPlayer: hit('Space') || hit('KeyQ'),
     aimU: Q1(aim?.aimU ?? 0),
     aimV: Q1(aim?.aimV ?? 0),
   };

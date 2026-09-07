@@ -890,6 +890,10 @@ export class MatchEngine {
       }
       if (i.shootPressed) { this.beginAction(team, p.id, 'shot', i); setCharge(0); setCharging(p.id); }
       if (i.shootHeld && charging === p.id) setCharge(Math.min(.45, charge + dt));
+      // A = firm long pass, W = lofted cross: immediate edge actions, one
+      // kick each, same nomination rules as the held pass.
+      if (i.through) { this.longPass(p, raw); this.cancelShot(peer); this.cancelAction(team); return; }
+      if (i.cross) { this.cross(p, raw); this.cancelShot(peer); this.cancelAction(team); return; }
       if ((i.shootReleased && charging === p.id) || (charging === p.id && charge >= .45)) {
         // Release without an active charge (cancelled gesture) does nothing.
         if (charging !== p.id || this.actions[team].action !== 'shot') { this.cancelShot(peer); this.cancelAction(team); return; }
@@ -1005,6 +1009,30 @@ export class MatchEngine {
     // Nominate, don't transfer: control follows on confirmed possession
     // (firstTouch), so mid-flight the kicker stays selected and a manual
     // SWITCH can take the runner early.
+    this.receiver = q.id; this.receivePoint = { x: tx, z: tz }; this.receiveUntil = s.time + 2.7;
+    this.setReceiver(p.team, q.id, { x: tx, z: tz }, s.time + 2.7);
+    s.stats.passes[p.team]++;
+  }
+  /**
+   * A = firm long pass: one edge, one kick. Same cone nomination as the held
+   * pass, but paced flat and hard (26–31 m/s) straight to feet — for
+   * switching play, not for leading runners (hold S for that).
+   */
+  private longPass(p: Player, aim: Vec) {
+    const s = this.state;
+    const q = this.selectPassTarget(p, aim);
+    if (!q) {
+      const d = length(aim.x, aim.z) > .05 ? direction(aim.x, aim.z) : direction(p.facingX, p.facingZ);
+      this.kick(p, d, 24, .3, 'pass');
+      this.setTarget(p.team, null);
+      s.stats.passes[p.team]++;
+      return;
+    }
+    const d = distance(p, q);
+    const speed = clamp(22 + d * .3, 26, 31);
+    const tx = clamp(q.x + q.vx * .2, -L + 3, L - 3), tz = clamp(q.z + q.vz * .2, -W + 2, W - 2);
+    this.kick(p, direction(tx - s.ball.x, tz - s.ball.z), speed, .25, 'pass');
+    // Nominate, don't transfer — same contract as every other pass.
     this.receiver = q.id; this.receivePoint = { x: tx, z: tz }; this.receiveUntil = s.time + 2.7;
     this.setReceiver(p.team, q.id, { x: tx, z: tz }, s.time + 2.7);
     s.stats.passes[p.team]++;

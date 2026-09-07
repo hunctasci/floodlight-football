@@ -136,17 +136,17 @@ export async function dumpBoth(host: Page, guest: Page): Promise<string> {
 /** Send real gameplay controls through the actual keyboard layer. */
 export async function playInputBurst(page: Page, kind: 'move' | 'pass' | 'shoot' | 'switch') {
   if (kind === 'move') {
-    await page.keyboard.down('d');
+    await page.keyboard.down('ArrowRight');
     await page.waitForTimeout(350);
-    await page.keyboard.up('d');
+    await page.keyboard.up('ArrowRight');
   } else if (kind === 'pass') {
-    await page.keyboard.press('Space');
+    await page.keyboard.press('s');
   } else if (kind === 'shoot') {
     await page.keyboard.down('k');
     await page.waitForTimeout(250);
     await page.keyboard.up('k');
   } else {
-    await page.keyboard.press('q');
+    await page.keyboard.press('Space');
   }
 }
 

@@ -38,9 +38,9 @@ export interface InputFrame {
   passHeld: boolean;
   /** Pass button release edge. */
   passReleased: boolean;
-  /** @deprecated No dedicated through button: hold-PASS derives lead passes. */
+  /** Long-pass edge (A): firm driven ball to a teammate. */
   through: boolean;
-  /** @deprecated No dedicated cross button: SHOOT selects long restarts. */
+  /** Cross edge (W): lofted delivery into the box. */
   cross: boolean;
   shootPressed: boolean; shootHeld: boolean; shootReleased: boolean; switchPlayer: boolean;
   /** Shot placement aim, goal-local: U = across (-1..1), V = height (0..1). */

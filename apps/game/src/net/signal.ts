@@ -7,7 +7,7 @@ export const NET_PROTO = 2;
  * handshake gracefully instead of starting an invalid match.
  */
 export const SIM_VERSION = 2;
-export const INPUT_VERSION = 2;
+export const INPUT_VERSION = 3;
 /** Fingerprint of the canonical tuning table (see game/tuning.ts). */
 export const TUNING_FINGERPRINT = 'p0.5-challenge-geo';
 

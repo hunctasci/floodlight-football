@@ -14,20 +14,21 @@ was saved.
 
 One controlled footballer per human. The same three ideas on both devices:
 
-| Idea | Desktop (FIFA-style) | Touch |
+| Idea | Desktop | Touch |
 |---|---|---|
 | Move | Arrow keys | Left stick (rim = sprint) |
-| Sprint | W / E / Shift | Push the stick to the rim (latches until ~0.82) |
-| Pass / standing tackle | S, tap or hold (Space works too) | PASS button, tap or hold |
+| Sprint | E / Shift | Push the stick to the rim (latches until ~0.82) |
+| Switch defender | Space (Q works too) | SWITCH button |
+| Pass / standing tackle | S, tap or hold | PASS button, tap or hold |
+| Long pass | A — firm driven ball to a teammate | — (hold PASS to lead instead) |
 | Shoot / slide tackle | D, tap or hold — quick finish on your facing (or hold LMB, drag to aim, release) | Hold SHOOT, drag on it to aim, release |
-| Switch defender | A or Q | SWITCH button |
+| Cross | W — lofted delivery into the box | — (lead into the box with held PASS) |
 | Camera / pause | C / Esc | HUD chip / scoreboard |
 
-On defence the same buttons tackle: PASS = standing challenge, SHOOT = slide.
-As keeper, PASS = short outlet, SHOOT = long clearance. There are no
-through-ball, cross, finesse or driven-pass buttons — see Passing and
-Shooting. There is no stamina meter: sprint already costs through longer
-touches and heavier turning.
+On defence: S = standing challenge, D = slide, Space = switch.
+As keeper, S = short outlet, D = long clearance. There are no finesse or
+sprint-modified shot variants — see Shooting. There is no stamina meter:
+sprint already costs through longer touches and heavier turning.
 
 Default match: 90-second halves, ~1.5 s auto-halftime, quick result screen
 with rematch first.
