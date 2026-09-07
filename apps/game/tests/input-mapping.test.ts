@@ -20,36 +20,42 @@ function kbWith(...codes: string[]) {
 
 // Freeze the keyboard/touch -> InputFrame contract. Future 2v2 multi-controller
 // work must preserve these semantics per controller stream.
-test('arrows and WASD move; diagonals normalize', () => {
+test('arrows move; WASD are actions, never movement', () => {
   const touch = createTouchState();
   let r = buildInputFrame(kbWith('ArrowRight'), touch, false);
   assert.equal(r.frame.x, 1);
   assert.equal(r.frame.z, 0);
-  r = buildInputFrame(kbWith('KeyD'), touch, false);
-  assert.equal(r.frame.x, 1);
-  r = buildInputFrame(kbWith('KeyW'), touch, false);
-  assert.equal(r.frame.z, -1);
   r = buildInputFrame(kbWith('ArrowRight', 'ArrowUp'), touch, false);
   const n = Math.hypot(r.frame.x, r.frame.z);
   // Wire quantization keeps half-a-percent accuracy, not exact unity.
   assert.ok(Math.abs(n - 1) < 0.02, `diagonal normalized (n=${n})`);
-  r = buildInputFrame(kbWith('KeyA'), touch, false);
+  r = buildInputFrame(kbWith('ArrowLeft'), touch, false);
   assert.equal(r.frame.x, -1);
+  // WASD must not move anyone: they are the FIFA action cluster.
+  for (const k of ['KeyW', 'KeyA', 'KeyS', 'KeyD']) {
+    const f = buildInputFrame(kbWith(k), touch, false).frame;
+    assert.equal(f.x, 0, `${k} does not move`);
+    assert.equal(f.z, 0, `${k} does not move`);
+  }
 });
 
-test('action buttons: Space pass, KeyK/mouse shoot, Q switch; no through/cross buttons', () => {
+test('FIFA action cluster: S pass, D shoot, A/Q switch, W/E/Shift sprint', () => {
   const touch = createTouchState();
   assert.equal(buildInputFrame(kbWith('Space'), touch, false).frame.pass, true);
   assert.equal(buildInputFrame(kbWith('KeyJ'), touch, false).frame.pass, true);
+  assert.equal(buildInputFrame(kbWith('KeyS'), touch, false).frame.pass, true);
   assert.equal(buildInputFrame(kbWith('KeyK'), touch, false).frame.shootPressed, true);
+  assert.equal(buildInputFrame(kbWith('KeyD'), touch, false).frame.shootPressed, true);
   assert.equal(buildInputFrame(kbWith('MouseL'), touch, false).frame.shootPressed, true);
   assert.equal(buildInputFrame(kbWith('KeyQ'), touch, false).frame.switchPlayer, true);
+  assert.equal(buildInputFrame(kbWith('KeyA'), touch, false).frame.switchPlayer, true);
+  assert.equal(buildInputFrame(kbWith('KeyW'), touch, false).frame.sprint, true);
   // No dedicated open-play THROUGH/CROSS buttons: lead passes derive from
   // hold-PASS and long restarts from SHOOT inside the sim.
   for (const k of ['KeyW', 'KeyA']) {
     const f = buildInputFrame(kbWith(k), touch, false).frame;
-    assert.equal(f.through, false, `${k} is movement, not through`);
-    assert.equal(f.cross, false, `${k} is movement, not cross`);
+    assert.equal(f.through, false, `${k} is not through`);
+    assert.equal(f.cross, false, `${k} is not cross`);
   }
 });
 

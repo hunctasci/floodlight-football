@@ -14,13 +14,13 @@ was saved.
 
 One controlled footballer per human. The same three ideas on both devices:
 
-| Idea | Desktop | Touch |
+| Idea | Desktop (FIFA-style) | Touch |
 |---|---|---|
-| Move | WASD / arrows | Left stick (rim = sprint) |
-| Sprint | Shift / E | Push the stick to the rim (latches until ~0.82) |
-| Pass / standing tackle | Space, tap or hold | PASS button, tap or hold |
-| Shoot / slide tackle | Hold LMB, drag to aim, release (KeyK works without aim) | Hold SHOOT, drag on it to aim, release |
-| Switch defender | Q | SWITCH button |
+| Move | Arrow keys | Left stick (rim = sprint) |
+| Sprint | W / E / Shift | Push the stick to the rim (latches until ~0.82) |
+| Pass / standing tackle | S, tap or hold (Space works too) | PASS button, tap or hold |
+| Shoot / slide tackle | D, tap or hold — quick finish on your facing (or hold LMB, drag to aim, release) | Hold SHOOT, drag on it to aim, release |
+| Switch defender | A or Q | SWITCH button |
 | Camera / pause | C / Esc | HUD chip / scoreboard |
 
 On defence the same buttons tackle: PASS = standing challenge, SHOOT = slide.
