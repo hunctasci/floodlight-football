@@ -352,8 +352,31 @@ export class RoomDurableObject extends DurableObject<Env> {
     await this.destroyRoom();
   }
 
+  /**
+   * True when another live socket still carries this peer identity (reconnect
+   * race: old socket closed after the new one opened). Membership must survive
+   * until the LAST socket for that peer goes away.
+   */
+  private hasLiveSocketFor(clientId: string): boolean {
+    for (const ws of this.ctx.getWebSockets()) {
+      const att = this.sessions.get(ws) ?? (() => {
+        try {
+          return ws.deserializeAttachment() as RoomAttachment | null;
+        } catch {
+          return null;
+        }
+      })();
+      if (att?.peerId === clientId) return true;
+    }
+    return false;
+  }
+
   private async removePeer(_ws: WebSocket, clientId: string): Promise<void> {
     this.ensureTables();
+    // Reconnect race: a fresh socket for the same peer may already exist
+    // (duplicate join before the old close fired). Keep the member and do
+    // NOT broadcast peer-left while any live socket remains.
+    if (this.hasLiveSocketFor(clientId)) return;
     try {
       this.ctx.storage.sql.exec(`DELETE FROM members WHERE client_id = ?;`, clientId);
     } catch {
