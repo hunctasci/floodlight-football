@@ -6,3 +6,19 @@
 .clock{font-size:9px;padding:7px 6px;min-width:0}
 .camchip{pointer-events:auto;cursor:pointer}
 .strip{display:none!important}.radar{left:50%;right:auto;top:auto;bottom:10px;transform:translateX(-50%);width:140px;height:84px;opacity:.92}.camchip{top:8px;right:auto;left:8px;font-size:9px;padding:4px 6px;opacity:.85}.charge{bottom:102px}.match-pad{right:12px;bottom:62px}.tbtn{opacity:.55}.tbtn:active{opacity:1;background:#f7bf30;color:#101b31}.stick-base{opacity:.5}}.reticle{position:absolute;bottom:96px;left:50%;transform:translateX(-50%);text-align:center;z-index:6}.rgoal{position:relative;width:170px;height:44px;margin:0 auto;background:#101b31e6;border:2px solid #f8efdb;border-top-width:5px}.rposts{position:absolute;top:0;bottom:0;left:12%;right:12%;border-left:3px solid #f7bf30;border-right:3px solid #f7bf30}.raim{position:absolute;width:9px;height:9px;margin-left:-4px;background:#e96137;border:2px solid #fff;border-radius:50%}.reticle small{display:block;margin-top:3px;font-size:10px;color:#f8efdb}
+/* ARCADE LOOK (display only — values and logic untouched; codes already
+   normalize in JS): force uppercase display so mixed-case data (club names,
+   nicknames, `v` separators) matches the hardcoded menu strings. */
+.menu-item,.eyebrow,.title,.subtitle,.hint,.statline,.team-card,.tbtn,.camchip,.player-info,.attack,.keeper-hint,.camtoast{text-transform:uppercase}
+/* Consistent code/score inputs on desktop & mobile: no layout-breaking
+   resize handle, visible focus, letterspaced code feel. */
+.panel .netcode,.panel .netpaste{resize:none;line-height:1.5;letter-spacing:.12em;text-transform:uppercase}
+.panel .netcode:focus,.panel .netpaste:focus{outline:none;border-color:#f7bf30}
+#invitelink{text-transform:none;letter-spacing:0}
+#netcode{text-align:center;letter-spacing:.3em;text-indent:.3em}
+.scorebox{letter-spacing:.3em;text-indent:.3em}
+.tbtn{letter-spacing:.06em}
+@media(pointer:coarse){
+/* 16px+ inputs stop iOS Safari auto-zooming on focus; keep tap targets roomy. */
+.panel .netcode,.panel .netpaste{font-size:16px;padding:10px}
+}
