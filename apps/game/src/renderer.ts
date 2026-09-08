@@ -15,6 +15,7 @@ import {
   type CameraMode,
   type GoalCineVariant,
 } from './render/camera';
+import { AD_H, AD_W, adForSlot, paintAd } from './render/ads';
 
 // Backwards-compatible re-exports: canonical pure camera math lives in
 // render/camera.ts; existing tests import from here.
@@ -269,9 +270,19 @@ export class GameRenderer {
       const head = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.6, .6), headMat);
       head.position.set(px, 20.4, pz); head.lookAt(0, 0, 0); this.scene.add(head);
     }
-    const makeAd = (text:string, base:string, ink:string) => { const c=document.createElement('canvas');c.width=512;c.height=64;const ctx=c.getContext('2d')!;ctx.fillStyle=base;ctx.fillRect(0,0,512,64);ctx.fillStyle=ink;ctx.font='bold 31px monospace';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,256,34);const tex=new THREE.CanvasTexture(c);tex.colorSpace=THREE.SRGBColorSpace;return new THREE.MeshBasicMaterial({map:tex}); };
-    const ads=[makeAd('SATURDAY CUP','#173667','#ffe76a'),makeAd('PLAY BEAUTIFUL','#ef713d','#fff4d4')];
-    for (const z of [-30.3,30.3]) for(let x=-40, i=0;x<40;x+=10,i++){ const b=new THREE.Mesh(new THREE.BoxGeometry(9.6,1.15,.18),ads[i%2]); b.position.set(x,.6,z); if(z<0)b.rotation.y=Math.PI; this.scene.add(b); }
+    // Pitch-side sponsor boards: procedural LinkedIn / GitHub creatives from
+    // render/ads.ts (1024x128 canvas textures, alternating slots). Display
+    // only — the sim never sees them.
+    const makeAd = (slot: number) => {
+      const ad = adForSlot(slot);
+      const c = document.createElement('canvas'); c.width = AD_W; c.height = AD_H;
+      paintAd(c.getContext('2d')!, ad, AD_W, AD_H);
+      const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      return new THREE.MeshBasicMaterial({ map: tex });
+    };
+    const ads = [makeAd(0), makeAd(1)];
+    for (const z of [-30.3, 30.3]) for (let x = -40, i = 0; x < 40; x += 10, i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(9.6, 1.15, .18), ads[i % 2]); b.position.set(x, .6, z); if (z < 0) b.rotation.y = Math.PI; this.scene.add(b); }
   }
 
   private makeAvatar(p: Player, state: MatchState): Avatar {

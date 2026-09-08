@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="128" viewBox="0 0 1024 128">
+  <rect x="0" y="0" width="1024" height="128" fill="#0D1117"/>
+  <rect x="0" y="0" width="1024" height="10" fill="#FFFFFF" opacity="0.10"/>
+  <rect x="0" y="120" width="1024" height="8" fill="#000000" opacity="0.35"/>
+  <circle cx="70" cy="66" r="30" fill="none" stroke="#FFFFFF" stroke-width="7"/>
+  <path d="M46 44 L40 24 L58 34 Z" fill="#FFFFFF"/>
+  <path d="M94 44 L100 24 L82 34 Z" fill="#FFFFFF"/>
+  <text x="136" y="56" font-family="Arial, sans-serif" font-weight="900" font-size="52" fill="#FFFFFF">GitHub</text>
+  <text x="138" y="96" font-family="Arial, sans-serif" font-weight="500" font-size="34" fill="#FFFFFF" opacity="0.75">@hunctasci</text>
+  <rect x="136" y="106" width="220" height="5" fill="#3FB950"/>
+  <rect x="832" y="34" width="162" height="60" rx="30" fill="none" stroke="#3FB950" stroke-width="4"/>
+  <text x="913" y="65" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-weight="900" font-size="30" fill="#3FB950">FOLLOW</text>
+</svg>

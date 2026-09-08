@@ -76,7 +76,7 @@ export class NetDriver {
   private peerReady = false;
   private startedEmitted = false;
   /** Edge buttons accumulate here until staged into exactly one tick. */
-  private edgeAcc = { pass: false, passReleased: false, through: false, cross: false, shootPressed: false, shootReleased: false, switchPlayer: false };
+  private edgeAcc = { pass: false, passReleased: false, long: false, shootPressed: false, shootReleased: false, switchPlayer: false };
   /** Consecutive stalled frames before the link is declared dead. */
   static readonly DROP_AFTER_STALL = 600;
   private outbox: Uint8Array[] = [];
@@ -219,8 +219,13 @@ export class NetDriver {
       this.session.engine.dropPeer();
     } else if (m.t === 'continue-half') {
       // Host drives half-time flow; resync heals the few ticks of skew.
+      // Race: the packet can arrive BEFORE this engine reaches halftime
+      // (fast host auto-continue, slow guest). Remember it and consume it
+      // on the halftime boundary in frame() instead of dropping it — a
+      // dropped packet strands the guest on HALF TIME forever.
       const e = this.session.engine;
       if (e.state.phase === 'halftime') e.continueHalf();
+      else this.halfContinuePending = true;
     } else if (m.t === 'resync-request') {
       const snap = this.session.snapshotAt(m.tick);
       if (snap) this.transport.send(encodeSnapshotPacket(m.tick, JSON.stringify(snap)));
@@ -243,7 +248,7 @@ export class NetDriver {
   }
 
   private clearEdges() {
-    this.edgeAcc.pass = this.edgeAcc.passReleased = this.edgeAcc.through = this.edgeAcc.cross = false;
+    this.edgeAcc.pass = this.edgeAcc.passReleased = this.edgeAcc.long = false;
     this.edgeAcc.shootPressed = this.edgeAcc.shootReleased = this.edgeAcc.switchPlayer = false;
   }
 
@@ -256,7 +261,7 @@ export class NetDriver {
   private stageInput(s: LockstepSession, input: InputFrame) {
     const e = this.edgeAcc;
     e.pass ||= input.pass; e.passReleased ||= input.passReleased;
-    e.through ||= input.through; e.cross ||= input.cross;
+    e.long ||= input.long;
     e.shootPressed ||= input.shootPressed; e.shootReleased ||= input.shootReleased;
     e.switchPlayer ||= input.switchPlayer;
     const move: InputFrame = {
@@ -276,7 +281,7 @@ export class NetDriver {
         const d = decodeInput(cur);
         s.stageLocal(t, encodeInput({
           ...input,
-          pass: d.pass || e.pass, through: d.through || e.through, cross: d.cross || e.cross,
+          pass: d.pass || e.pass, long: d.long || e.long,
           shootPressed: d.shootPressed || e.shootPressed,
           shootReleased: d.shootReleased || e.shootReleased,
           switchPlayer: d.switchPlayer || e.switchPlayer,
@@ -285,6 +290,9 @@ export class NetDriver {
       }
     }
   }
+
+  /** Host's half-time signal arrived before this engine reached halftime. */
+  private halfContinuePending = false;
 
   /**
    * Pump one render frame with local input. Returns ticks stepped.
@@ -297,6 +305,11 @@ export class NetDriver {
   frame(input: InputFrame, elapsedSec = 1 / 60): number {    const s = this.session;
     if (!s || this.state !== 'playing') return 0;
     if (s.engine.state.paused) { this.clock.reset(); return 0; }
+    // Consume an early half-time signal on the boundary it was meant for.
+    if (this.halfContinuePending && s.engine.state.phase === 'halftime') {
+      s.engine.continueHalf();
+      this.halfContinuePending = false;
+    }
     // Sent ticks are immutable: only rewind the watermark past a resync jump.
     if (this.flushed > s.tick + this.delay + 1) {
       this.flushed = s.tick;
@@ -376,8 +389,13 @@ export class NetDriver {
 
   close() {
     if (this.state === 'closed') return;
+    // Mark closed BEFORE touching the transport: its synchronous 'closed'
+    // event must hit the guard above instead of reporting a peer drop into
+    // a newer session. Then detach so late bytes never reach a dead driver.
     this.state = 'closed';
     try { this.transport.close(); } catch { /* already gone */ }
+    this.transport.onmessage = null;
+    this.transport.onstate = null;
   }
 
   private onClose() {

@@ -40,13 +40,28 @@ export interface EngineSnapshot {
   previousBall: { x: number; y: number; z: number }; scorer: TeamId; idleTime: number;
   peerReceiver: number | null; peerReceivePoint: Vec; peerReceiveUntil: number;
   peerCharge: number; peerChargingPlayer: number | null;
+  aiLevel: AiLevel;
 }
+
+/** Solo difficulty: scales AI-team pace and decision cadence (deterministic).
+ *  Online both sides construct engines with the default (pro) so lockstep
+ *  stays bit-identical; the level only matters when a team is AI-driven. */
+export type AiLevel = 0 | 1 | 2;
+export const AI_LEVELS: { id: AiLevel; label: string }[] = [
+  { id: 0, label: 'ROOKIE' },
+  { id: 1, label: 'PRO' },
+  { id: 2, label: 'LEGEND' },
+];
+const AI_PACE: [number, number, number] = [0.9, 1, 1.06];
+const AI_THINK: [number, number, number] = [1.4, 1, 0.75];
 
 /** Fixed-step arcade simulation. Coordinates are metres; x runs along the pitch. */
 export class MatchEngine {
   state: MatchState;
   events: GameEvent[] = [];
   private seed: number;
+  /** Solo difficulty for AI-driven teams (online: always pro on both peers). */
+  aiLevel: AiLevel;
   /** Simulation tick index: increments once per update() step, drives action identity. */
   tick = 0;
   /** Passive per-side gesture state — the action contract (see types.ts). */
@@ -92,8 +107,9 @@ export class MatchEngine {
   private peerCharge = 0;
   private peerChargingPlayer: number | null = null;
 
-  constructor(teamIndex = 0, halfDuration = 180, seed = 1) {
+  constructor(teamIndex = 0, halfDuration = 180, seed = 1, aiLevel: AiLevel = 1) {
     this.seed = seed >>> 0 || 1;
+    this.aiLevel = aiLevel;
     const names = ['Hale', 'Costa', 'Miro', 'Benn', 'Rossi', 'Khan', 'Silva', 'Nolan', 'Vega', 'Dane', 'Ortega'];
     const homes = [[-43, 0], [-29, -21], [-30, -7], [-30, 7], [-29, 21], [-9, -20], [-11, -7], [-11, 7], [-9, 20], [13, -7], [13, 7]];
     const players: Player[] = [];
@@ -164,6 +180,12 @@ export class MatchEngine {
       (this.liveReceiver(this.peerReceiver, this.peerReceiveUntil) && id === this.peerReceiver);
   }
   private isHumanControlled(id: number) { return id === this.state.controlled || id === this.state.peerControlled; }
+  /** True for AI-driven teams (solo opponent, or drop-to-AI recovery online). */
+  private isAiTeam(t: TeamId) { return t !== this.state.humanTeam && t !== this.state.remoteTeam; }
+  /** AI locomotion pace for a team (humans always run at full pace). */
+  private aiPace(t: TeamId) { return this.isAiTeam(t) ? AI_PACE[this.aiLevel] : 1; }
+  /** AI decision-cadence scale for a team (humans decide every tick). */
+  private aiThink(t: TeamId, base: number) { return this.isAiTeam(t) ? base * AI_THINK[this.aiLevel] : base; }
 
   /** Deep, allocation-safe snapshot for rollback netcode and replays. */
   snapshot(): EngineSnapshot {
@@ -187,7 +209,7 @@ export class MatchEngine {
       scorer: this.scorer, idleTime: this.idleTime,
       peerReceiver: this.peerReceiver, peerReceivePoint: { ...this.peerReceivePoint },
       peerReceiveUntil: this.peerReceiveUntil, peerCharge: this.peerCharge,
-      peerChargingPlayer: this.peerChargingPlayer,
+      peerChargingPlayer: this.peerChargingPlayer, aiLevel: this.aiLevel,
     };
   }
   restore(snap: EngineSnapshot) {
@@ -213,7 +235,9 @@ export class MatchEngine {
     this.previousBall = { ...snap.previousBall }; this.scorer = snap.scorer; this.idleTime = snap.idleTime;
     this.peerReceiver = snap.peerReceiver; this.peerReceivePoint = { ...snap.peerReceivePoint };
     this.peerReceiveUntil = snap.peerReceiveUntil; this.peerCharge = snap.peerCharge;
-    this.peerChargingPlayer = snap.peerChargingPlayer; this.events = [];
+    this.peerChargingPlayer = snap.peerChargingPlayer;
+    if (snap.aiLevel === 0 || snap.aiLevel === 1 || snap.aiLevel === 2) this.aiLevel = snap.aiLevel;
+    this.events = [];
   }
   /** FNV-1a over quantized sim fields. Same inputs + seed must hash equal on any peer.
    *  Canonical: every future-affecting field is mixed in (gameplay only — no
@@ -272,6 +296,7 @@ export class MatchEngine {
     }
     mix(this.passNominee[0] ?? -1); mix(this.passNominee[1] ?? -1);
     mix(this.switchIdx[0]); mix(this.switchIdx[1]);
+    mix(this.aiLevel);
     for (const sbScore of this.shotBuf) {
       if (sbScore) { mix(sbScore.actor); mix(sbScore.until); mix(q(sbScore.u)); mix(q(sbScore.v)); mix(q(sbScore.pow)); }
       else mix(0);
@@ -347,6 +372,21 @@ export class MatchEngine {
     if ((cur.action === 'fallen') && owner?.team !== team) {
       const auto = this.switchCandidates(team)[0];
       if (auto !== undefined && auto !== cur.id) this.setControlled(team, auto);
+    }
+    // Arcade auto-switch: while defending (or the ball is loose), control
+    // follows the closest candidate — with a 1.2m margin so control never
+    // flickers, and never yanks a committed tackle/slide/dive. Actively
+    // steering the stick keeps the current pick (manual intent wins); the
+    // human can always override with SWITCH (manual cycle below).
+    if (owner?.team !== team && length(input.x, input.z) <= 0.3) {
+      const cands = this.switchCandidates(team);
+      const best = cands[0];
+      const mine = s.players[this.getControlled(team)];
+      if (best !== undefined && best !== mine.id
+        && mine.action !== 'tackle' && mine.action !== 'slide' && mine.action !== 'fallen' && mine.action !== 'dive') {
+        const meet = { x: s.ball.x + s.ball.vx * .18, z: s.ball.z + s.ball.vz * .18 };
+        if (distance(mine, meet) - distance(s.players[best], meet) > 1.2) this.setControlled(team, best);
+      }
     }
     if (input.switchPlayer && owner?.team !== team) {
       // Stable cost-ordered cycle: repeated presses walk the candidate list
@@ -504,7 +544,7 @@ export class MatchEngine {
     const s = this.state, b = s.ball;
     /** True while the opposing keeper is holding the ball in his hands. */
     const opponentsKeeperHolds = (t: TeamId) => { const o = this.owner(); return !!o && o.keeper && o.team !== t; };
-    // If a pass/cross/through is in flight for team t, that receiver owns the
+    // If a pass/long ball is in flight for team t, that receiver owns the
     // chase — teammates hold shape instead of crowding the same ball.
     const activeReceiverTeam: (TeamId | null)[] = [null, null];
     if (this.liveReceiver(this.receiver, this.receiveUntil) && b.owner === null) {
@@ -599,7 +639,7 @@ export class MatchEngine {
         tx = clamp(tx, -L + 4, L - 4); tz = clamp(tz, -W + 3, W - 3);
         const d = distance(p, { x: tx, z: tz });
         const chase = p.aiState === 'CHASE' || p.aiState === 'RUN';
-        const w = this.seekVelocity(p, tx, tz, chase ? TUNING.sprint : TUNING.speed, d < 1 ? 5 : 0);
+        const w = this.seekVelocity(p, tx, tz, (chase ? TUNING.sprint : TUNING.speed) * this.aiPace(t), d < 1 ? 5 : 0);
         this.steer(p, w.x, w.z, dt);
         const carrier = this.owner();
         // Only the committed presser challenges: beating him creates a real
@@ -608,8 +648,8 @@ export class MatchEngine {
         if (carrier && !carrier.keeper && carrier.team !== t && p.id === r.presser
           && p.cooldown === 0 && p.think <= 0) {
           const cd = distance(p, carrier);
-          if (cd < TUNING.tackleFoot + TUNING.tackleFootR) { this.tackle(p); p.think = .7; }
-          else if (cd < 2.7 && length(carrier.vx, carrier.vz) > 7.5) { this.tackle(p, true); p.think = 1.2; }
+          if (cd < TUNING.tackleFoot + TUNING.tackleFootR) { this.tackle(p); p.think = this.aiThink(t, .7); }
+          else if (cd < 2.7 && length(carrier.vx, carrier.vz) > 7.5) { this.tackle(p, true); p.think = this.aiThink(t, 1.2); }
         }
       }
     }
@@ -655,13 +695,13 @@ export class MatchEngine {
           }
         }
       }
-      if (run) { run(); p.think = .9; return; }
-      p.think = .3;
+      if (run) { run(); p.think = this.aiThink(p.team, .9); return; }
+      p.think = this.aiThink(p.team, .3);
     }
     let dz = -p.z * .026;
     if (pressure < 4 && (near.x - p.x) * a > 0) dz += (p.z > near.z ? 1 : -1) * .65;
     const cd = direction(a, dz);
-    this.steer(p, cd.x * TUNING.speed, cd.z * TUNING.speed, dt);
+    this.steer(p, cd.x * TUNING.speed * this.aiPace(p.team), cd.z * TUNING.speed * this.aiPace(p.team), dt);
   }
   /** AI placement: away from the keeper, corner-ish near, higher far. */
   private aiShoot(p: Player, goalDistance: number) {
@@ -704,9 +744,8 @@ export class MatchEngine {
           this.pass(p, this.bestTarget(p, aim, false), false); this.keeperHold[p.team] = 0;
           this.cancelAction(p.team); return;
         }
-        if (input.through) { this.pass(p, this.bestTarget(p, aim, true), true); this.keeperHold[p.team] = 0; return; }
-        // FIFA keeper: A (Square) lob outlet, D (Circle) long clearance.
-        if (input.cross) {
+        // Arcade keeper: LONG is the long outlet/clearance (PASS stays short).
+        if (input.long) {
           this.beginAction(p.team, p.id, 'outlet-long', input);
           this.keeperKick(p, aim); this.keeperHold[p.team] = 0;
           this.cancelAction(p.team); return;
@@ -716,7 +755,7 @@ export class MatchEngine {
           this.keeperKick(p, aim); this.keeperHold[p.team] = 0;
           this.cancelAction(p.team); return;
         }
-        if (this.keeperHold[p.team] > 2.5) {
+        if (this.keeperHold[p.team] > 2) {
           if (this.keeperCmd[p.team] > 0) this.pass(p, this.bestTarget(p, aim, false), false);
           else this.keeperDecide(p, pressure, aim);
           this.keeperHold[p.team] = 0;
@@ -724,7 +763,7 @@ export class MatchEngine {
         return;
       }
       const hurried = pressure < 3.5;
-      if (this.keeperHold[p.team] > (hurried ? .28 : .6)) {
+      if (this.keeperHold[p.team] > (hurried ? .2 : .45)) {
         this.keeperDecide(p, pressure, { x: a, z: 0 });
         this.keeperHold[p.team] = 0;
       }
@@ -896,11 +935,15 @@ export class MatchEngine {
       }
       if (i.shootPressed) { this.beginAction(team, p.id, 'shot', i); setCharge(0); setCharging(p.id); }
       if (i.shootHeld && charging === p.id) setCharge(Math.min(.45, charge + dt));
-      // FIFA offense: W (Triangle) = firm through pass, A (Square) = lofted
-      // cross: immediate edge actions, one kick each, same nomination
-      // rules as the held pass.
-      if (i.through) { this.longPass(p, raw); this.cancelShot(peer); this.cancelAction(team); return; }
-      if (i.cross) { this.cross(p, raw); this.cancelShot(peer); this.cancelAction(team); return; }
+      // Arcade offense: LONG is one button for both deep balls — a lofted
+      // cross when the carrier is in the final third, a firm driven long
+      // pass otherwise. One edge, one kick, same nomination rules as pass.
+      if (i.long) {
+        const a = s.attack[team];
+        if ((p.x * a) > (L - 26)) this.cross(p, raw);
+        else this.longPass(p, raw);
+        this.cancelShot(peer); this.cancelAction(team); return;
+      }
       if ((i.shootReleased && charging === p.id) || (charging === p.id && charge >= .45)) {
         // Release without an active charge (cancelled gesture) does nothing.
         if (charging !== p.id || this.actions[team].action !== 'shot') { this.cancelShot(peer); this.cancelAction(team); return; }
@@ -920,13 +963,12 @@ export class MatchEngine {
           s.message = s.ball.y > 1.25 ? 'HEADER!' : 'FIRST TIME!'; s.messageTime = .7;
         }
       }
-      // FIFA defense: S (X) contain/pressure = standing tackle,
-      // D (Circle) = standing tackle/push-pull, W (Triangle) = rush/pressure,
-      // A (Square) = slide tackle. Every button stays live on both phases.
+      // Arcade defense: S (X) contain/pressure = standing tackle,
+      // D (Circle) = standing tackle, LONG = slide tackle.
+      // Every button stays live on both phases.
       else if (i.pass) { this.beginAction(team, p.id, 'challenge', i); this.tackle(p, false); this.cancelAction(team); }
       else if (i.shootPressed) { this.beginAction(team, p.id, 'challenge', i); this.tackle(p, false); this.cancelAction(team); }
-      else if (i.through) { this.beginAction(team, p.id, 'challenge', i); this.tackle(p, false); this.cancelAction(team); }
-      else if (i.cross) { this.beginAction(team, p.id, 'slide', i); this.tackle(p, true); this.cancelAction(team); }
+      else if (i.long) { this.beginAction(team, p.id, 'slide', i); this.tackle(p, true); this.cancelAction(team); }
     }
   }
   private cancelShot(peer = false) {
@@ -1509,7 +1551,7 @@ export class MatchEngine {
   }
   private setRestart(phase: 'throwin' | 'corner' | 'goalkick', team: TeamId, x: number, z: number) {
     const s = this.state, taker = phase === 'goalkick' ? team * 11 : this.nearest(team, { x, z }).id;
-    s.phase = phase; s.phaseTime = 0; s.restart = { team, taker, x, z, wait: .45 }; s.message = ''; s.messageTime = 0; this.restartBuf = null;
+    s.phase = phase; s.phaseTime = 0; s.restart = { team, taker, x, z, wait: .3 }; s.message = ''; s.messageTime = 0; this.restartBuf = null;
     this.placeRestart(s.restart); this.events.push({ type: 'restart', team });
   }
   private placeRestart(r: Restart) {
@@ -1539,7 +1581,7 @@ export class MatchEngine {
   }
   /**
    * Restarts: ~450ms setup, buffered human input, and a ~4s decision
-   * timeout with a deterministic safe default (short outlet). FIFA restarts:
+   * timeout with a deterministic safe default (short outlet). Arcade restarts:
    * S (X) takes it short, D (Circle) / W (Triangle) / A (Square) take it
    * long. No indefinite stalling, online or solo.
    */
@@ -1551,19 +1593,19 @@ export class MatchEngine {
     const p = s.players[r.taker], a = s.attack[r.team], phase = s.phase;
     // Any action edge counts: S short, D/W/A long. The buffer collapses all
     // long variants into `shoot` so the release logic stays two-way.
-    const edge = f.pass || f.shootPressed || f.through || f.cross;
+    const edge = f.pass || f.shootPressed || f.long;
     if (r.wait > 0) {
       // Setup window: buffer the first edge + aim so an early press is not lost.
       if (human && edge && !this.restartBuf) {
-        this.restartBuf = { pass: !!f.pass, shoot: !!(f.shootPressed || f.through || f.cross), x: f.x, z: f.z };
+        this.restartBuf = { pass: !!f.pass, shoot: !!(f.shootPressed || f.long), x: f.x, z: f.z };
       }
       return;
     }
     const buf = this.restartBuf; this.restartBuf = null;
     const pass = f.pass || !!buf?.pass;
-    const shoot = f.shootPressed || f.through || f.cross || !!buf?.shoot;
+    const shoot = f.shootPressed || f.long || !!buf?.shoot;
     // Aim comes from the live edge when one is held, else the buffered aim.
-    const liveEdge = f.pass || f.shootPressed || f.through || f.cross;
+    const liveEdge = f.pass || f.shootPressed || f.long;
     const fx = liveEdge ? f.x : (buf?.x ?? 0), fz = liveEdge ? f.z : (buf?.z ?? 0);
     if (human && !(pass || shoot) && r.wait > -4) return;
     if (!human && r.wait > -.7) return;
@@ -1594,7 +1636,7 @@ export class MatchEngine {
   }
   private kickoff(t: TeamId) {
     const s = this.state; this.resetPositions(); s.phase = 'kickoff'; s.phaseTime = 0;
-    s.restart = { team: t, taker: t * 11 + 10, x: 0, z: 0, wait: .45 }; s.message = ''; s.messageTime = 0; this.restartBuf = null;
+    s.restart = { team: t, taker: t * 11 + 10, x: 0, z: 0, wait: .3 }; s.message = ''; s.messageTime = 0; this.restartBuf = null;
     this.placeRestart(s.restart);
   }
   private resetPositions() {

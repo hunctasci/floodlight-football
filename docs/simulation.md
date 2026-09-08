@@ -43,10 +43,12 @@ FOV only (`renderer.impact`).
 
 ## Input frame and action contract
 
-`types.InputFrame`: move axes, sprint, PASS edge/hold/release, SHOOT
-press/hold/release, SWITCH edge, shot aim `aimU` (−1..1 across) / `aimV`
-(0..1 height). Legacy `through`/`cross` fields decode false and only survive
-as keeper-distribution and corner internals — no control produces them.
+`types.InputFrame` (arcade v4): move axes, sprint, PASS edge/hold/release,
+LONG edge (contextual: driven long pass, lofted cross in the final third,
+slide tackle on defence, long outlet for keepers), SHOOT press/hold/release,
+SWITCH edge, shot aim `aimU` (−1..1 across) / `aimV` (0..1 height).
+Retired v3 `through`/`cross` bits decode unset — old clients fail the
+handshake (`INPUT_VERSION`) instead of desyncing.
 
 `types.ControllerActionState` (per side, in snapshot+hash): one physical
 edge = exactly one intended action. Identity, movement and aim are captured
@@ -57,8 +59,8 @@ catch-up tick of a render frame sees edges, the rest see held state only
 (`main.ts`), and `NetDriver.stageInput` lands accumulated edges into exactly
 one tick. Covered by `tests/p0-action.test.ts`, `tests/input-mapping.test.ts`.
 
-Codec v2 (`net/codec.ts`): one frame ⇄ 6 bytes (button mask, move ×2, aim
-×2, reserved zero). `net/proto.ts` frames input/hash/snapshot/control
+Codec v4 (`net/codec.ts`): one frame ⇄ 6 bytes (button mask, move ×2, aim
+×2, LONG edge). `net/proto.ts` frames input/hash/snapshot/control
 packets; malformed input decodes to `unknown`, never throws.
 
 ## Events, snapshots, hashing

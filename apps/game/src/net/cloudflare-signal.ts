@@ -117,6 +117,11 @@ export class CloudflareSignalingClient implements SignalingClient {
     this.failAll(new SignalError('CANCELLED'));
     this.pendingJoins = [];
     this.pendingError = null;
+    // Detach lobby callbacks: late peer-joined/signaled frames from a dead
+    // socket must never drive a newer session's handshake.
+    this.onPeerSignal = null;
+    this.onPeerJoined = null;
+    this.onPeerLeft = null;
     try {
       if (this.ws && this.ws.readyState === 1) {
         try {

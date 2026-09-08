@@ -38,15 +38,15 @@ export interface InputFrame {
   passHeld: boolean;
   /** Pass button release edge. */
   passReleased: boolean;
-  /** Through-pass edge (W / Triangle): firm driven ball to a teammate. */
-  through: boolean;
-  /** Lob/cross edge (A / Square): lofted delivery into the box. */
-  cross: boolean;
+  /** Through/long-pass edge is folded into `long` (arcade v4). */
+  /** Long-pass edge (W/A, LONG button): firm driven ball upfield, or a lofted
+   *  cross when the carrier is in the final third. Slide tackle on defense. */
+  long: boolean;
   shootPressed: boolean; shootHeld: boolean; shootReleased: boolean; switchPlayer: boolean;
   /** Shot placement aim, goal-local: U = across (-1..1), V = height (0..1). */
   aimU: number; aimV: number;
 }
-export const EMPTY_INPUT: InputFrame = { x: 0, z: 0, sprint: false, pass: false, passHeld: false, passReleased: false, through: false, cross: false, shootPressed: false, shootHeld: false, shootReleased: false, switchPlayer: false, aimU: 0, aimV: 0 };
+export const EMPTY_INPUT: InputFrame = { x: 0, z: 0, sprint: false, pass: false, passHeld: false, passReleased: false, long: false, shootPressed: false, shootHeld: false, shootReleased: false, switchPlayer: false, aimU: 0, aimV: 0 };
 export type GameEvent = { type: 'kick' | 'shot' | 'tackle' | 'save' | 'post' | 'goal' | 'whistle' | 'restart'; team?: TeamId; power?: number; slide?: boolean };
 
 /** One physical input edge = exactly one intended action. Captured on

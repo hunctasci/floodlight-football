@@ -200,7 +200,7 @@ test('full six-minute match stays finite, attacks, and reaches replay-ready fina
       pass: s.phase !== 'playing' || (!owned && frames % 25 === 0) || (owned && frames % 180 === 0 && !shoot),
       shootPressed: shoot && frames % 80 === 0, shootHeld: shoot && frames % 80 < 14,
       shootReleased: shoot && frames % 80 === 14, switchPlayer: !owned && frames % 120 === 0,
-      through: owned && frames % 420 === 210, cross: s.phase === 'corner' };
+      long: (owned && frames % 420 === 210) || s.phase === 'corner' };
     g.update(DT, input);
     for (const e of g.events.splice(0)) { if (e.type === 'goal') goals++; if (e.type === 'save') saves++; if (e.type === 'shot') shots++; }
     if (frames % 60 === 0) {

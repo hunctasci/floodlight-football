@@ -598,8 +598,28 @@ export class RTCTransport implements DataTransport {
   }
 
   close() {
+    // Null every handler BEFORE closing: a stale onicecandidate/onmessage
+    // from a dead session must never fire into a newer session's signal
+    // client or driver (second-connect cross-talk).
+    try { this.pc.onicecandidate = null; } catch { /* already gone */ }
+    try { this.pc.onconnectionstatechange = null; } catch { /* already gone */ }
+    try { this.pc.oniceconnectionstatechange = null; } catch { /* already gone */ }
+    try { this.pc.onsignalingstatechange = null; } catch { /* already gone */ }
+    try { this.pc.onicegatheringstatechange = null; } catch { /* already gone */ }
+    try { this.pc.ondatachannel = null; } catch { /* already gone */ }
+    if (this.dc) {
+      try { this.dc.onopen = null; } catch { /* already gone */ }
+      try { this.dc.onclose = null; } catch { /* already gone */ }
+      try { this.dc.onmessage = null; } catch { /* already gone */ }
+      try { this.dc.onerror = null; } catch { /* already gone */ }
+    }
+    this.onmessage = null;
+    this.onstate = null;
+    this.onCandidate = null;
+    this.onPcState = null;
+    this.onIceDebug = null;
     try { this.dc?.close(); } catch { /* already gone */ }
     try { this.pc.close(); } catch { /* already gone */ }
-    this.setState('closed');
+    this._state = 'closed';
   }
 }

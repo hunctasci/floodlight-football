@@ -101,7 +101,7 @@ test('idle human restarts still leave an active AI match with repeated attacking
   for(let frame=0;frame<180/DT;frame++){
     const s=g.state, r=s.restart;
     const humanRestart=r?.team===s.humanTeam;
-    const input=humanRestart ? { pass:s.phase!=='corner', cross:s.phase==='corner', shootPressed:s.phase==='goalkick', x:s.attack[s.humanTeam], z:0 } : EMPTY_INPUT;
+    const input=humanRestart ? { pass:s.phase!=='corner', long:s.phase==='corner', shootPressed:s.phase==='goalkick', x:s.attack[s.humanTeam], z:0 } : EMPTY_INPUT;
     g.update(DT,{...EMPTY_INPUT,...input});
     if(s.phase==='halftime') break;
   }

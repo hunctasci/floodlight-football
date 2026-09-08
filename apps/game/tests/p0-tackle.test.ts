@@ -70,8 +70,8 @@ test('P0.5 standing miss recovers quickly', () => {
 test('P0.5 late slide intersection wins the ball after launch', () => {
   const { g, s, hero, victim } = duel(42, 2.6);
   victim.think = 100;
-  // FIFA defense: A (Square / cross) is the slide tackle.
-  step(g, { cross: true });
+  // Arcade defense: LONG is the slide tackle.
+  step(g, { long: true });
   assert.equal(hero.action, 'slide', 'tackler commits to the slide');
   assert.notEqual(s.ball.owner, null, 'no instant win from outside range');
   // Scripted straight-line runner head-on: isolates the swept slide capsule
@@ -92,7 +92,7 @@ test('P0.5 slide that misses the lane wins nothing', () => {
   victim.z = 4; victim.vx = victim.vz = 0;
   Object.assign(s.ball, { x: victim.x - 0.7, z: 4, owner: victim.id });
   hero.z = 0;
-  step(g, { cross: true });
+  step(g, { long: true });
   for (let i = 0; i < 60; i++) step(g, {});
   assert.equal(s.ball.owner, victim.id, 'clean slide miss keeps possession');
   assert.notEqual(hero.action, 'slide', 'slider eventually recovers');
@@ -100,7 +100,7 @@ test('P0.5 slide that misses the lane wins nothing', () => {
 
 test('P0.5 sliding player glides locked, then recovers', () => {
   const { g, s, hero } = duel(42, 2.6);
-  step(g, { cross: true });
+  step(g, { long: true });
   const x0 = hero.x;
   for (let i = 0; i < 21; i++) step(g, {});
   assert.ok(hero.x > x0 + 0.6, `slide glides forward (dx=${(hero.x - x0).toFixed(2)})`);
@@ -109,7 +109,7 @@ test('P0.5 sliding player glides locked, then recovers', () => {
   assert.equal(hero.cooldown, 0, 'commitment ends, no cinematic punishment');
 });
 
-test('P0.5 FIFA defense: D (Circle) is a standing tackle, A (Square) is the slide', () => {
+test('P0.5 arcade defense: D is a standing tackle, LONG is the slide', () => {
   // D standing: same aligned duel, Circle press lunges without sliding.
   {
     const { g, s, hero } = duel(42, 1.6);
@@ -118,24 +118,17 @@ test('P0.5 FIFA defense: D (Circle) is a standing tackle, A (Square) is the slid
     assert.notEqual(hero.action, 'slide', 'no slide from the Circle button');
     void s;
   }
-  // W (Triangle) rush: pressure lunge, never a slide, never dead.
-  {
-    const { g, hero } = duel(42, 1.6);
-    step(g, { through: true });
-    assert.equal(hero.action, 'tackle', 'W commits to a pressure challenge');
-    assert.notEqual(hero.action, 'slide', 'no slide from the Triangle button');
-  }
-  // A slide: Square press commits to the slide (covered above, asserted here).
+  // LONG slide: the long button commits to the slide (covered above, asserted here).
   {
     const { g, hero } = duel(42, 2.6);
-    step(g, { cross: true });
-    assert.equal(hero.action, 'slide', 'A commits to the slide');
+    step(g, { long: true });
+    assert.equal(hero.action, 'slide', 'LONG commits to the slide');
   }
 });
 
 test('P0.5 a knocked-down player cannot collect the ball while down', () => {
   const { g, s, hero, victim } = duel(42, 2.6);
-  step(g, { cross: true });
+  step(g, { long: true });
   let down = false;
   for (let i = 0; i < 45; i++) {
     victim.x -= 7.4 * DT; victim.z = 0; victim.vx = -7.4; victim.vz = 0;

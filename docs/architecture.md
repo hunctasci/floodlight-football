@@ -24,14 +24,14 @@ apps/game/src/
     camera.ts              # pure camera math (computeCamera/followFocus/cines)
   renderer.ts              # GameRenderer (Three.js) + re-exports of camera helpers
   ui/
-    touch-controls.ts      # touch-control DOM (stick + 3-button pad + SHOOT drag-aim)
+    touch-controls.ts      # touch-control DOM (stick + arcade 3+1 pad + SHOOT drag-aim)
   audio/
     audio.ts               # synthesised soundscape (no assets)
   render/
     camera.ts              # pure camera math (computeCamera/followFocus/cines)
   renderer.ts              # GameRenderer (Three.js) + re-exports of camera helpers
   ui/
-    touch-controls.ts      # touch-control DOM (stick + pads), driven by TouchState
+    touch-controls.ts      # touch-control DOM (stick + match pad only), driven by TouchState
   audio/
     audio.ts               # synthesised soundscape (no assets)
   league/
@@ -121,9 +121,9 @@ raw browser input → device state → InputFrame → simulation
 - `input/touch.ts`: `TouchState` + stick dead-zone/normalize + rim-sprint
   hysteresis (0.92 enter / 0.82 leave) + SHOOT drag-aim.
 - `input/input.ts`: `buildInputFrame(kb, touch, shootWasDown, carry)` —
-  arrows move, `E/Shift`/rim sprint, FIFA cluster `S` (X) pass (tap/hold),
-  `A` (Square) lob/cross, `W` (Triangle) through, `D/KeyK`/mouse (Circle)
-  shoot with reticle aim, `Space/Q` switch,
+  arrows move, `E/Shift`/rim sprint, arcade cluster `S` (X) pass (tap/hold),
+  `W`/`A` LONG (driven upfield, lofted cross in the final third),
+  `D/KeyK`/mouse (Circle) shoot with reticle aim, `Space/Q` switch,
   unified press/hold/release carry. Axes and aim quantized to the wire format.
 
 Frozen by `tests/input-mapping.test.ts`. MatchEngine never sees DOM.

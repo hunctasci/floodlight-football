@@ -6,10 +6,10 @@ export const NET_PROTO = 2;
  * Peers must agree on all three before kickoff; mismatches fail the
  * handshake gracefully instead of starting an invalid match.
  */
-export const SIM_VERSION = 2;
-export const INPUT_VERSION = 3;
+export const SIM_VERSION = 3;
+export const INPUT_VERSION = 4;
 /** Fingerprint of the canonical tuning table (see game/tuning.ts). */
-export const TUNING_FINGERPRINT = 'p0.5-challenge-geo';
+export const TUNING_FINGERPRINT = 'arcade-1-pace';
 
 /** Manual room-code envelope: base64url(JSON). Used for copy-paste SDP
  *  exchange now, and as the payload shape the F4 signal server will relay. */

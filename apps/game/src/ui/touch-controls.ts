@@ -6,10 +6,9 @@ export interface TouchControls {
   touchLayer: HTMLDivElement | null;
   stickZone: HTMLElement | null;
   stickNub: HTMLElement | null;
-  menuPad: HTMLElement | null;
   matchPad: HTMLElement | null;
   updateVisibility(screen: string): void;
-  /** Swap the action-button labels between offense and defense (FIFA). */
+  /** Swap the action-button labels between offense and defense (arcade). */
   updateOffense(offense: boolean): void;
 }
 
@@ -29,27 +28,25 @@ function bindHold(touch: TouchState, onEnable: () => void, el: Element, code: st
 }
 
 /**
- * FIFA button labels per phase, DOM-free so headless tests can pin them.
- * PlayStation shape in `sub`, action word in `main`. Codes match the
- * keyboard cluster: KeyS = X, KeyA = Square, KeyW = Triangle, KeyK = Circle.
+ * Arcade button labels per phase, DOM-free so headless tests can pin them.
+ * Three big buttons (PASS / LONG / SHOOT) plus a mini SWITCH for manual
+ * override — auto-switch otherwise follows the closest player. Codes match
+ * the keyboard cluster: KeyS = pass, KeyA = long, KeyK = shoot, KeyQ = switch.
  */
 export function touchButtonLabels(offense: boolean): {
   pass: { main: string; sub: string };
-  cross: { main: string; sub: string };
-  thru: { main: string; sub: string };
+  long: { main: string; sub: string };
   shoot: { main: string; sub: string };
 } {
   return offense
     ? {
         pass: { main: 'PASS', sub: 'X' },
-        cross: { main: 'CROSS', sub: '□' },
-        thru: { main: 'THRU', sub: '△' },
+        long: { main: 'LONG', sub: '□' },
         shoot: { main: 'SHOOT', sub: '○' },
       }
     : {
         pass: { main: 'CONTAIN', sub: 'X' },
-        cross: { main: 'SLIDE', sub: '□' },
-        thru: { main: 'RUSH', sub: '△' },
+        long: { main: 'SLIDE', sub: '□' },
         shoot: { main: 'TACKLE', sub: '○' },
       };
 }
@@ -72,34 +69,26 @@ export function setupTouchControls(
   let touchLayer: HTMLDivElement | null = null;
   let stickZone: HTMLElement | null = null;
   let stickNub: HTMLElement | null = null;
-  let menuPad: HTMLElement | null = null;
   let matchPad: HTMLElement | null = null;
 
   if (isTouchDevice) {
     touchLayer = document.createElement('div');
     touchLayer.className = 'touch';
     touchLayer.id = 'touch';
+    // Arcade match pad only: stick + 3 big buttons + mini SWITCH.
+    // Menus are tap-native (every menu item handles click directly), so the
+    // old on-screen D-pad (menu-pad) is gone — no redundant nav buttons.
     touchLayer.innerHTML = `
     <div class="stick-zone"><div class="stick-base"><div class="stick-nub"></div></div></div>
     <div class="match-pad">
       <button class="tbtn tswitch" data-code="KeyQ">SWITCH</button>
-      <button class="tbtn tthru" data-code="KeyW">THRU<small>△</small></button>
-      <button class="tbtn tcross" data-code="KeyA">CROSS<small>□</small></button>
+      <button class="tbtn tlong" data-code="KeyA">LONG<small>□</small></button>
       <button class="tbtn tpass" data-code="KeyS">PASS<small>X</small></button>
       <button class="tbtn tshoot" data-code="KeyK">SHOOT<small>○</small></button>
-    </div>
-    <div class="menu-pad">
-      <button class="tbtn mup" data-code="ArrowUp">▲</button>
-      <button class="tbtn mleft" data-code="ArrowLeft">◀</button>
-      <button class="tbtn mok" data-code="Enter">OK</button>
-      <button class="tbtn mright" data-code="ArrowRight">▶</button>
-      <button class="tbtn mdown" data-code="ArrowDown">▼</button>
-      <button class="tbtn mback" data-code="Escape">BACK</button>
     </div>`;
     app.append(touchLayer);
     stickZone = touchLayer.querySelector('.stick-zone') as HTMLElement;
     stickNub = touchLayer.querySelector('.stick-nub') as HTMLElement;
-    menuPad = touchLayer.querySelector('.menu-pad') as HTMLElement;
     matchPad = touchLayer.querySelector('.match-pad') as HTMLElement;
     touchLayer
       .querySelectorAll('button[data-code]')
@@ -182,8 +171,7 @@ export function setupTouchControls(
       if (b) b.innerHTML = html;
     };
     set(TOUCH_BUTTONS.pass, labelHTML(L.pass));
-    set(TOUCH_BUTTONS.cross, labelHTML(L.cross));
-    set(TOUCH_BUTTONS.thru, labelHTML(L.thru));
+    set(TOUCH_BUTTONS.long, labelHTML(L.long));
     set(TOUCH_BUTTONS.shoot, labelHTML(L.shoot));
   };
 
@@ -191,14 +179,12 @@ export function setupTouchControls(
     touchLayer,
     stickZone,
     stickNub,
-    menuPad,
     matchPad,
     updateVisibility(screen: string) {
-      if (!touchLayer || !menuPad || !matchPad || !stickZone) return;
+      if (!touchLayer || !matchPad || !stickZone) return;
       const inMatch = screen === 'match';
       matchPad.classList.toggle('hidden', !inMatch);
       stickZone.classList.toggle('hidden', !inMatch);
-      menuPad.classList.toggle('hidden', inMatch);
     },
     updateOffense(offense: boolean) {
       applyLabels(offense);

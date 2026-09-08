@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="128" viewBox="0 0 1024 128">
+  <rect x="0" y="0" width="1024" height="128" fill="#0A66C2"/>
+  <rect x="0" y="0" width="1024" height="10" fill="#FFFFFF" opacity="0.10"/>
+  <rect x="0" y="120" width="1024" height="8" fill="#000000" opacity="0.35"/>
+  <rect x="28" y="22" width="84" height="84" rx="14" fill="#FFFFFF"/>
+  <text x="70" y="68" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-weight="900" font-size="56" fill="#0A66C2">in</text>
+  <text x="136" y="56" font-family="Arial, sans-serif" font-weight="900" font-size="52" fill="#FFFFFF">LinkedIn</text>
+  <text x="138" y="96" font-family="Arial, sans-serif" font-weight="500" font-size="34" fill="#FFFFFF" opacity="0.85">/in/hunctasci</text>
+  <rect x="824" y="34" width="170" height="60" rx="30" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+  <text x="909" y="65" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-weight="900" font-size="30" fill="#FFFFFF">CONNECT</text>
+</svg>

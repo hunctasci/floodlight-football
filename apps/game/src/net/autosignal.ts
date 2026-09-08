@@ -80,6 +80,11 @@ export class AutoSignal implements SignalingClient {
 
   close(): void {
     this.failAll(new SignalError('CANCELLED'));
+    // Detach lobby callbacks: late frames from a dead socket must never
+    // drive a newer session's handshake (second-connect cross-talk).
+    this.onPeerSignal = null;
+    this.onPeerJoined = null;
+    this.onPeerLeft = null;
     try { this.ws?.close(); } catch { /* already gone */ }
     this.ws = null;
   }

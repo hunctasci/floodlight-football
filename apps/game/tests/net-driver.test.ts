@@ -188,6 +188,39 @@ test('handshake timeout errors when the peer never opens', () => {
   assert.equal(d.state, 'closed');
 });
 
+test('early half-time signal is remembered, not dropped (fast host, slow guest)', () => {
+  const [ta, tb] = LoopbackTransport.pair();
+  const host = new NetDriver(ta, { host: true, duration: 20 });
+  const guest = new NetDriver(tb, { host: false, duration: 20 });
+  ta.open(); tb.open();
+  host.setReady(); guest.setReady();
+  const he = host.session!.engine, ge = guest.session!.engine;
+  for (const e of [he, ge]) { e.state.phase = 'playing'; e.state.phaseTime = 0; e.state.restart = null; }
+  // Guest still playing half 1 while the host already continued.
+  he.state.elapsed = he.state.halfDuration;
+  he.update(1 / 60, { ...EMPTY_INPUT });
+  assert.equal(he.state.phase, 'halftime', 'host reached halftime');
+  assert.equal(ge.state.phase, 'playing', 'guest still playing');
+  he.continueHalf();
+  host.broadcastHalf();
+  // Signal arrived early: guest engine untouched, still playing.
+  assert.equal(ge.state.phase, 'playing', 'early signal does not disturb live play');
+  // Guest reaches the boundary on its own time; the next pumped frame
+  // consumes the remembered signal — no stuck HALF TIME. (Both sides keep
+  // framing so lockstep inputs keep flowing, as in a live match.)
+  ge.state.elapsed = ge.state.halfDuration;
+  for (let f = 0; f < 120 && (ge.state.phase as string) !== 'halftime'; f++) {
+    host.frame({ ...EMPTY_INPUT }, 1 / 60);
+    guest.frame({ ...EMPTY_INPUT }, 1 / 60);
+  }
+  assert.equal(ge.state.phase, 'halftime');
+  host.frame({ ...EMPTY_INPUT }, 1 / 60);
+  guest.frame({ ...EMPTY_INPUT }, 1 / 60);
+  assert.equal(ge.state.phase, 'kickoff', 'remembered signal continues the guest');
+  assert.equal(ge.state.half, 2);
+  host.close(); guest.close();
+});
+
 test('host-driven half-time converges via broadcast plus resync healing', () => {
   const [ta, tb] = LoopbackTransport.pair();
   const host = new NetDriver(ta, { host: true, duration: 20 });

@@ -44,10 +44,10 @@ test('keeper long kick on D follows aim', () => {
   assert.ok(s.ball.vx > 10, `long kick travels forward (vx=${s.ball.vx.toFixed(1)})`);
 });
 
-test('keeper through ball on W (Triangle)', () => {
+test('keeper long outlet on LONG', () => {
   const { g, s } = keeperSetup();
-  tick(g, DT, { x: 1, z: 0, through: true });
-  assert.equal(s.ball.flight, 'through');
+  tick(g, DT, { x: 1, z: 0, long: true });
+  assert.equal(s.ball.flight, 'cross');
 });
 
 test('pressing forward cannot camp inside the keeper cylinder or steal the ball', () => {

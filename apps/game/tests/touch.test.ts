@@ -56,27 +56,23 @@ test('analog sprint engages only at the stick rim', () => {
   releaseStick(t); assert.equal(stickSprint(t), false, 'released stick never sprints');
 });
 
-test('FIFA cluster codes match the keyboard (KeyS/KeyA/KeyW/KeyK)', () => {
+test('arcade cluster codes match the keyboard (KeyS/KeyA/KeyK/KeyQ)', () => {
   assert.equal(TOUCH_BUTTONS.pass, 'KeyS');
-  assert.equal(TOUCH_BUTTONS.cross, 'KeyA');
-  assert.equal(TOUCH_BUTTONS.thru, 'KeyW');
+  assert.equal(TOUCH_BUTTONS.long, 'KeyA');
   assert.equal(TOUCH_BUTTONS.shoot, 'KeyK');
   assert.equal(TOUCH_BUTTONS.switch, 'KeyQ');
 });
 
-test('FIFA labels swap offense/defense with PlayStation shapes', () => {
+test('arcade labels swap offense/defense (3 buttons + mini switch)', () => {
   const off = touchButtonLabels(true);
   assert.equal(off.pass.main, 'PASS');
-  assert.equal(off.cross.main, 'CROSS');
-  assert.equal(off.thru.main, 'THRU');
+  assert.equal(off.long.main, 'LONG');
   assert.equal(off.shoot.main, 'SHOOT');
   const def = touchButtonLabels(false);
   assert.equal(def.pass.main, 'CONTAIN');
-  assert.equal(def.cross.main, 'SLIDE');
-  assert.equal(def.thru.main, 'RUSH');
+  assert.equal(def.long.main, 'SLIDE');
   assert.equal(def.shoot.main, 'TACKLE');
   assert.equal(def.pass.sub, 'X');
-  assert.equal(def.cross.sub, '□');
-  assert.equal(def.thru.sub, '△');
+  assert.equal(def.long.sub, '□');
   assert.equal(def.shoot.sub, '○');
 });

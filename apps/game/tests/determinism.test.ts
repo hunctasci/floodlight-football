@@ -15,8 +15,7 @@ function driveOpen(frame: number): { input: InputFrame; peer: InputFrame } {
       z: frame % 90 < 45 ? 0.3 : -0.3,
       sprint: frame % 3 === 0,
       pass: frame % 200 === 60,
-      through: frame % 250 === 120,
-      cross: false,
+      long: frame % 250 === 120,
       shootPressed: frame % 260 === 200,
       shootHeld: frame % 260 >= 200 && frame % 260 < 210,
       shootReleased: frame % 260 === 210,
@@ -28,7 +27,7 @@ function driveOpen(frame: number): { input: InputFrame; peer: InputFrame } {
       z: frame % 80 < 40 ? -0.2 : 0.2,
       sprint: frame % 4 === 0,
       pass: frame % 180 === 40,
-      through: frame % 230 === 100,
+      long: frame % 230 === 100,
       shootPressed: false,
       shootHeld: false,
       shootReleased: false,
@@ -44,7 +43,7 @@ function restartKick(g: MatchEngine): { input: Partial<InputFrame>; peer: Partia
   const phase = g.state.phase;
   if (r.team === 0) {
     return {
-      input: { pass: true, x: 1, z: 0, cross: phase === 'corner' },
+      input: { pass: true, x: 1, z: 0, long: phase === 'corner' },
       peer: {},
     };
   }

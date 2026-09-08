@@ -57,7 +57,7 @@ export function setStick(t: TouchState, x: number, z: number) {
 export function releaseStick(t: TouchState) { t.stickX = 0; t.stickZ = 0; }
 
 /**
- * Analog sprint (FIFA Mobile-style): pushing the stick to its rim sprints,
+ * Analog sprint (arcade): pushing the stick to its rim sprints,
  * no sprint button needed. Hysteresis: enter at ~0.92, stay until below
  * ~0.82, so steering near the rim never flickers. Pass the previous result
  * (`wasSprint`) back in each frame.
@@ -75,15 +75,15 @@ export function resetTouch(t: TouchState) {
   t.stickX = 0; t.stickZ = 0; t.aimU = 0; t.aimV = 0;
 }
 
-/** Button code map for the on-screen match controls: the FIFA action cluster
- *  (PASS / CROSS / THRU / SHOOT) plus SWITCH. Codes match the keyboard
- *  (KeyS/KeyA/KeyW/KeyK/KeyQ) so the sim sees one unified namespace.
- *  Sprint lives on the joystick rim; lead passes come from holding PASS. */
+/** Button code map for the on-screen match controls: the arcade cluster
+ *  (PASS / LONG / SHOOT) plus a mini SWITCH. Codes match the keyboard
+ *  (KeyS/KeyA/KeyK/KeyQ) so the sim sees one unified namespace.
+ *  W is a keyboard alias for LONG; sprint lives on the joystick rim;
+ *  lead passes come from holding PASS. */
 export const TOUCH_BUTTONS = {
   shoot: 'KeyK',
   pass: 'KeyS',
-  cross: 'KeyA',
-  thru: 'KeyW',
+  long: 'KeyA',
   switch: 'KeyQ',
 } as const;
 

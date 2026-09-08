@@ -20,25 +20,25 @@ One controlled footballer per human. The same three ideas on both devices:
 | Sprint | E / Shift | Push the stick to the rim (latches until ~0.82) |
 | Switch defender | Space (Q works too) | SWITCH button |
 | Pass (X) / contain | S, tap = feet, hold = into space | PASS / CONTAIN button (label follows possession) |
-| Lob pass / cross (Square) / slide tackle | A — lofted delivery into the box | CROSS / SLIDE button |
+| Long (□) / slide tackle | W or A — firm driven ball upfield; lofted cross in the final third | LONG / SLIDE button |
 | Shoot (Circle) / standing tackle | D, tap or hold — quick finish on your facing (or hold LMB, drag to aim, release) | SHOOT / TACKLE button (hold + drag to aim) |
-| Through pass (Triangle) / rush | W — firm driven ball to a teammate | THRU / RUSH button |
 | Camera / pause | C / Esc | HUD chip / scoreboard |
 
-On defence (FIFA): S (X) = contain/pressure, D (Circle) = standing tackle,
-A (Square) = slide tackle, W (Triangle) = rush/pressure, Space = switch.
-As keeper, S = short outlet, W = through outlet, A/D = long clearance. There are no finesse or
-sprint-modified shot variants — see Shooting. There is no stamina meter:
-sprint already costs through longer touches and heavier turning.
+On defence: S (X) = contain/pressure, D (Circle) = standing tackle,
+LONG = slide tackle, Space = switch (auto-switch otherwise follows the
+closest defender while you are not steering). As keeper, S = short outlet,
+LONG/D = long clearance. There are no finesse or sprint-modified shot
+variants — see Shooting. There is no stamina meter: sprint already costs
+through longer touches and heavier turning.
 
-Default match: 90-second halves, ~1.5 s auto-halftime, quick result screen
-with rematch first.
+Default match: 1-minute halves (2-minute match, CPU PRO), ~2.5 s
+auto-halftime, quick result screen with rematch first. Lengths 1/2/3/5 min
+halves and CPU ROOKIE/PRO/LEGEND on the team screen. No fouls, no offside —
+fast Haxball-style flow.
 
 ## Movement
 
-Responsive arcade running: 7.4 m/s, sprint 9.2 m/s (1.24×), ~143 ms to 95%
-speed, ~120 ms to a stop, ~183 ms to reverse, ~244 ms to reverse at full
-sprint. Analog deflection scales speed smoothly from the dead zone — a small
+Responsive arcade running: 7.4 m/s, sprint 9.8 m/s, snappy accel/braking. Analog deflection scales speed smoothly from the dead zone — a small
 deflection really walks. Facing turns toward the run (~17/s rate).
 
 ## Possession and first touch
@@ -141,10 +141,10 @@ No ball-chasing pile. Each side holds persistent roles with ~20% hysteresis
 
 ## Restarts
 
-~450 ms setup, your early input is buffered, and a ~4 s timeout takes a safe
+~300 ms setup, your early input is buffered, and a ~4 s timeout takes a safe
 short default so nobody stalls (online included). S (X) = short,
-D (Circle) / W (Triangle) / A (Square) = long (corners, goal kicks);
-throw-ins and kickoffs play short to a chosen outlet.
+D / LONG = long (corners, goal kicks); throw-ins and kickoffs play short
+to a chosen outlet.
 
 ## Readability checklist (the playtest gate)
 

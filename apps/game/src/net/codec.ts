@@ -1,17 +1,19 @@
 import { EMPTY_INPUT, type InputFrame } from '../types';
 
 /**
- * Lockstep wire codec, version 3: one InputFrame <-> 6 bytes.
+ * Lockstep wire codec, version 4 (arcade): one InputFrame <-> 6 bytes.
  * Byte 0: button bitmask — bit0 sprint, bit1 pass(edge), bit2 passHeld,
  *   bit3 passReleased, bit4 shootPressed, bit5 shootHeld, bit6 shootReleased,
  *   bit7 switchPlayer.
  * Bytes 1-2: signed int8 stick axes (x/z * 100).
  * Bytes 3-4: signed int8 shot aim (aimU * 100, aimV * 100).
- * Byte 5: bit0 long-pass edge (A), bit1 cross edge (W); other bits reserved.
+ * Byte 5: bit0 LONG edge (W/A button). Bits 1-2 are the retired v3
+ *   through/cross edges: still parsed as unset, never set by v4 peers.
  *
  * Desktop schema: arrows move, Space switch, S pass (tap/feet, hold/lead),
- * A long pass, D/KeyK/mouse shoot, W cross, E/Shift rim sprint. Analog
- * magnitude and aim survive within half a percent — identical on both peers.
+ * W/A long pass (driven upfield, lofted cross in the final third),
+ * D/KeyK/mouse shoot, E/Shift rim sprint. Analog magnitude and aim survive
+ * within half a percent — identical on both peers.
  */
 export const INPUT_BYTES = 6;
 
@@ -38,7 +40,7 @@ export function encodeInput(f: InputFrame): Uint8Array {
   out[2] = q(f.z) & 0xff;
   out[3] = q(f.aimU) & 0xff;
   out[4] = q(f.aimV) & 0xff;
-  out[5] = (f.through ? 1 : 0) | (f.cross ? 2 : 0);
+  out[5] = f.long ? 1 : 0;
   return out;
 }
 
@@ -59,7 +61,6 @@ export function decodeInput(b: Uint8Array): InputFrame {
     z: s8(b[2]),
     aimU: s8(b[3]),
     aimV: s8(b[4]),
-    through: !!(b[5] & 1),
-    cross: !!(b[5] & 2),
+    long: !!(b[5] & 1),
   };
 }

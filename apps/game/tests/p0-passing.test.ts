@@ -163,7 +163,7 @@ test('P0.3 no automatic switch while defending without input', () => {
   assert.equal(s.controlled, defender.id, 'manually positioned defender is not stolen');
 });
 
-test('P0.3 W (Triangle) is a firm through pass: one edge, one flat kick, same nomination rules', () => {
+test('P0.3 LONG is a firm driven pass from deep: one edge, one flat kick, same nomination rules', () => {
   const { g, s, p } = sandbox(700);
   const mate = s.players.find((q) => q.team === 0 && !q.keeper && q.id !== p.id)!;
   mate.x = 22; mate.z = -2; mate.vx = mate.vz = 0;
@@ -171,7 +171,7 @@ test('P0.3 W (Triangle) is a firm through pass: one edge, one flat kick, same no
     x: 0.7, y: FIELD.ballRadius, z: 0, vx: 0, vy: 0, vz: 0,
     owner: p.id, lastTouch: p.team, lock: 0, lastKicker: null, flight: 'roll',
   });
-  step(g, { x: 1, z: 0, through: true });
+  step(g, { x: 1, z: 0, long: true });
   assert.equal(s.ball.owner, null, 'long pass released immediately');
   assert.equal(s.ball.flight, 'pass', 'long stays flat, not a lob');
   const speed = Math.hypot(s.ball.vx, s.ball.vz);
@@ -180,7 +180,7 @@ test('P0.3 W (Triangle) is a firm through pass: one edge, one flat kick, same no
   assert.equal(s.controlled, p.id, 'control stays until reception');
 });
 
-test('P0.3 A (Square) is a lofted cross into the box from wide areas', () => {
+test('P0.3 LONG is a lofted cross from the final third', () => {
   const { g, s, p } = sandbox(701);
   p.x = 27; p.z = 21; p.facingX = 1; p.facingZ = 0;
   Object.assign(s.ball, {
@@ -188,7 +188,7 @@ test('P0.3 A (Square) is a lofted cross into the box from wide areas', () => {
     owner: p.id, lastTouch: p.team, lock: 0, lastKicker: null, flight: 'roll',
   });
   for (const q of s.players) if (q.team === 0 && !q.keeper && q.id !== p.id) { q.x = 30; q.z = (q.id % 2 ? 7 : -7); }
-  step(g, { x: 1, z: -1, cross: true });
+  step(g, { x: 1, z: -1, long: true });
   assert.equal(s.ball.owner, null, 'cross released immediately');
   assert.equal(s.ball.flight, 'cross');
   assert.ok(s.ball.vy > 3, 'cross has loft');

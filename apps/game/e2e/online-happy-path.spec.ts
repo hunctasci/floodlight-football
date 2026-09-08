@@ -225,6 +225,73 @@ test('E2E 4 — third browser session is rejected with ROOM IS FULL', async ({ b
   }
 });
 
+test('E2E 6 — second session after quitting a started match (reconnect)', async ({ browser }) => {
+  test.setTimeout(240_000);
+  const { host, guest, close } = await newIsolatedPages(browser);
+  const errs = { errors: [] as string[], failed: [] as string[] };
+  attachErrorCollectors(host, 'host', errs);
+  attachErrorCollectors(guest, 'guest', errs);
+  try {
+    // FIRST SESSION: reach a started match through the real UI.
+    await openOnlineMenu(host, { e2e: true });
+    const first = await createFriendRoom(host);
+    await guest.goto(first.inviteUrl);
+    await waitForReadyLobby(host, 45_000);
+    await waitForReadyLobby(guest, 45_000);
+    await setReady(host);
+    await setReady(guest);
+    await waitForMatch(host, 30_000);
+    await waitForMatch(guest, 30_000);
+    const tick0 = (await testState(host)).tick;
+    expect(tick0).toBeGreaterThanOrEqual(0);
+
+    // Host quits to the title from pause; the guest follows via peer-quit.
+    // No page reloads from here on: the second handshake must work in the
+    // same page lifetime (stale transports/drivers must be fully detached).
+    await host.keyboard.press('Escape');
+    await expect(host.getByText('MATCH PAUSED').first()).toBeVisible({ timeout: 10_000 });
+    await host.getByText('MAIN MENU').first().click();
+    await expect(host.getByText('ONLINE MATCH').first()).toBeVisible({ timeout: 10_000 });
+    await expect(guest.getByText('ONLINE MATCH').first()).toBeVisible({ timeout: 20_000 });
+
+    // SECOND SESSION: brand-new room, same pages, all the way to kickoff.
+    await host.getByText('ONLINE MATCH').first().click();
+    await expect(host.getByText('PLAY WITH A FRIEND').first()).toBeVisible({ timeout: 10_000 });
+    await host.getByText('PLAY WITH A FRIEND').first().click();
+    await expect(host.getByTestId('invite-url')).toBeVisible({ timeout: 15_000 });
+    const room2 = (await host.getByTestId('room-code').textContent())?.trim() ?? '';
+    expect(room2).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
+    expect(room2).not.toBe(first.roomCode);
+    await guest.getByText('ONLINE MATCH').first().click();
+    await expect(guest.getByText('JOIN WITH CODE').first()).toBeVisible({ timeout: 10_000 });
+    await joinWithCode(guest, room2);
+    await waitForReadyLobby(host, 45_000);
+    await waitForReadyLobby(guest, 45_000);
+    const h2 = await peerIds(host);
+    const g2 = await peerIds(guest);
+    expect(h2.room).toBe(room2);
+    expect(g2.room).toBe(room2);
+    expect(h2.mine).not.toBe(g2.mine);
+    await setReady(host);
+    await setReady(guest);
+    await waitForMatch(host, 30_000);
+    await waitForMatch(guest, 30_000);
+    await playInputBurst(host, 'move');
+    await playInputBurst(guest, 'move');
+    const a = await testState(host);
+    const b = await testState(guest);
+    expect(a.tick).toBeGreaterThan(0);
+    expect(Math.abs(a.tick - b.tick)).toBeLessThanOrEqual(30);
+    assertNoBadErrors(errs.errors, errs.failed);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log(await dumpBoth(host, guest).catch(() => 'no state'));
+    throw e;
+  } finally {
+    await close();
+  }
+});
+
 test('E2E 5 — host cancel and friend-left produce clean states', async ({ browser }) => {
   const { host, guest, close } = await newIsolatedPages(browser);
   try {
