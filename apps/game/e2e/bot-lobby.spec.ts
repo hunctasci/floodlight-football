@@ -30,6 +30,7 @@ test('full-time country result offers native sharing and scorecard download', as
   await page.setViewportSize({ width: 640, height: 480 });
   await page.addInitScript(() => {
     localStorage.setItem('floodlight-consent', 'denied');
+    Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => true });
     Object.defineProperty(navigator, 'share', { configurable: true, value: async (data: unknown) => { (window as any).sharedResult = data; } });
   });
   // Short assignment isolates the sharing UI; server replay validation is tested separately.
@@ -49,12 +50,27 @@ test('full-time country result offers native sharing and scorecard download', as
   await page.getByTestId('find-match').click();
   await expect(page.getByTestId('share-result')).toBeVisible({ timeout: 60000 });
   await page.getByTestId('share-result').click();
-  const shared = await page.evaluate(() => (window as any).sharedResult);
-  expect(shared.text).toContain('Türkiye');
-  expect(shared.text).toContain('Brazil');
-  expect(shared.url).toMatch(/^http:\/\/127.0.0.1:5197\/$/);
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'POST 4:5' })).toHaveAttribute('aria-pressed', 'true');
   const download = page.waitForEvent('download');
-  await page.getByText('SAVE / SHARE SCORECARD', { exact: true }).click();
-  expect((await download).suggestedFilename()).toBe('hnc-league-result.png');
+  await page.getByTestId('download-share-card').click();
+  const saved = await download;
+  expect(saved.suggestedFilename()).toBe('hnc-league-feed.png');
+  await saved.saveAs('/tmp/hnc-new-feed.png');
+  await page.getByRole('button', { name: 'STORY 9:16' }).click();
+  const storyDownload = page.waitForEvent('download');
+  await page.getByTestId('download-share-card').click();
+  const story = await storyDownload;
+  expect(story.suggestedFilename()).toBe('hnc-league-story.png');
+  await story.saveAs('/tmp/hnc-new-story.png');
+  await page.getByRole('button', { name: 'SHARE CARD ↗', exact: true }).click();
+  const shared = await page.evaluate(() => ({ text: (window as any).sharedResult.text, name: (window as any).sharedResult.files[0].name }));
+  expect(shared.text).toContain('Türkiye');
+  expect(shared.name).toBe('hnc-league-story.png');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByTestId('download-share-card')).toBeInViewport();
+  await page.screenshot({ path: '/tmp/hnc-share-studio-mobile.png' });
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).not.toBeVisible();
   await page.screenshot({ path: '/tmp/hnc-result-sharing.png' });
 });

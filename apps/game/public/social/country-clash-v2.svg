@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<defs><pattern id="grain" width="24" height="24" patternUnits="userSpaceOnUse"><path d="M0 0l24 24" stroke="#ffffff" stroke-opacity=".04"/></pattern></defs>
+<rect width="1200" height="630" fill="#111e30"/><rect width="1200" height="630" fill="url(#grain)"/><rect x="24" y="24" width="1152" height="582" fill="none" stroke="#ffffff" stroke-opacity=".18"/>
+<path d="M52 56h12v32H52zm18 0h12v21H70z" fill="#ffce45"/><text x="98" y="81" fill="#f7f1df" font-family="Arial,sans-serif" font-size="28" font-weight="700">HNC LEAGUE</text><text x="1145" y="80" fill="#adb9bd" font-family="Arial,sans-serif" font-size="18" text-anchor="end">COUNTRY CLASH / 1V1</text>
+<text x="52" y="214" fill="#f7f1df" font-family="Impact,Arial Narrow,sans-serif" font-weight="900" font-size="100">YOUR COUNTRY.</text><text x="52" y="323" fill="#ffce45" font-family="Impact,Arial Narrow,sans-serif" font-weight="900" font-size="100">YOUR NEXT RIVAL.</text>
+<text x="56" y="381" fill="#f7f1df" font-family="Arial,sans-serif" font-size="25">Win the match. Move your country up the world table.</text>
+<rect x="56" y="427" width="1088" height="83" fill="#ffce45"/><text x="82" y="481" fill="#111e30" font-family="Arial,sans-serif" font-weight="800" font-size="28">THINK YOU CAN DO YOUR COUNTRY PROUD?</text><path d="M1087 477l28-28m-25 0h25v25" fill="none" stroke="#111e30" stroke-width="4"/>
+<text x="56" y="568" fill="#f7f1df" font-family="Arial,sans-serif" font-size="28" font-weight="700">HNCLEAGUE.COM</text><text x="1144" y="568" fill="#adb9bd" font-family="Arial,sans-serif" font-size="20" font-weight="700" text-anchor="end">FREE FOOTBALL. REAL RIVALRIES.</text>
+</svg>

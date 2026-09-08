@@ -1,3 +1,4 @@
+import { renderShareCard, type ShareCardData, type CardFormat } from './share/card';
 import type { BotAssignment } from './city-league/bot-match';
 import { encodeInput, decodeInput } from './net/codec';
 import { RoomTransport } from './net/room-transport';
@@ -312,26 +313,42 @@ async function shareCountryResult(copyOnly = false) {
   menuDirty = true;
 }
 function shareResult(){
-  const s=engine.state,my=s.teams[0],opp=s.teams[1];
-  const c=document.createElement('canvas');c.width=1000;c.height=525;
-  const x=c.getContext('2d')!;x.textAlign='center';
-  x.fillStyle='#0c1f14';x.fillRect(0,0,1000,525);
-  x.fillStyle='#f8efdb';x.font='bold 26px monospace';x.fillText(dailyMode?'HNC LEAGUE · DAILY CUP':'HNC LEAGUE · COUNTRY CLASH',500,70);
-  x.fillStyle=my.color;x.fillRect(130,110,44,44);x.fillStyle=opp.color;x.fillRect(826,110,44,44);
-  x.fillStyle='#f8efdb';x.font='bold 34px monospace';
-  x.fillText(my.name.toUpperCase(),280,142,340);x.fillText(opp.name.toUpperCase(),720,142,340);
-  x.font='bold 110px monospace';x.fillText(`${s.score[0]} – ${s.score[1]}`,500,265);
-  x.font='bold 24px monospace';x.fillStyle='#9fd7b2';
-  const pos=Math.round(s.stats.possession[0]/Math.max(1,s.stats.possession[0]+s.stats.possession[1])*100);
-  x.fillText(`SHOTS ${s.stats.shots[0]}–${s.stats.shots[1]}   SAVES ${s.stats.saves[0]}–${s.stats.saves[1]}   BALL ${pos}%`,500,330);
-  if(dailyMode)x.fillText(`DAILY BEST ${Math.max(getDailyBest(),s.score[0])}`,500,385);
-  x.fillStyle='#6f8f7c';x.font='22px monospace';x.fillText('PLAY FOR YOUR COUNTRY · HNCLEAGUE.COM',500,470,900);
-  c.toBlob((blob)=>{
-    if(!blob)return;
-    const file=new File([blob],'hnc-league-result.png',{type:'image/png'});
-    if(navigator.canShare?.({files:[file]}))void navigator.share({files:[file],title:'HNC League',text:resultShareText(),url:publicGameUrl}).catch(()=>{});
-    else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hnc-league-result.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);}
-  });
+  if (document.querySelector('.share-studio')) return;
+  const s=engine.state, mine=viewTeam, rival=mine===0?1:0;
+  const friendly=!cityMatch || cityMatch.homeCity===cityMatch.awayCity;
+  const points=cityResult.status==='confirmed'&&!friendly ? (s.score[mine]>s.score[rival]?3:s.score[mine]===s.score[rival]?1:0) : null;
+  const data:ShareCardData={mine:s.teams[mine],rival:s.teams[rival],myScore:s.score[mine],rivalScore:s.score[rival],myShots:s.stats.shots[mine],rivalShots:s.stats.shots[rival],points,friendly};
+  const priorFocus=document.activeElement as HTMLElement|null;
+  const modal=document.createElement('dialog');modal.className='share-studio';modal.setAttribute('aria-labelledby','share-studio-title');
+  modal.innerHTML=`<div class="share-studio-head"><div><div class="eyebrow">TAKE THE RIVALRY WITH YOU</div><h2 id="share-studio-title">Make the group chat interesting.</h2></div><button class="share-close" aria-label="Close share preview">×</button></div><div class="share-formats" role="group" aria-label="Card format"><button data-format="feed" aria-pressed="true">POST <small>4:5</small></button><button data-format="story" aria-pressed="false">STORY <small>9:16</small></button></div><div class="share-card-preview"></div><div class="share-studio-actions"><button data-share-save data-testid="download-share-card">DOWNLOAD CARD ↓</button><button data-share-send>SHARE CARD ↗</button></div><p class="share-feedback" role="status">Your country. Your score. Your bragging rights.</p>`;
+  document.body.appendChild(modal);
+  let format:CardFormat='feed',file:File|null=null,revision=0;
+  const save=modal.querySelector<HTMLButtonElement>('[data-share-save]')!,send=modal.querySelector<HTMLButtonElement>('[data-share-send]')!;
+  const feedback=modal.querySelector<HTMLElement>('.share-feedback')!;
+  function render() {
+    const version=++revision;file=null;save.disabled=send.disabled=true;
+    const canvas=renderShareCard(data,format);canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`${data.mine.name} ${data.myScore}, ${data.rival.name} ${data.rivalScore} — ${format} share card`);
+    modal.querySelector('.share-card-preview')!.replaceChildren(canvas);
+    canvas.toBlob(blob=>{if(!blob||version!==revision)return;file=new File([blob],`hnc-league-${format}.png`,{type:'image/png'});save.disabled=send.disabled=false;});
+    modal.querySelectorAll<HTMLButtonElement>('[data-format]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.format===format)));
+  }
+  function close(){modal.close();modal.remove();priorFocus?.focus();}
+  modal.querySelector('.share-close')!.addEventListener('click',close);
+  modal.addEventListener('cancel',e=>{e.preventDefault();close();});
+  modal.addEventListener('keydown',e=>e.stopPropagation());
+  modal.addEventListener('click',e=>{if(e.target===modal)close();});
+  modal.querySelectorAll<HTMLButtonElement>('[data-format]').forEach(b=>b.onclick=()=>{format=b.dataset.format as CardFormat;render();});
+  save.onclick=()=>{
+    if(!file)return;const url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
+    feedback.textContent='Saved. Add it to your next post or story.';
+  };
+  send.onclick=()=>{
+    if(!file)return;
+    if(navigator.canShare?.({files:[file]})) {
+      void navigator.share({files:[file],title:'HNC League',text:resultShareText(),url:publicGameUrl}).catch(error=>{if(error?.name!=='AbortError')feedback.textContent='Sharing unavailable. Download the card instead.';});
+    } else { save.click(); feedback.textContent='Card downloaded. Attach it to your post or story.'; }
+  };
+  render();modal.showModal();modal.querySelector<HTMLButtonElement>('.share-close')!.focus();
 }
 /** Enter an online match once the driver's handshake completes. */
 function launchBot(assignment: BotAssignment) {
@@ -684,7 +701,7 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
       const items=['PLAY NEXT MATCH','CHALLENGE A FRIEND','WORLD TABLE','LOBBY'];
       panel(`<div class="eyebrow">FULL TIME</div><div class="title tlg" data-testid="fulltime-title">FULL TIME</div>`
         + `<div class="subtitle" data-testid="fulltime-score">${homeC} ${s.score[0]} – ${s.score[1]} ${awayC}</div>${cityLine}`
-        + `<button class="menu-item netbtn lobby-play" data-act="share-result" data-testid="share-result">SHARE YOUR RESULT →</button><div class="lobby-secondary"><button class="menu-item netbtn" data-act="result-whatsapp">WHATSAPP</button><button class="menu-item netbtn" data-act="result-copy">COPY RESULT LINK</button></div><button class="menu-item netbtn" data-act="result-x">POST ON X</button><button class="menu-item netbtn" data-act="result-card">SAVE / SHARE SCORECARD</button>${resultShareNote ? `<div class="hint" role="status">${resultShareNote}</div>` : ''}`
+        + `<button class="menu-item netbtn lobby-play" data-act="share-result" data-testid="share-result">SHARE YOUR RESULT →</button><div class="lobby-secondary"><button class="menu-item netbtn" data-act="result-whatsapp">WHATSAPP</button><button class="menu-item netbtn" data-act="result-copy">COPY RESULT LINK</button></div><button class="menu-item netbtn" data-act="result-x">POST ON X</button><button class="menu-item netbtn" data-act="result-card">PREVIEW SHARE CARD</button>${resultShareNote ? `<div class="hint" role="status">${resultShareNote}</div>` : ''}`
         + `<div class="statline"><span>SHOTS<strong>${s.stats.shots[0]}–${s.stats.shots[1]}</strong></span><span>SAVES<strong>${s.stats.saves[0]}–${s.stats.saves[1]}</strong></span></div>`
         + `${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM</div>`);
       return;
@@ -1358,7 +1375,7 @@ async function submitCityResult() {
 }
 function handleMenuEnter(act?: string) {
   if (screen === 'full') {
-    if (act === 'share-result') { void shareCountryResult(); return; }
+    if (act === 'share-result') { shareResult(); return; }
     if (act === 'result-copy') { void shareCountryResult(true); return; }
     if (act === 'result-x') { window.open('https://twitter.com/intent/tweet?' + new URLSearchParams({ text: resultShareText(), url: publicGameUrl }), '_blank', 'noopener,noreferrer'); return; }
     if (act === 'result-card') { shareResult(); return; }
