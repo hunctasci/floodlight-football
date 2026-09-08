@@ -15,7 +15,7 @@ import {
   resetNegotiationState,
 } from '../src/net/online-session.ts';
 import type { SignalPayload } from '../src/net/transport.ts';
-import { buildInviteUrl, friendlyNetError, inviteCodeFromSearch, normalizeRoomCode } from '../src/net/invite.ts';
+import { formatRoomCode, friendlyNetError, normalizeRoomCode } from '../src/net/invite.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const mainSrc = readFileSync(join(here, '..', 'src', 'main.ts'), 'utf8');
@@ -48,11 +48,13 @@ test('normal UI has ONE host action and no SDP/reply ceremony', () => {
     assert.ok(!mainSrc.includes(banned), `normal UI must not contain ${JSON.stringify(banned)}`);
   }
   assert.ok(mainSrc.includes('PLAY WITH A FRIEND'), 'host action exists');
-  assert.ok(mainSrc.includes('JOIN WITH CODE'), 'manual fallback exists');
-  // Single join implementation: both entry points converge on cloudJoin.
+  assert.ok(mainSrc.includes('JOIN WITH CODE'), 'code-only join exists');
+  // Single join implementation: the typed code converges on cloudJoin.
   const joins = mainSrc.match(/cloudJoin\(/g) ?? [];
-  assert.ok(joins.length >= 3, `expected startHost-independent single join (found ${joins.length} cloudJoin refs)`);
-  assert.ok(mainSrc.includes('pendingInvite') && mainSrc.includes('doJoin'), 'link + typed paths present');
+  assert.ok(joins.length >= 2, `expected single join path (found ${joins.length} cloudJoin refs)`);
+  assert.ok(mainSrc.includes('doJoin'), 'typed-code join present');
+  assert.ok(!mainSrc.includes('pendingInvite'), 'no link auto-join state');
+  assert.ok(!mainSrc.includes('?room='), 'no link-join query handling');
 });
 
 test('main uses per-session peer ids, never persistent id for signaling', () => {
@@ -85,7 +87,7 @@ test('lobby drives the NetDriver handshake (no stuck-at-CONNECTED)', () => {
   // with no READY and no error. The lobby must pump the handshake so retries
   // fire and the 20s timeout surfaces CONNECTION FAILED instead of hanging.
   assert.ok(
-    mainSrc.includes("screen==='host'||screen==='join'||screen==='joining'||screen==='netready'"),
+    mainSrc.includes("screen==='host'||screen==='join'||screen==='netready'"),
     'frame pumps net.poll() in lobby screens',
   );
   // SDP done must not masquerade as driver-ready; READY appears only on the
@@ -93,23 +95,19 @@ test('lobby drives the NetDriver handshake (no stuck-at-CONNECTED)', () => {
   assert.ok(!mainSrc.includes("netStatus = 'CONNECTED'"), 'no premature CONNECTED status');
 });
 
-// --- Invite URL: code only ---------------------------------------------------
+// --- Room code: readable, code-only --------------------------------------------
 
-test('invite URL carries only the public room code', () => {
-  const url = buildInviteUrl('https://game.example.com', '/', 'ABCDEF');
-  assert.equal(url, 'https://game.example.com/?room=ABCDEF');
-  const u = new URL(url);
-  assert.deepEqual([...u.searchParams.keys()], ['room']);
-  assert.ok(!/[+/=]/.test(u.searchParams.get('room') ?? ''), 'code needs no editing');
-  assert.ok(!url.includes('token'), 'no token in URL');
-  assert.ok(!url.toLowerCase().includes('sdp'), 'no SDP in URL');
-  assert.ok(!url.toLowerCase().includes('durable'), 'no DO id in URL');
+test('host screen shows the grouped code for read-out', () => {
+  assert.equal(formatRoomCode('ABCDEF'), 'ABC DEF');
+  assert.ok(mainSrc.includes('formatRoomCode(roomCode)'), 'host renders the grouped code');
+  assert.ok(mainSrc.includes('READ THE CODE'), 'read-out-first copy');
 });
 
-test('?room=CODE and typed CODE converge on the same normalized identity', () => {
-  assert.equal(inviteCodeFromSearch('?room=abcdef'), normalizeRoomCode(' ABCDEF '));
-  assert.equal(inviteCodeFromSearch('?room=ABCDEF'), 'ABCDEF');
-  assert.equal(inviteCodeFromSearch('?room=nope'), null);
+test('typed codes normalize tolerantly (case/space/dash)', () => {
+  assert.equal(normalizeRoomCode(' abcdef '), 'ABCDEF');
+  assert.equal(normalizeRoomCode('ABC-DEF'), 'ABCDEF');
+  assert.equal(normalizeRoomCode('ABCDEF'), 'ABCDEF');
+  assert.equal(normalizeRoomCode('nope'), null);
   assert.equal(normalizeRoomCode('abc01i'), null);
 });
 
@@ -229,7 +227,7 @@ test('short E2E match is test-only (?e2e)', () => {
   assert.equal(isE2EMode(''), false);
   assert.equal(effectiveOnlineDuration(90, '?e2e=1'), 30);
   assert.equal(effectiveOnlineDuration(90, ''), 90);
-  assert.equal(effectiveOnlineDuration(180, '?room=ABCDEF'), 180);
+  assert.equal(effectiveOnlineDuration(180, '?foo=ABCDEF'), 180);
 });
 
 // --- Error UX -----------------------------------------------------------------
@@ -261,7 +259,7 @@ test('service worker is network-first for navigation, never caches /api', () => 
 
 test('test instrumentation exposes state without secrets', () => {
   assert.ok(mainSrc.includes('__floodlightTest'), 'diagnostics hook exists');
-  for (const getter of ['getScreen', 'getRoomCode', 'getOnlinePeerId', 'getNetState', 'getSimulationState', 'getInviteUrl']) {
+  for (const getter of ['getScreen', 'getRoomCode', 'getOnlinePeerId', 'getNetState', 'getSimulationState']) {
     assert.ok(mainSrc.includes(getter), `hook exposes ${getter}`);
   }
   // The hook object itself must never return the private token (a nearby code

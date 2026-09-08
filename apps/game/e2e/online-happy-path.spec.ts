@@ -1,15 +1,15 @@
 import { expect, test } from '@playwright/test';
 import {
   attachErrorCollectors, assertNoBadErrors, createFriendRoom, dumpBoth,
-  joinWithCode, newIsolatedPages, openOnlineMenu, peerIds, playInputBurst,
+  enterOnlineMenu, joinAsGuest, joinWithCode, newIsolatedPages, openOnlineMenu, peerIds, playInputBurst,
   setReady, testState, waitForFullTime, waitForMatch, waitForReadyLobby,
 } from './helpers';
 
 /**
  * E2E 1 — INVITE-LINK HAPPY PATH (PRIMARY RELEASE-BLOCKING TEST).
  *
- * Host: ONLINE MATCH -> PLAY WITH A FRIEND -> room + invite URL (real UI).
- * Guest: opens that EXACT invite URL in an isolated context -> auto-joins.
+ * Host: ONLINE MATCH -> PLAY WITH A FRIEND -> readable room code (real UI).
+ * Guest: ONLINE MATCH -> JOIN WITH CODE -> types the code (real UI).
  * Both: real Cloudflare/DO signaling -> real WebRTC/DataChannel -> NetDriver
  * handshake -> READY -> one-minute match (30s halves, TEST-ONLY) -> FULL TIME.
  */
@@ -22,14 +22,11 @@ test('E2E 1 — invite link happy path through a full one-minute match', async (
   try {
     // PLAYER 1: create the room through the actual game menu.
     await openOnlineMenu(host, { e2e: true });
-    const { roomCode, inviteUrl } = await createFriendRoom(host);
+    const { roomCode } = await createFriendRoom(host);
     expect(roomCode).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
-    expect(inviteUrl).toContain(`?room=${roomCode}`);
-    expect(inviteUrl).not.toMatch(/token|sdp|offer|answer/i);
 
-    // PLAYER 2: opens the EXACT invite URL -> auto-join, no manual paste.
-    await guest.goto(inviteUrl);
-    await expect(guest.getByText(/JOINING MATCH/i).first()).toBeVisible({ timeout: 15_000 });
+    // PLAYER 2: reads the code off PLAYER 1's screen and types it in.
+    await joinAsGuest(guest, roomCode, { e2e: true });
 
     // BOTH: WebRTC + NetDriver -> READY lobby.
     await waitForReadyLobby(host, 45_000);
@@ -206,8 +203,8 @@ test('E2E 4 — third browser session is rejected with ROOM IS FULL', async ({ b
   const third = await thirdCtx.newPage();
   try {
     await openOnlineMenu(host, { e2e: true });
-    const { roomCode, inviteUrl } = await createFriendRoom(host);
-    await guest.goto(inviteUrl);
+    const { roomCode } = await createFriendRoom(host);
+    await joinAsGuest(guest, roomCode);
     await waitForReadyLobby(host, 45_000);
     await waitForReadyLobby(guest, 45_000);
 
@@ -235,7 +232,7 @@ test('E2E 6 — second session after quitting a started match (reconnect)', asyn
     // FIRST SESSION: reach a started match through the real UI.
     await openOnlineMenu(host, { e2e: true });
     const first = await createFriendRoom(host);
-    await guest.goto(first.inviteUrl);
+    await joinAsGuest(guest, first.roomCode, { e2e: true });
     await waitForReadyLobby(host, 45_000);
     await waitForReadyLobby(guest, 45_000);
     await setReady(host);
@@ -257,13 +254,9 @@ test('E2E 6 — second session after quitting a started match (reconnect)', asyn
     // SECOND SESSION: brand-new room, same pages, all the way to kickoff.
     await host.getByText('ONLINE MATCH').first().click();
     await expect(host.getByText('PLAY WITH A FRIEND').first()).toBeVisible({ timeout: 10_000 });
-    await host.getByText('PLAY WITH A FRIEND').first().click();
-    await expect(host.getByTestId('invite-url')).toBeVisible({ timeout: 15_000 });
-    const room2 = (await host.getByTestId('room-code').textContent())?.trim() ?? '';
-    expect(room2).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
+    const { roomCode: room2 } = await createFriendRoom(host);
     expect(room2).not.toBe(first.roomCode);
-    await guest.getByText('ONLINE MATCH').first().click();
-    await expect(guest.getByText('JOIN WITH CODE').first()).toBeVisible({ timeout: 10_000 });
+    await enterOnlineMenu(guest);
     await joinWithCode(guest, room2);
     await waitForReadyLobby(host, 45_000);
     await waitForReadyLobby(guest, 45_000);
@@ -303,8 +296,8 @@ test('E2E 5 — host cancel and friend-left produce clean states', async ({ brow
 
     // Reconnect, then the guest leaving surfaces FRIEND LEFT (no SDP dump).
     await openOnlineMenu(host, { e2e: true });
-    const { inviteUrl } = await createFriendRoom(host);
-    await guest.goto(inviteUrl);
+    const { roomCode: roomCode2 } = await createFriendRoom(host);
+    await joinAsGuest(guest, roomCode2);
     await waitForReadyLobby(host, 45_000);
     await waitForReadyLobby(guest, 45_000);
     await guest.close();

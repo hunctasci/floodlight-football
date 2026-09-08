@@ -75,21 +75,36 @@ function assertNoLeak(text: string) {
 
 export async function openOnlineMenu(page: Page, opts: { e2e?: boolean } = {}) {
   await page.goto(opts.e2e === false ? '/' : '/?e2e=1');
+  await enterOnlineMenu(page);
+}
+
+/** ONLINE MATCH from the title screen without reloading (same page lifetime). */
+export async function enterOnlineMenu(page: Page) {
   await expect(page.getByText('ONLINE MATCH').first()).toBeVisible({ timeout: 15_000 });
   await page.getByText('ONLINE MATCH').first().click();
   await expect(page.getByText('PLAY WITH A FRIEND').first()).toBeVisible({ timeout: 10_000 });
 }
 
-export async function createFriendRoom(page: Page): Promise<{ roomCode: string; inviteUrl: string }> {
+export async function createFriendRoom(page: Page): Promise<{ roomCode: string }> {
   await page.getByText('PLAY WITH A FRIEND').first().click();
-  // Host screen appears immediately (CREATING ROOM...), invite arrives after POST /api/rooms.
-  await expect(page.getByTestId('invite-url')).toBeVisible({ timeout: 15_000 });
-  const inviteUrl = await page.getByTestId('invite-url').inputValue();
-  expect(inviteUrl).toMatch(/\?room=[A-HJ-NP-Z2-9]{6}$/);
-  expect(inviteUrl).not.toMatch(/token|sdp|offer|answer|durable/i);
-  const roomCode = await page.getByTestId('room-code').textContent();
-  expect(roomCode?.trim()).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
-  return { roomCode: roomCode!.trim(), inviteUrl };
+  // Host screen appears immediately (CREATING ROOM...), the readable code
+  // arrives after POST /api/rooms. Display is grouped (ABC DEF): strip it.
+  await expect(page.getByTestId('room-code')).toBeVisible({ timeout: 15_000 });
+  await expect.poll(async () => {
+    const t = await page.getByTestId('room-code').textContent().catch(() => '');
+    return (t ?? '').replace(/[^A-HJ-NP-Z2-9]/g, '');
+  }, { timeout: 15_000 }).toMatch(/^[A-HJ-NP-Z2-9]{6}$/);
+  const shown = await page.getByTestId('room-code').textContent();
+  const roomCode = (shown ?? '').replace(/[^A-HJ-NP-Z2-9]/g, '');
+  // Read-out grouping for humans: 3 + 3.
+  expect(shown?.trim()).toMatch(/^[A-HJ-NP-Z2-9]{3} [A-HJ-NP-Z2-9]{3}$/);
+  return { roomCode };
+}
+
+/** Full guest flow from a fresh page load: menu → JOIN WITH CODE → submit. */
+export async function joinAsGuest(page: Page, code: string, opts: { e2e?: boolean } = {}) {
+  await openOnlineMenu(page, opts);
+  await joinWithCode(page, code);
 }
 
 export async function waitForReadyLobby(page: Page, timeout = 30_000) {

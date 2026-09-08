@@ -122,7 +122,7 @@ raw browser input → device state → InputFrame → simulation
   hysteresis (0.92 enter / 0.82 leave) + SHOOT drag-aim.
 - `input/input.ts`: `buildInputFrame(kb, touch, shootWasDown, carry)` —
   arrows move, `E/Shift`/rim sprint, arcade cluster `S` (X) pass (tap/hold),
-  `W`/`A` LONG (driven upfield, lofted cross in the final third),
+  `W`/`A` LONG (lofted over the air, crossed in the final third),
   `D/KeyK`/mouse (Circle) shoot with reticle aim, `Space/Q` switch,
   unified press/hold/release carry. Axes and aim quantized to the wire format.
 
@@ -141,9 +141,9 @@ byte pipe (`Loopback` in tests, `RTCDataChannel` in browsers). One player flow:
   (`POST /api/rooms`, `WS /api/rooms/:code/socket`) creates/joins a 6-char
   room on a per-room Durable Object, which relays SDP offer/answer, trickle
   ICE candidates and presence between the two members
-  (TTL rooms, rate-limited creation, no room listing). The host shares an
-  invite link (`?room=CODE`, code only — no SDP, no secrets); tapping it and
-  typing the code converge on the same `joinRoom` path. Both sides bind the
+  (TTL rooms, rate-limited creation, no room listing). The host reads out
+  the grouped 6-char code (`ABC DEF`, no 0/O/1/I); the friend types it into
+  JOIN WITH CODE and lands directly in the room. Both sides bind the
   WebRTC handshake to the room's `matchToken`, so a stray peer can never land
   in a session. When the page is served next to Node instead (self-host),
   the client falls back to `AutoSignal` (`/socket`) automatically.

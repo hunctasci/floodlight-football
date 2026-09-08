@@ -91,7 +91,7 @@ tick only when both inputs exist, `delay = 3` ticks hiding latency. Hashes
 every `HASH_EVERY = 15` ticks detect desyncs; `resync-request` + host
 snapshots heal; `DROP_AFTER_STALL = 600` stalled frames falls back to AI
 (`dropPeer`). Pause/resume/quit/ready-gate/half-time broadcast ride control
-packets. Signaling (Cloudflare rooms + invite URLs, Node fallback) is
+packets. Signaling (Cloudflare rooms + typed codes, Node fallback) is
 byte-transport only — gameplay never leaves the clients.
 
 ## Subsystem map (`engine.ts` private systems)

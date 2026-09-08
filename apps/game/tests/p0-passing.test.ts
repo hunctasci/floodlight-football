@@ -163,7 +163,7 @@ test('P0.3 no automatic switch while defending without input', () => {
   assert.equal(s.controlled, defender.id, 'manually positioned defender is not stolen');
 });
 
-test('P0.3 LONG is a firm driven pass from deep: one edge, one flat kick, same nomination rules', () => {
+test('P0.3 LONG is a lofted ball over the air from deep', () => {
   const { g, s, p } = sandbox(700);
   const mate = s.players.find((q) => q.team === 0 && !q.keeper && q.id !== p.id)!;
   mate.x = 22; mate.z = -2; mate.vx = mate.vz = 0;
@@ -172,12 +172,18 @@ test('P0.3 LONG is a firm driven pass from deep: one edge, one flat kick, same n
     owner: p.id, lastTouch: p.team, lock: 0, lastKicker: null, flight: 'roll',
   });
   step(g, { x: 1, z: 0, long: true });
-  assert.equal(s.ball.owner, null, 'long pass released immediately');
-  assert.equal(s.ball.flight, 'pass', 'long stays flat, not a lob');
-  const speed = Math.hypot(s.ball.vx, s.ball.vz);
-  assert.ok(speed >= 25 && speed <= 32, `long has pace (${speed.toFixed(1)} m/s)`);
+  assert.equal(s.ball.owner, null, 'long released immediately');
+  assert.equal(s.ball.flight, 'cross', 'long goes over the air, never flat');
+  assert.ok(s.ball.vy > 2, `long has real loft (vy=${s.ball.vy.toFixed(1)})`);
   assert.equal(s.targetPlayer, mate.id, 'cone nomination applies');
   assert.equal(s.controlled, p.id, 'control stays until reception');
+  // The lofted ball must come down on our side, not sail away or gift it.
+  let kept: boolean | null = null;
+  for (let i = 0; i < 150 && kept === null; i++) {
+    step(g, {});
+    if (s.ball.owner !== null) kept = s.players[s.ball.owner].team === 0;
+  }
+  assert.equal(kept, true, 'lofted long ball lands on our side');
 });
 
 test('P0.3 LONG is a lofted cross from the final third', () => {

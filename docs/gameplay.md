@@ -20,7 +20,7 @@ One controlled footballer per human. The same three ideas on both devices:
 | Sprint | E / Shift | Push the stick to the rim (latches until ~0.82) |
 | Switch defender | Space (Q works too) | SWITCH button |
 | Pass (X) / contain | S, tap = feet, hold = into space | PASS / CONTAIN button (label follows possession) |
-| Long (□) / slide tackle | W or A — firm driven ball upfield; lofted cross in the final third | LONG / SLIDE button |
+| Long (□) / slide tackle | W or A — lofted ball over the air upfield; lofted cross in the final third | LONG / SLIDE button |
 | Shoot (Circle) / standing tackle | D, tap or hold — quick finish on your facing (or hold LMB, drag to aim, release) | SHOOT / TACKLE button (hold + drag to aim) |
 | Camera / pause | C / Esc | HUD chip / scoreboard |
 

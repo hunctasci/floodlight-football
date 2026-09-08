@@ -7,8 +7,8 @@ import { stickSprint, type TouchState } from './touch';
  *
  * Desktop: arrows move, action cluster acts (arcade 3-button layout):
  *   S (X / down) pass (tap = feet, hold = into space),
- *   W or A (LONG) long pass — firm driven ball upfield, lofted cross in the
- *   final third, long clearance from the keeper,
+ *   W or A (LONG) lofted ball — over the air upfield, cross in the final
+ *   third, long clearance from the keeper,
  *   D (Circle / right) shoot (tap/hold, quick low finish on the facing
  *   without mouse aim), Space switch, E/Shift sprint, Q switch alias.
  *   Mouse hold/drag/release aims + fires with placement;

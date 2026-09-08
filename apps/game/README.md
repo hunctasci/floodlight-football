@@ -51,7 +51,7 @@ The lens tracks the ball tightly near the sidelines and keeps play above the bot
 
 ## Play online (P2P lockstep)
 
-From the title screen choose **ONLINE MATCH**. One friend hosts (**PLAY WITH A FRIEND**) and shares the invite link (or reads out the 6-letter code); the other taps the link or types the code (**JOIN WITH CODE**) and lands directly in the room — then **both press I'M READY** and kick off. No SDP copy-paste, no account, no server URL to configure. In production a tiny Cloudflare control plane only introduces the two browsers (room code + SDP/ICE relay via per-room Durable Objects, same origin as the game); the match itself runs directly over WebRTC. Point LEAGUE → SERVER at a Node backend to use the self-hosted reference instead.
+From the title screen choose **ONLINE MATCH**. One friend hosts (**PLAY WITH A FRIEND**) and reads out the grouped 6-letter code (`ABC DEF`); the other types it (**JOIN WITH CODE**) and lands directly in the room — then **both press I'M READY** and kick off. No SDP copy-paste, no account, no server URL to configure. In production a tiny Cloudflare control plane only introduces the two browsers (room code + SDP/ICE relay via per-room Durable Objects, same origin as the game); the match itself runs directly over WebRTC. Point LEAGUE → SERVER at a Node backend to use the self-hosted reference instead.
 
 - Host is team 1 with your club/length settings; joiner is team 2. Same keyboard/touch controls, same assist rules.
 - Sessions are isolated: rooms live 2h, joins are rate-limited, SDP relays only between room members, and both sides bind the handshake to the room token — a stranger can never land in your match.

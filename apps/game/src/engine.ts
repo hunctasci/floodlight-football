@@ -935,9 +935,10 @@ export class MatchEngine {
       }
       if (i.shootPressed) { this.beginAction(team, p.id, 'shot', i); setCharge(0); setCharging(p.id); }
       if (i.shootHeld && charging === p.id) setCharge(Math.min(.45, charge + dt));
-      // Arcade offense: LONG is one button for both deep balls — a lofted
-      // cross when the carrier is in the final third, a firm driven long
-      // pass otherwise. One edge, one kick, same nomination rules as pass.
+      // Arcade offense: LONG is one button for both deep balls — always over
+      // the air: a lofted cross when the carrier is in the final third, a
+      // lofted long ball onto a distant teammate otherwise. One edge, one
+      // kick, same nomination rules as pass.
       if (i.long) {
         const a = s.attack[team];
         if ((p.x * a) > (L - 26)) this.cross(p, raw);
@@ -1067,28 +1068,29 @@ export class MatchEngine {
     s.stats.passes[p.team]++;
   }
   /**
-   * W (Triangle) = firm through pass: one edge, one kick. Same cone
-   * nomination as the held pass, but paced flat and hard (26–31 m/s)
-   * straight to feet — for switching play, not for leading runners
-   * (hold S for that).
+   * LONG = lofted ball over the air: one edge, one kick. Same cone nomination
+   * as the driven pass, but launched over defenders' heads (~1s flight) onto
+   * a distant teammate — for switching play and counter-attacking downfield.
+   * Feet passes are tap-S, threaded runners are hold-S; LONG always flies.
    */
   private longPass(p: Player, aim: Vec) {
     const s = this.state;
     const q = this.selectPassTarget(p, aim);
     if (!q) {
+      // No teammate in the cone: lofted clearance upfield, over the air.
       const d = length(aim.x, aim.z) > .05 ? direction(aim.x, aim.z) : direction(p.facingX, p.facingZ);
-      this.kick(p, d, 24, .3, 'pass');
+      this.kick(p, d, 22, 6.5, 'cross');
       this.setTarget(p.team, null);
       s.stats.passes[p.team]++;
       return;
     }
     const d = distance(p, q);
-    const speed = clamp(22 + d * .3, 26, 31);
-    const tx = clamp(q.x + q.vx * .2, -L + 3, L - 3), tz = clamp(q.z + q.vz * .2, -W + 2, W - 2);
-    this.kick(p, direction(tx - s.ball.x, tz - s.ball.z), speed, .25, 'pass');
+    const flightTime = clamp(d / 19, 0.8, 1.4);
+    const tx = clamp(q.x + q.vx * .3, -L + 3, L - 3), tz = clamp(q.z + q.vz * .3, -W + 2, W - 2);
+    this.kick(p, direction(tx - s.ball.x, tz - s.ball.z), d / flightTime * 1.05, 7 * flightTime, 'cross');
     // Nominate, don't transfer — same contract as every other pass.
-    this.receiver = q.id; this.receivePoint = { x: tx, z: tz }; this.receiveUntil = s.time + 2.7;
-    this.setReceiver(p.team, q.id, { x: tx, z: tz }, s.time + 2.7);
+    this.receiver = q.id; this.receivePoint = { x: tx, z: tz }; this.receiveUntil = s.time + flightTime + 1.5;
+    this.setReceiver(p.team, q.id, { x: tx, z: tz }, s.time + flightTime + 1.5);
     s.stats.passes[p.team]++;
   }
   private cross(p: Player, aim?: Vec) {

@@ -1,58 +1,30 @@
 /**
- * Invite-URL helpers for Cloudflare-room multiplayer.
+ * Room-code helpers for Cloudflare-room multiplayer.
  *
- * One identity only: the 6-char room CODE. The URL carries no SDP, no reply
- * codes and no secrets — the room's matchToken is issued by the control plane
- * over the per-room WebSocket after joining. Both entry points (tapping a
- * shared link, typing a code) converge on `joinRoom(code)`.
+ * Code-only joining: the host reads out a 6-char room CODE, the friend types
+ * it into JOIN WITH CODE. No invite links, no SDP in the UI — the room's
+ * matchToken is issued by the control plane over the per-room WebSocket
+ * after joining. Both entry points (hosting, typing a code) converge on
+ * `joinRoom(code)`.
  *
  * Pure functions (no DOM): unit-tested under Node via tsx --test.
  */
 
 export const ROOM_CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/;
-export const ROOM_PARAM = 'room';
 
-/** Normalize free-typed codes (case/whitespace tolerant); null when invalid. */
+/** Normalize free-typed codes (case/space/dash tolerant); null when invalid. */
 export function normalizeRoomCode(raw: string): string | null {
   if (typeof raw !== 'string') return null;
-  const code = raw.trim().toUpperCase().replace(/\s+/g, '');
+  const code = raw.trim().toUpperCase().replace(/[\s-]+/g, '');
   return ROOM_CODE_RE.test(code) ? code : null;
 }
 
-/** Build a shareable invite URL from the current origin (never hard-coded). */
-export function buildInviteUrl(origin: string, pathname: string, code: string): string {
+/** Readable display form: groups of three ("ABC DEF"). Display only —
+ *  always normalize before comparing or joining. */
+export function formatRoomCode(code: string): string {
   const normalized = normalizeRoomCode(code);
-  if (!normalized) throw new Error('invalid room code');
-  const cleanOrigin = origin.replace(/\/+$/, '');
-  const path = pathname.startsWith('/') ? pathname : `/${pathname}`;
-  return `${cleanOrigin}${path}?${ROOM_PARAM}=${normalized}`;
-}
-
-/** Extract a room code from an invite URL or bare code string. */
-export function parseInviteUrl(url: string): string | null {
-  if (typeof url !== 'string' || !url) return null;
-  const q = url.indexOf('?');
-  if (q >= 0) {
-    try {
-      const params = new URLSearchParams(url.slice(q + 1).split('#')[0]);
-      const v = params.get(ROOM_PARAM);
-      if (v) return normalizeRoomCode(v);
-    } catch {
-      return null;
-    }
-    return null;
-  }
-  return normalizeRoomCode(url);
-}
-
-/** Pull the invite code from the current location search string. */
-export function inviteCodeFromSearch(search: string): string | null {
-  try {
-    const v = new URLSearchParams(search).get(ROOM_PARAM);
-    return v ? normalizeRoomCode(v) : null;
-  } catch {
-    return null;
-  }
+  if (!normalized) return code.trim().toUpperCase();
+  return `${normalized.slice(0, 3)} ${normalized.slice(3)}`;
 }
 
 /**
@@ -114,14 +86,6 @@ export async function copyText(text: string): Promise<boolean> {
     const ok = document.execCommand('copy');
     document.body.removeChild(ta);
     return ok;
-  } catch {
-    return false;
-  }
-}
-
-export function canShare(): boolean {
-  try {
-    return typeof navigator !== 'undefined' && typeof navigator.share === 'function';
   } catch {
     return false;
   }

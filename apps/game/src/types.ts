@@ -39,8 +39,9 @@ export interface InputFrame {
   /** Pass button release edge. */
   passReleased: boolean;
   /** Through/long-pass edge is folded into `long` (arcade v4). */
-  /** Long-pass edge (W/A, LONG button): firm driven ball upfield, or a lofted
-   *  cross when the carrier is in the final third. Slide tackle on defense. */
+  /** Long-pass edge (W/A, LONG button): lofted ball over the air upfield,
+   *  or a lofted cross when the carrier is in the final third.
+   *  Slide tackle on defense. */
   long: boolean;
   shootPressed: boolean; shootHeld: boolean; shootReleased: boolean; switchPlayer: boolean;
   /** Shot placement aim, goal-local: U = across (-1..1), V = height (0..1). */

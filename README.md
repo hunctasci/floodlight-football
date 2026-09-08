@@ -83,8 +83,8 @@ docker compose up -d                       # self-host topology (reference backe
 ```
 
 Backend-optional: solo (`PLAY MATCH`, `DAILY CUP`) never needs a server.
-`ONLINE MATCH → PLAY WITH A FRIEND` creates a Cloudflare room and shares an
-invite link (or 6-letter code for `JOIN WITH CODE`) — no SDP copy-paste, no
+`ONLINE MATCH → PLAY WITH A FRIEND` creates a Cloudflare room and shows a
+grouped 6-letter code for `JOIN WITH CODE` — no links, no SDP copy-paste, no
 server URL to configure. The control plane reports connection problems with
 player-friendly messages; solo keeps working.
 Leagues need the Node reference server.

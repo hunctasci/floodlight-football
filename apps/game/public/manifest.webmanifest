@@ -1,7 +1,7 @@
 {
   "name": "Floodlight Football — Saturday Cup",
   "short_name": "Floodlight Football",
-  "description": "Arcade 11v11 football: arrows or touch, FIFA-style actions, local and online-ready.",
+  "description": "Arcade 11v11 football: stick or arrows, PASS / LONG / SHOOT, solo and online.",
   "start_url": "/",
   "scope": "/",
   "display": "fullscreen",

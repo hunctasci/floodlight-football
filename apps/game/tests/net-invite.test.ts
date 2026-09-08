@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
-  buildInviteUrl, friendlyNetError, inviteCodeFromSearch, normalizeRoomCode, parseInviteUrl,
+  formatRoomCode, friendlyNetError, normalizeRoomCode,
   withRelayHint,
 } from '../src/net/invite.ts';
 import { isValidSignalPayload, parseInbound, addMember, MAX_MEMBERS } from '../worker/room-logic.ts';
@@ -16,42 +16,33 @@ import { NetDriver } from '../src/net/driver.ts';
 const here = dirname(fileURLToPath(import.meta.url));
 const mainSrc = readFileSync(join(here, '..', 'src', 'main.ts'), 'utf8');
 
-// 1. Invitation URL encodes room identity correctly: code only, current
-// origin, no SDP / tokens / Durable Object ids, messaging-app safe.
-test('invite URL carries the room code only (no SDP, secrets or DO ids)', () => {
-  const url = buildInviteUrl('https://play.example.com', '/', 'abcdef');
-  assert.equal(url, 'https://play.example.com/?room=ABCDEF');
-  assert.equal(buildInviteUrl('https://h:443/', '/game/', 'ABCDEF'), 'https://h:443/game/?room=ABCDEF');
-  assert.throws(() => buildInviteUrl('https://h', '/', 'nope!!'));
-  // Shareable without manual editing: the code value is plain alphanumerics
-  // (no base64 padding, slashes or spaces), one query param only.
-  const parsed = new URL(url);
-  assert.equal(parsed.searchParams.get('room'), 'ABCDEF');
-  assert.ok(/^[A-Za-z0-9]+$/.test(parsed.searchParams.get('room') ?? ''), 'code value needs no editing');
-  assert.ok(!url.includes(' '), 'no spaces to escape');
-  assert.equal(parseInviteUrl(url), 'ABCDEF');
-  // No secret material ever lands in the URL.
-  assert.ok(!url.includes('0'.repeat(8)), 'no token-shaped secret in the URL');
+// 1. Room codes are read-out friendly: 6 letters, no lookalikes, tolerant
+// typing (case/space/dash), grouped display form.
+test('room codes normalize tolerantly and display grouped', () => {
+  assert.equal(normalizeRoomCode('abcdef'), 'ABCDEF');
+  assert.equal(normalizeRoomCode(' ABCDEF '), 'ABCDEF');
+  assert.equal(normalizeRoomCode('abc-def'), 'ABCDEF');
+  assert.equal(normalizeRoomCode('ABC DEF'), 'ABCDEF');
+  assert.equal(normalizeRoomCode('ABC01I'), null, 'lookalikes 0/O/1/I rejected');
+  assert.equal(normalizeRoomCode('ABCDE'), null, 'short codes rejected');
+  assert.equal(normalizeRoomCode('ABCDEFG'), null, 'long codes rejected');
+  assert.equal(normalizeRoomCode(''), null);
 });
 
-// 2. Opening an invitation URL routes directly into joining.
-test('invite search string resolves straight to a join code', () => {
-  assert.equal(inviteCodeFromSearch('?room=abcdef'), 'ABCDEF');
-  assert.equal(inviteCodeFromSearch('?room=ABCDEF&x=1'), 'ABCDEF');
-  assert.equal(inviteCodeFromSearch('?room=nope'), null);
-  assert.equal(inviteCodeFromSearch(''), null);
-  // Legacy SDP invite blobs are not valid room invites.
-  assert.equal(inviteCodeFromSearch('?invite=QUJDRA'), null);
+// 2. Display form groups 3+3 for read-out; joining always normalizes first.
+test('room codes display as two readable groups', () => {
+  assert.equal(formatRoomCode('ABCDEF'), 'ABC DEF');
+  assert.equal(formatRoomCode('abcdef'), 'ABC DEF');
+  assert.equal(normalizeRoomCode(formatRoomCode('ABCDEF')), 'ABCDEF');
 });
 
-// 3. Invite link and typed code converge on one join implementation.
-test('link taps and typed codes normalize to the same room identity', () => {
-  const fromLink = parseInviteUrl('https://play.example.com/?room=abcdef');
+// 3. Typed variants converge on one join identity.
+test('typed code variants normalize to the same room identity', () => {
   const typed = normalizeRoomCode(' abcdef ');
-  assert.equal(fromLink, 'ABCDEF');
+  const dashed = normalizeRoomCode('abc-def');
   assert.equal(typed, 'ABCDEF');
-  assert.equal(fromLink, typed);
-  assert.equal(normalizeRoomCode('ABC01I'), null, 'lookalikes rejected on both paths');
+  assert.equal(dashed, typed);
+  assert.equal(normalizeRoomCode('ABC01I'), null, 'lookalikes rejected on every path');
 });
 
 // 4. No reply-code step exists in the normal player UI.
@@ -63,10 +54,12 @@ test('normal UI has no SDP / reply-code / server-URL ceremony', () => {
   ]) {
     assert.ok(!mainSrc.includes(banned), `normal UI must not contain ${JSON.stringify(banned)}`);
   }
-  assert.ok(mainSrc.includes('PLAY WITH A FRIEND'), 'new online menu entry');
-  assert.ok(mainSrc.includes('JOIN WITH CODE'), 'manual fallback entry');
-  assert.ok(mainSrc.includes('COPY LINK'), 'copy affordance is implemented');
-  assert.ok(mainSrc.includes('navigator.share') || mainSrc.includes('canShare'), 'share affordance');
+  assert.ok(mainSrc.includes('PLAY WITH A FRIEND'), 'host entry shows the code');
+  assert.ok(mainSrc.includes('JOIN WITH CODE'), 'code-only join entry');
+  assert.ok(mainSrc.includes('READ THE CODE'), 'host screen is read-out-first');
+  for (const banned of ['COPY LINK', 'SHARE THE LINK', 'invite-url', 'invitelink', '?room=', 'pendingInvite']) {
+    assert.ok(!mainSrc.includes(banned), `code-only UI must not contain ${JSON.stringify(banned)}`);
+  }
 });
 
 // 5. Host creates the Cloudflare room before producing an invitation.
@@ -91,9 +84,8 @@ test('host POSTs /api/rooms before opening the room socket', async () => {
   await tick();
   sock.serverSend({ t: 'room-joined', roomCode: 'ABCDEF', peers: [], matchToken: '0'.repeat(64) });
   const created = await creating;
-  // The invite URL is derived from the created room — never before it.
-  const invite = buildInviteUrl('https://play.example.com', '/', created.roomCode);
-  assert.equal(invite, 'https://play.example.com/?room=ABCDEF');
+  // The host screen shows the grouped code for read-out — never a link.
+  assert.equal(formatRoomCode(created.roomCode), 'ABC DEF');
   assert.deepEqual(order, ['https://play.example.com/api/health', 'https://play.example.com/api/rooms']);
   assert.match(sockets[0] ?? '', /\/api\/rooms\/ABCDEF\/socket/);
   sig.close();

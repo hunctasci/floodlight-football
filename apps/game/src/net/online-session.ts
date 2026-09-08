@@ -2,8 +2,8 @@
  * Online friend-match session helpers: the single source of truth for the
  * unified Cloudflare-room flow.
  *
- * - One host path: createRoom -> invite URL (code only).
- * - One join path: ?room=CODE and typed CODE converge on joinFriendRoom(code).
+ * - One host path: createRoom -> grouped 6-letter code for read-out.
+ * - One join path: the friend types the code (JOIN WITH CODE).
  * - Explicit trickle-ICE lifecycle: candidates are accepted before offer,
  *   after offer, before answer, after answer and during async SDP work.
  * - Per-session peer identity: never reuse the persistent league/user id as

@@ -11,7 +11,7 @@ import { EMPTY_INPUT, type InputFrame } from '../types';
  *   through/cross edges: still parsed as unset, never set by v4 peers.
  *
  * Desktop schema: arrows move, Space switch, S pass (tap/feet, hold/lead),
- * W/A long pass (driven upfield, lofted cross in the final third),
+ * W/A long ball (lofted over the air, crossed in the final third),
  * D/KeyK/mouse shoot, E/Shift rim sprint. Analog magnitude and aim survive
  * within half a percent — identical on both peers.
  */
