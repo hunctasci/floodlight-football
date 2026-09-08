@@ -367,25 +367,26 @@ export class MatchEngine {
     if (owner?.team === team && !owner.keeper) { this.setControlled(team, owner.id); return; }
     if (s.players[this.getControlled(team)].keeper) this.setControlled(team, this.nearest(team, s.ball).id);
     const cur = s.players[this.getControlled(team)];
-    // A knocked-down selection is incapable: hand control to the best
-    // candidate automatically (the only automatic defensive switch).
+    // A knocked-down selection is incapable: hand control to the nearest
+    // outfielder immediately (independent of the margin rule below).
     if ((cur.action === 'fallen') && owner?.team !== team) {
       const auto = this.switchCandidates(team)[0];
       if (auto !== undefined && auto !== cur.id) this.setControlled(team, auto);
     }
     // Arcade auto-switch: while defending (or the ball is loose), control
-    // follows the closest candidate — with a 1.2m margin so control never
-    // flickers, and never yanks a committed tackle/slide/dive. Actively
-    // steering the stick keeps the current pick (manual intent wins); the
-    // human can always override with SWITCH (manual cycle below).
+    // follows the CLOSEST outfielder to the ball itself — shape costs
+    // (goalside, mark, tackle cooldown) must never lock out the nearest man:
+    // the engaged presser carrying cooldown is exactly who the human wants.
+    // A 1.2m margin stops flicker, committed tackle/slide/dive/fallen
+    // selections are never yanked, and actively steering the stick keeps the
+    // current pick (manual intent wins). SWITCH cycles the cost-ordered list
+    // below for deliberate picks.
     if (owner?.team !== team && length(input.x, input.z) <= 0.3) {
-      const cands = this.switchCandidates(team);
-      const best = cands[0];
+      const target = this.nearest(team, s.ball);
       const mine = s.players[this.getControlled(team)];
-      if (best !== undefined && best !== mine.id
+      if (target.id !== mine.id && target.action !== 'fallen'
         && mine.action !== 'tackle' && mine.action !== 'slide' && mine.action !== 'fallen' && mine.action !== 'dive') {
-        const meet = { x: s.ball.x + s.ball.vx * .18, z: s.ball.z + s.ball.vz * .18 };
-        if (distance(mine, meet) - distance(s.players[best], meet) > 1.2) this.setControlled(team, best);
+        if (distance(mine, s.ball) - distance(target, s.ball) > 1.2) this.setControlled(team, target.id);
       }
     }
     if (input.switchPlayer && owner?.team !== team) {

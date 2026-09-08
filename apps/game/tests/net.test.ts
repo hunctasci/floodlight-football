@@ -68,6 +68,47 @@ test('idle local control follows the closest defender (arcade auto-switch)', () 
   assert.equal(s.controlled, 10, 'steering keeps manual control');
 });
 
+test('auto-switch picks the closest man even with tackle cooldown (no lockout)', () => {
+  // Regression: the cost-ordered list buried the engaged presser under its
+  // tackle-cooldown penalty, so the closest defender could never be chosen.
+  const g = versus(); const s = g.state;
+  for (const p of s.players) { p.x = p.team === 0 ? -30 : 30; p.z = -25 + (p.id % 11) * 4.5; p.vx = p.vz = 0; p.cooldown = 0; p.think = 100; }
+  const foe = s.players.find((p) => p.team === 1 && !p.keeper)!;
+  foe.x = 20; foe.z = 0;
+  Object.assign(s.ball, { x: 20.7, z: 0, y: FIELD.ballRadius, vx: 0, vy: 0, vz: 0, owner: foe.id, lastKicker: null, lock: 0, lastTouch: 1, flight: 'roll' });
+  // Engaged presser on the ball, fresh off a tackle (cooldown running).
+  const presser = s.players[2];
+  presser.x = 18; presser.z = 0; presser.vx = presser.vz = 0;
+  presser.action = 'run'; presser.cooldown = 0.5;
+  s.controlled = 10; s.players[10].x = -20; s.players[10].z = 0;
+  tick2(g, 0.5);
+  assert.equal(s.controlled, presser.id, 'cooldown never locks out the closest man');
+});
+
+test('auto-switch tracks the closest defender through a live chase', () => {
+  const g = versus(); const s = g.state;
+  s.phase = 'playing'; s.phaseTime = 0; s.restart = null; s.paused = false;
+  const foe = s.players.find((p) => p.team === 1 && !p.keeper)!;
+  foe.x = 10; foe.z = 0;
+  Object.assign(s.ball, { x: 10.7, z: 0, y: FIELD.ballRadius, vx: 0, vy: 0, vz: 0, owner: foe.id, lastKicker: null, lock: 0, lastTouch: 1, flight: 'roll' });
+  s.controlled = 10;
+  const dist = (id: number) => Math.hypot(s.players[id].x - s.ball.x, s.players[id].z - s.ball.z);
+  const closestGap = () => {
+    let bd = Infinity;
+    for (const p of s.players) {
+      if (p.team !== 0 || p.keeper) continue;
+      bd = Math.min(bd, dist(p.id));
+    }
+    return bd;
+  };
+  for (let f = 0; f < 120; f++) {
+    tick2(g, DT);
+    // Control is always the closest man, up to the 1.2m anti-flicker margin
+    // (+ one tick of post-switch travel: sampling happens after the step).
+    assert.ok(dist(s.controlled) - closestGap() <= 1.45, `tick ${f}: control tracks closest`);
+  }
+});
+
 test('peer keeper distributes on peer input', () => {
   const g = versus(); const s = g.state;
   const k = s.players[11];

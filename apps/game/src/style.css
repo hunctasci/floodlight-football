@@ -32,6 +32,11 @@
 @media(prefers-reduced-motion:reduce){.rotate-hint{animation:none}}
 /* Narrow portrait: HUD crowds the top — drop the nudge below it. */
 @media(max-width:480px){.rotate-hint{top:150px;font-size:10px}}
+/* Consent banner: bottom bar, arcade theme, input-safe (self-only taps). */
+.consent{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;max-width:min(640px,94vw);padding:10px 14px;background:#101b31f2;border:2px solid #f7bf30;box-shadow:4px 4px 0 #e96137;color:#f8efdb;font-size:11px;letter-spacing:.08em;pointer-events:auto;text-align:center}
+.consent-btns{display:flex;gap:8px}
+.consent-btn{font:700 12px ui-monospace,monospace;letter-spacing:.08em;padding:10px 16px;min-height:44px;border:2px solid #f8efdb;background:transparent;color:#f8efdb;cursor:pointer}
+.consent-btn.accept{background:#f7bf30;border-color:#f7bf30;color:#101b31}
 /* Readable room code: grouped 3+3 with wide tracking for read-out. */
 [data-testid="room-code"]{letter-spacing:.3em;text-indent:.3em;white-space:nowrap}
 /* Lobby waiting readout: CSS-only spinner + stage steps (no assets, no JS). */
