@@ -30,6 +30,16 @@ export function replayBotMatch(seed: number, halfDuration: number, difficulty: n
   return [...engine.state.score];
 }
 
+/** Most recent completed bot results first; never change difficulty mid-match. */
+export function chooseBotDifficulty(results: { home_score: number; away_score: number }[], roll: number): 0 | 1 | 2 {
+  if (results.length < 3) return 0;
+  if (results.slice(0, 2).every(r => r.home_score < r.away_score)) return 0;
+  const wins = results.filter(r => r.home_score > r.away_score).length;
+  if (results.length >= 5 && wins >= 4) return roll < 0.2 ? 2 : 1;
+  if (wins <= 1) return roll < 0.8 ? 0 : 1;
+  return roll < 0.35 ? 0 : 1;
+}
+
 export class BotLeagueService {
   constructor(private db: D1Like, private now = Date.now) {}
   async create(clientId: string, country: string): Promise<BotAssignment> {
@@ -40,7 +50,11 @@ export class BotLeagueService {
     const opponentCountry = candidates[random[0] % candidates.length].code;
     const seed = random[1] % 1000000, opponentName = NAMES[random[2] % NAMES.length];
     const matchId = crypto.randomUUID(), matchToken = makeMatchToken(), awayClientId = crypto.randomUUID();
-    const halfDuration = BOT_HALF_SECONDS, difficulty = 1;
+    const recent = await this.db.prepare(`SELECT m.home_score,m.away_score FROM matches m
+      JOIN bot_matches b ON b.match_id=m.id WHERE m.home_client_id=? AND m.status='confirmed'
+      ORDER BY m.confirmed_at DESC,m.id DESC LIMIT 5`).bind(clientId).all<{ home_score: number; away_score: number }>();
+    const halfDuration = BOT_HALF_SECONDS;
+    const difficulty = chooseBotDifficulty(recent.results ?? [], crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296);
     await this.db.batch([
       this.db.prepare(`INSERT INTO matches(id,room_id,season_key,home_client_id,away_client_id,home_city_code,away_city_code,match_token_hash,status,started_at)
         VALUES(?,?,?,?,?,?,?,?,'pending',?)`).bind(matchId,makeRoomCode(),getCurrentSeasonKey(this.now()),clientId,awayClientId,country,opponentCountry,await sha256Hex(matchToken),this.now()),

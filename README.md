@@ -132,3 +132,5 @@ Decisions: [P2P + thin backend](docs/adr/001-p2p-thin-backend.md) ·
 - `npm test && npm run build --workspaces --if-present` before pushing.
 
 Country matchmaking fills an empty search after roughly 8–10 seconds with a computer-controlled country opponent, disclosed in the lobby. Completed matches submit an input replay for server verification before both countries receive normal league points. No background bot matches are generated. Play with a Friend creates a shareable room directly; friends can also join with a code.
+
+Bot difficulty is selected before kickoff from the player's last five verified bot results. The first three completed matches and matches after two consecutive losses use Rookie. Other players receive a Rookie/Pro mix; four wins in five unlock a 20% chance of Legend. Results remain worth the same country points at every difficulty. Full-time country results can be shared through the native share sheet, WhatsApp, a copied score/link, or a PNG scorecard.

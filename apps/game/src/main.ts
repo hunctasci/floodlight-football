@@ -294,25 +294,41 @@ function launch(){closeNet();dailyMode=false;track('match_start',{mode:'solo',ha
 /** Daily Cup: one deterministic match per calendar day, same seed worldwide. */
 function launchDaily(){closeNet();dailyMode=true;track('match_start',{mode:'daily',halves:duration/60});engine=new MatchEngine(teamIndex,flowTest?8:duration,dailySeed(),aiLevel);viewTeam=0;renderer.setFollow(null,null);screen='match';menuIndex=0;audio.event({type:'whistle'});}
 /** Full-time share card: score + stats as a PNG via Web Share (or download). */
+let resultShareNote = '';
+function resultShareText() {
+  const s = engine.state;
+  return `HNC League · ${s.teams[0].name} ${s.score[0]}–${s.score[1]} ${s.teams[1].name}\nI played for ${s.teams[viewTeam].name}. Can you do better for your country?`;
+}
+async function shareCountryResult(copyOnly = false) {
+  const text = resultShareText(), url = location.origin + '/';
+  try {
+    if (!copyOnly && navigator.share) { await navigator.share({ title: 'HNC League · Full time', text, url }); return; }
+    resultShareNote = await copyText(`${text}\n${url}`) ? 'RESULT LINK COPIED · SEND IT TO YOUR FRIENDS' : 'COULD NOT COPY · TRY WHATSAPP OR SAVE THE CARD';
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') return;
+    resultShareNote = 'SHARING UNAVAILABLE · TRY COPY OR SAVE THE CARD';
+  }
+  menuDirty = true;
+}
 function shareResult(){
   const s=engine.state,my=s.teams[0],opp=s.teams[1];
   const c=document.createElement('canvas');c.width=1000;c.height=525;
   const x=c.getContext('2d')!;x.textAlign='center';
   x.fillStyle='#0c1f14';x.fillRect(0,0,1000,525);
-  x.fillStyle='#f8efdb';x.font='bold 26px monospace';x.fillText(dailyMode?'HNC LEAGUE · DAILY CUP':'HNC LEAGUE · SATURDAY CUP',500,70);
+  x.fillStyle='#f8efdb';x.font='bold 26px monospace';x.fillText(dailyMode?'HNC LEAGUE · DAILY CUP':'HNC LEAGUE · COUNTRY CLASH',500,70);
   x.fillStyle=my.color;x.fillRect(130,110,44,44);x.fillStyle=opp.color;x.fillRect(826,110,44,44);
   x.fillStyle='#f8efdb';x.font='bold 34px monospace';
-  x.fillText(my.name.toUpperCase(),340,142);x.fillText(opp.name.toUpperCase(),660,142);
+  x.fillText(my.name.toUpperCase(),280,142,340);x.fillText(opp.name.toUpperCase(),720,142,340);
   x.font='bold 110px monospace';x.fillText(`${s.score[0]} – ${s.score[1]}`,500,265);
   x.font='bold 24px monospace';x.fillStyle='#9fd7b2';
   const pos=Math.round(s.stats.possession[0]/Math.max(1,s.stats.possession[0]+s.stats.possession[1])*100);
   x.fillText(`SHOTS ${s.stats.shots[0]}–${s.stats.shots[1]}   SAVES ${s.stats.saves[0]}–${s.stats.saves[1]}   BALL ${pos}%`,500,330);
   if(dailyMode)x.fillText(`DAILY BEST ${Math.max(getDailyBest(),s.score[0])}`,500,385);
-  x.fillStyle='#6f8f7c';x.font='22px monospace';x.fillText('FREE · OPEN SOURCE · PLAY IN YOUR BROWSER',500,470);
+  x.fillStyle='#6f8f7c';x.font='22px monospace';x.fillText('PLAY FOR YOUR COUNTRY · ' + location.host,500,470,900);
   c.toBlob((blob)=>{
     if(!blob)return;
     const file=new File([blob],'hnc-league-result.png',{type:'image/png'});
-    if(navigator.canShare?.({files:[file]}))void navigator.share({files:[file],title:'HNC League'}).catch(()=>{});
+    if(navigator.canShare?.({files:[file]}))void navigator.share({files:[file],title:'HNC League',text:resultShareText(),url:location.origin+'/'}).catch(()=>{});
     else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hnc-league-result.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);}
   });
 }
@@ -667,6 +683,7 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
       const items=['PLAY NEXT MATCH','CHALLENGE A FRIEND','WORLD TABLE','LOBBY'];
       panel(`<div class="eyebrow">FULL TIME</div><div class="title tlg" data-testid="fulltime-title">FULL TIME</div>`
         + `<div class="subtitle" data-testid="fulltime-score">${homeC} ${s.score[0]} – ${s.score[1]} ${awayC}</div>${cityLine}`
+        + `<button class="menu-item netbtn lobby-play" data-act="share-result" data-testid="share-result">SHARE YOUR RESULT →</button><div class="lobby-secondary"><button class="menu-item netbtn" data-act="result-whatsapp">WHATSAPP</button><button class="menu-item netbtn" data-act="result-copy">COPY RESULT LINK</button></div><button class="menu-item netbtn" data-act="result-card">SAVE / SHARE SCORECARD</button>${resultShareNote ? `<div class="hint" role="status">${resultShareNote}</div>` : ''}`
         + `<div class="statline"><span>SHOTS<strong>${s.stats.shots[0]}–${s.stats.shots[1]}</strong></span><span>SAVES<strong>${s.stats.saves[0]}–${s.stats.saves[1]}</strong></span></div>`
         + `${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM</div>`);
       return;
@@ -1339,6 +1356,12 @@ async function submitCityResult() {
   menuDirty = true;
 }
 function handleMenuEnter(act?: string) {
+  if (screen === 'full') {
+    if (act === 'share-result') { void shareCountryResult(); return; }
+    if (act === 'result-copy') { void shareCountryResult(true); return; }
+    if (act === 'result-card') { shareResult(); return; }
+    if (act === 'result-whatsapp') { window.open(buildWhatsAppUrl(resultShareText() + '\n' + location.origin + '/'), '_blank', 'noopener,noreferrer'); return; }
+  }
   if (act === 'retry-result') { void submitCityResult(); return; }
   if (act === 'join-friend') { closeNet(); screen = 'join'; menuIndex = 0; menuDirty = true; return; }
   if (screen === 'onboard') {
@@ -1453,7 +1476,7 @@ function handleMenuEnter(act?: string) {
   menuDirty = true;
 }
 function handleMenu(){if(pressed.size||released.size||touch.pressed.size||touch.released.size)menuDirty=true;if(hit('KeyM')){muted=audio.toggle();consume('KeyM')}if(screen==='match'){if(hit('Escape')){consume('Escape');openPause()}if(hit('KeyC')){camNote=renderer.cycleCamera();camNoteAt=performance.now();consume('KeyC')}return}const confirm=hit('Enter');if(confirm)consume('Enter');const up=hit('KeyW')||hit('ArrowUp'),dn=hit('KeyS')||hit('ArrowDown');if(screen==='onboard'){if(up||dn){const idx=CITIES.findIndex((c)=>c.code===onboardCity);const n=CITIES.length;const nxt=CITIES[((idx<0?0:idx)+(up?n-1:1))%n].code;onboardCity=nxt;}if(hit('Escape')){}if(confirm)handleMenuEnter('onboard-continue');}else if(screen==='title'){if(up||dn)menuIndex=(menuIndex+(up?2:1))%3;if(hit('Escape'))menuIndex=0;if(confirm)handleMenuEnter()}else if(screen==='search'){if(hit('Escape'))handleMenuEnter('search-cancel');}else if(screen==='team'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+3)%4;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%4;if(hit('KeyA')||hit('ArrowLeft'))cycleTeamRow(menuIndex,-1);if(hit('KeyD')||hit('ArrowRight'))cycleTeamRow(menuIndex,1);if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='online'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='host'){if(hit('Escape'))cancelNet();}else if(screen==='join'){if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter('join');}else if(screen==='netready'){if(up||dn)menuIndex=1-menuIndex;if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter();}else if(screen==='league'){if(up)menuIndex=(menuIndex+4)%5;if(dn)menuIndex=(menuIndex+1)%5;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='leaguecreate'||screen==='leaguejoin'||screen==='leagueserver'){if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leagueview'){const n=Math.max(1,leagueActions.length);if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguesubmit'||screen==='leagueresolve'){const n=leaguePick.length+1;if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='leagueview';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguescore'){if(hit('Escape')){screen=scoreMode==='resolve'?'leagueresolve':'leaguesubmit';menuIndex=0}else if(confirm)handleMenuEnter()}else if(screen==='pause'){if(hit('Escape'))resumePlay();if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}else if(screen==='half'){if(net&&viewTeam===1&&engine.state.phase!=='halftime')handleMenuEnter();else if(confirm)handleMenuEnter();else if(performance.now()-halfAt>(net&&viewTeam===1?5000:1500))handleMenuEnter()}else if(screen==='city'){if(confirm)handleMenuEnter('city-back');if(hit('Escape')){screen='title';menuIndex=2;}}else if(screen==='full'){const fn=((net||botMatch)&&cityMatch)?4:3;if(up)menuIndex=(menuIndex+fn-1)%fn;if(dn)menuIndex=(menuIndex+1)%fn;if(confirm)handleMenuEnter()}menu();}
-function frame(now:number){const raw=Math.min(.1,(now-last)/1000);last=now;let stepped=false;if(net&&(screen==='host'||screen==='join'||screen==='netready')){try{net.poll();}catch{/* poll never throws; error surfaces via driver events */}}if(screen==='match'){handleMenu();if(screen==='match'){capturePrev(engine.state);if(net&&net.session){net.poll();const f=input();net.frame(f,raw);stepped=true;for(const e of net.session.drainEvents()){audio.event(e);if(e.type==='goal')track('goal',{a:engine.state.score[0],b:engine.state.score[1]});}renderer.setFollow(engine.controlOf(viewTeam),engine.targetOf(viewTeam));}else{const due=soloClock.push(raw);let first=true;for(let n=0;n<due;n++){const f=input();if(!first){f.pass=false;f.passReleased=false;f.long=false;f.shootPressed=false;f.shootReleased=false;f.switchPlayer=false}stepSolo(f);for(const e of engine.events.splice(0)){audio.event(e);if(e.type==='goal')track('goal',{a:engine.state.score[0],b:engine.state.score[1]});if(e.type==='shot'){renderer.impact(e.power??28)}if(e.type==='tackle'&&e.slide){renderer.impact(9)}}first=false;stepped=true;}}const s=engine.state;if(s.phase==='halftime'){screen='half';halfAt=performance.now();menuDirty=true;audio.event({type:'whistle'})}if(s.phase==='fulltime'){screen='full';menuIndex=0;menuDirty=true;if(net)mpState='finished';audio.event({type:'whistle'});track('match_end',{a:s.score[0],b:s.score[1],mode:dailyMode?'daily':(net?'online':'solo')});if(dailyMode)setDailyBest(s.score[0]);if((net||botMatch)&&!dailyMode)void submitCityResult()}let alpha=1;if(s.phase!==interpPhase||engine.tick<interpTickMark){capturePrev(s)}else{const debt=net?net.debt():soloClock.debt;alpha=Math.max(0,Math.min(1,debt/TICK_DT))}interpPhase=s.phase;interpTickMark=engine.tick;renderer.render(s,raw,false,displayPositions(s,alpha));const cine=renderer.inCinematic();barTop.classList.toggle('on',cine);barBottom.classList.toggle('on',cine);if(now-hudAt>66){hud(s);hudAt=now}}}else {renderer.render(engine.state,raw,screen==='title'||screen==='team');barTop.classList.remove('on');barBottom.classList.remove('on');if(screen==='half'&&now-halfAt>2500)continueFromHalf();handleMenu()}updateTouchVisibility();fitOrientation();if(import.meta.env.DEV&&now-devStatusAt>100){const s=engine.state,p=s.players[s.controlled],b=s.ball;document.body.dataset.match=JSON.stringify({phase:s.phase,screen,half:s.half,elapsed:s.elapsed,time:s.time,score:s.score,controlled:s.controlled,player:{x:p?.x,z:p?.z,vx:p?.vx,vz:p?.vz},ball:{x:b.x,z:b.z,y:b.y,owner:b.owner,flight:b.flight},stats:s.stats});devStatusAt=now}if(screen!=='match'||stepped){clearKeyboardEdges(kb);clearTouchEdges(touch)}requestAnimationFrame(frame)}
+function frame(now:number){const raw=Math.min(.1,(now-last)/1000);last=now;let stepped=false;if(net&&(screen==='host'||screen==='join'||screen==='netready')){try{net.poll();}catch{/* poll never throws; error surfaces via driver events */}}if(screen==='match'){handleMenu();if(screen==='match'){capturePrev(engine.state);if(net&&net.session){net.poll();const f=input();net.frame(f,raw);stepped=true;for(const e of net.session.drainEvents()){audio.event(e);if(e.type==='goal')track('goal',{a:engine.state.score[0],b:engine.state.score[1]});}renderer.setFollow(engine.controlOf(viewTeam),engine.targetOf(viewTeam));}else{const due=soloClock.push(raw);let first=true;for(let n=0;n<due;n++){const f=input();if(!first){f.pass=false;f.passReleased=false;f.long=false;f.shootPressed=false;f.shootReleased=false;f.switchPlayer=false}stepSolo(f);for(const e of engine.events.splice(0)){audio.event(e);if(e.type==='goal')track('goal',{a:engine.state.score[0],b:engine.state.score[1]});if(e.type==='shot'){renderer.impact(e.power??28)}if(e.type==='tackle'&&e.slide){renderer.impact(9)}}first=false;stepped=true;}}const s=engine.state;if(s.phase==='halftime'){screen='half';halfAt=performance.now();menuDirty=true;audio.event({type:'whistle'})}if(s.phase==='fulltime'){screen='full';resultShareNote='';menuIndex=0;menuDirty=true;if(net)mpState='finished';audio.event({type:'whistle'});track('match_end',{a:s.score[0],b:s.score[1],mode:dailyMode?'daily':(net?'online':'solo')});if(dailyMode)setDailyBest(s.score[0]);if((net||botMatch)&&!dailyMode)void submitCityResult()}let alpha=1;if(s.phase!==interpPhase||engine.tick<interpTickMark){capturePrev(s)}else{const debt=net?net.debt():soloClock.debt;alpha=Math.max(0,Math.min(1,debt/TICK_DT))}interpPhase=s.phase;interpTickMark=engine.tick;renderer.render(s,raw,false,displayPositions(s,alpha));const cine=renderer.inCinematic();barTop.classList.toggle('on',cine);barBottom.classList.toggle('on',cine);if(now-hudAt>66){hud(s);hudAt=now}}}else {renderer.render(engine.state,raw,screen==='title'||screen==='team');barTop.classList.remove('on');barBottom.classList.remove('on');if(screen==='half'&&now-halfAt>2500)continueFromHalf();handleMenu()}updateTouchVisibility();fitOrientation();if(import.meta.env.DEV&&now-devStatusAt>100){const s=engine.state,p=s.players[s.controlled],b=s.ball;document.body.dataset.match=JSON.stringify({phase:s.phase,screen,half:s.half,elapsed:s.elapsed,time:s.time,score:s.score,controlled:s.controlled,player:{x:p?.x,z:p?.z,vx:p?.vx,vz:p?.vz},ball:{x:b.x,z:b.z,y:b.y,owner:b.owner,flight:b.flight},stats:s.stats});devStatusAt=now}if(screen!=='match'||stepped){clearKeyboardEdges(kb);clearTouchEdges(touch)}requestAnimationFrame(frame)}
 addEventListener('resize',()=>renderer.resize());
 // PWA: offline app shell in production only (never cache dev iterations).
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

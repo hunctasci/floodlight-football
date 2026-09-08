@@ -28,7 +28,7 @@ test('country bot replay reproduces final score and rejects incomplete or extra 
 import { computeCityStandings } from '../src/city-league/standings.ts';
 import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
-import { BotLeagueService } from '../worker/city-league/bots.ts';
+import { BotLeagueService, chooseBotDifficulty } from '../worker/city-league/bots.ts';
 
 test('bot results persist once, require credentials, and credit both countries through confirmed matches', async () => {
   const sql = new DatabaseSync(':memory:');
@@ -39,6 +39,7 @@ test('bot results persist once, require credentials, and credit both countries t
       let args: any[] = [];
       return { bind(...values: any[]) { args = values; return this; },
         async first() { return sql.prepare(query).get(...args) ?? null; },
+        async all() { return { results: sql.prepare(query).all(...args) }; },
         async run() { return sql.prepare(query).run(...args); } };
     },
     async batch(statements: any[]) { return Promise.all(statements.map(s => s.run())); },
@@ -49,7 +50,7 @@ test('bot results persist once, require credentials, and credit both countries t
   const match = await service.create('home','TR');
   assert.notEqual(match.opponentCountry, 'TR');
   sql.prepare('UPDATE bot_matches SET half_duration=2 WHERE match_id=?').run(match.matchId);
-  const engine = new MatchEngine(0,2,match.seed,1), bytes: number[] = [];
+  const engine = new MatchEngine(0,2,match.seed,match.difficulty as 0 | 1 | 2), bytes: number[] = [];
   for (let tick=0; tick<20000 && engine.state.phase !== 'fulltime'; tick++) {
     if (engine.state.phase === 'halftime') engine.continueHalf();
     const input = encodeInput({ ...EMPTY_INPUT, pass: tick%60===0 });
@@ -69,4 +70,16 @@ test('bot results persist once, require credentials, and credit both countries t
   assert.equal(table.find(r => r.cityCode === 'TR')?.points, result.homeScore > result.awayScore ? 3 : result.homeScore === result.awayScore ? 1 : 0);
   assert.equal(table.find(r => r.cityCode === match.opponentCountry)?.points, result.awayScore > result.homeScore ? 3 : result.homeScore === result.awayScore ? 1 : 0);
   sql.close();
+});
+
+
+test('difficulty protects newcomers and losing players; strong players get occasional hard opponents', () => {
+  const win = { home_score: 2, away_score: 0 }, loss = { home_score: 0, away_score: 2 };
+  assert.equal(chooseBotDifficulty([], .99), 0);
+  assert.equal(chooseBotDifficulty([win,win], 0), 0);
+  assert.equal(chooseBotDifficulty([loss,loss,win,win,win], .99), 0);
+  assert.equal(chooseBotDifficulty([win,loss,win], .2), 0);
+  assert.equal(chooseBotDifficulty([win,loss,win], .8), 1);
+  assert.equal(chooseBotDifficulty([win,win,win,win,loss], .1), 2);
+  assert.equal(chooseBotDifficulty([win,win,win,win,loss], .8), 1);
 });
