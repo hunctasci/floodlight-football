@@ -1,3 +1,4 @@
+import { isValidCountryCode } from '../city-league/countries';
 import { HASH_EVERY, LockstepSession } from './session';
 import {
   decodeControl, decodePacket, encodeControlPacket, encodeHashPacket,
@@ -165,7 +166,7 @@ export class NetDriver {
     if (typeof v.clientId !== 'string' || typeof v.displayName !== 'string' || typeof v.cityCode !== 'string') return;
     if (v.clientId.length < 8 || v.clientId.length > 64) return;
     if (v.displayName.length < 1 || v.displayName.length > 24) return;
-    if (!/^[A-Z]{3}$/.test(v.cityCode)) return;
+    if (!isValidCountryCode(v.cityCode)) return;
     this.remoteProfile = { clientId: v.clientId, displayName: v.displayName.slice(0, 24), cityCode: v.cityCode };
     this.emit({ type: 'peerProfile', profile: this.remoteProfile });
   }

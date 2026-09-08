@@ -11,7 +11,7 @@ function svc(now = Date.UTC(2026, 8, 16, 12)) {
   return new CityLeagueService(new MemoryCityLeagueStore(), { now: () => now });
 }
 
-async function makeMatch(s: CityLeagueService, home = A, away = B, hc = 'IST', ac = 'RIZ') {
+async function makeMatch(s: CityLeagueService, home = A, away = B, hc = 'TR', ac = 'US') {
   await s.upsertProfile({ clientId: home, displayName: 'Home', cityCode: hc });
   await s.upsertProfile({ clientId: away, displayName: 'Away', cityCode: ac });
   return s.createMatch({ roomCode: 'ABCDEF', homeClientId: home, awayClientId: away, homeCityCode: hc, awayCityCode: ac });
@@ -19,24 +19,24 @@ async function makeMatch(s: CityLeagueService, home = A, away = B, hc = 'IST', a
 
 test('new player created; invalid city rejected', async () => {
   const s = svc();
-  const p = await s.upsertProfile({ clientId: A, displayName: 'Hunc', cityCode: 'IST' });
-  assert.equal(p.cityCode, 'IST');
-  await assert.rejects(s.upsertProfile({ clientId: B, displayName: 'X', cityCode: 'IST' }), /invalid name/);
+  const p = await s.upsertProfile({ clientId: A, displayName: 'Hunc', cityCode: 'TR' });
+  assert.equal(p.cityCode, 'TR');
+  await assert.rejects(s.upsertProfile({ clientId: B, displayName: 'X', cityCode: 'TR' }), /invalid name/);
   await assert.rejects(s.upsertProfile({ clientId: B, displayName: 'Mehmet', cityCode: 'NOPE' }), /invalid city/);
 });
 
 test('city locked for the active season, free next season', async () => {
   const t0 = Date.UTC(2026, 8, 16, 12);
   const s = new CityLeagueService(new MemoryCityLeagueStore(), { now: () => t0 });
-  await s.upsertProfile({ clientId: A, displayName: 'Hunc', cityCode: 'IST' });
-  await assert.rejects(s.upsertProfile({ clientId: A, displayName: 'Hunc', cityCode: 'RIZ' }), /locked/);
+  await s.upsertProfile({ clientId: A, displayName: 'Hunc', cityCode: 'TR' });
+  await assert.rejects(s.upsertProfile({ clientId: A, displayName: 'Hunc', cityCode: 'US' }), /locked/);
   const s2 = new CityLeagueService(
     // Share the same store across the season boundary.
     (s as unknown as { store: MemoryCityLeagueStore }).store,
     { now: () => t0 + 8 * 86400_000 },
   );
-  const p2 = await s2.upsertProfile({ clientId: A, displayName: 'Hunc', cityCode: 'RIZ' });
-  assert.equal(p2.cityCode, 'RIZ');
+  const p2 = await s2.upsertProfile({ clientId: A, displayName: 'Hunc', cityCode: 'US' });
+  assert.equal(p2.cityCode, 'US');
 });
 
 test('first submission leaves match pending', async () => {
@@ -54,7 +54,7 @@ test('identical dual submissions confirm the match', async () => {
   assert.equal(r.status, 'confirmed');
   assert.equal(r.homeScore, 2);
   const table = await s.getTable();
-  const riz = table.standings.find((x) => x.cityCode === 'RIZ')!;
+  const riz = table.standings.find((x) => x.cityCode === 'US')!;
   assert.equal(riz.points, 3);
 });
 
@@ -65,7 +65,7 @@ test('conflicting dual submissions mark disputed (no points)', async () => {
   const r = await s.submitResult(m.matchId, { clientId: B, matchToken: m.matchToken, homeScore: 2, awayScore: 1 });
   assert.equal(r.status, 'disputed');
   const table = await s.getTable();
-  assert.equal(table.standings.find((x) => x.cityCode === 'IST')!.points, 0);
+  assert.equal(table.standings.find((x) => x.cityCode === 'TR')!.points, 0);
 });
 
 test('invalid participant and invalid token rejected', async () => {
@@ -84,7 +84,7 @@ test('invalid participant and invalid token rejected', async () => {
 test('same player cannot represent both submissions', async () => {
   const s = svc();
   await assert.rejects(
-    s.createMatch({ roomCode: 'ABCDEF', homeClientId: A, awayClientId: A, homeCityCode: 'IST', awayCityCode: 'RIZ' }),
+    s.createMatch({ roomCode: 'ABCDEF', homeClientId: A, awayClientId: A, homeCityCode: 'TR', awayCityCode: 'US' }),
     /both sides/,
   );
 });

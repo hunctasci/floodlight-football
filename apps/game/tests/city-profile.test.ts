@@ -38,9 +38,9 @@ test('new player sees setup (no profile), returning bypasses onboarding', () => 
   try {
     assert.equal(getProfile(), null);
     assert.equal(hasProfile(), false);
-    const p = saveProfile({ displayName: 'Hunç', cityCode: 'IST', seasonKey: '2026-W38', existing: null });
+    const p = saveProfile({ displayName: 'Hunç', cityCode: 'TR', seasonKey: '2026-W38', existing: null });
     assert.equal(p.displayName, 'Hunç');
-    assert.equal(p.cityCode, 'IST');
+    assert.equal(p.cityCode, 'TR');
     assert.ok(hasProfile());
     assert.deepEqual(getProfile(), p);
   } finally {
@@ -51,8 +51,8 @@ test('new player sees setup (no profile), returning bypasses onboarding', () => 
 test('invalid city rejected', () => {
   const restore = mockStorage();
   try {
-    assert.throws(() => saveProfile({ displayName: 'Mehmet', cityCode: 'XXX', seasonKey: '2026-W38', existing: null }), /CITY/);
-    assert.throws(() => saveProfile({ displayName: 'Mehmet', cityCode: 'Real Madrid', seasonKey: '2026-W38', existing: null }), /CITY/);
+    assert.throws(() => saveProfile({ displayName: 'Mehmet', cityCode: 'XXX', seasonKey: '2026-W38', existing: null }), /COUNTRY/);
+    assert.throws(() => saveProfile({ displayName: 'Mehmet', cityCode: 'Real Madrid', seasonKey: '2026-W38', existing: null }), /COUNTRY/);
   } finally {
     restore();
   }
@@ -62,22 +62,31 @@ test('city can be chosen first time, locked during season, changeable next seaso
   const restore = mockStorage();
   try {
     const season = '2026-W38';
-    const p1 = saveProfile({ displayName: 'Hunc', cityCode: 'IST', seasonKey: season, existing: null });
+    const p1 = saveProfile({ displayName: 'Hunc', cityCode: 'TR', seasonKey: season, existing: null });
     assert.equal(isCityLocked(p1, season), true);
     // Same-season change rejected.
     assert.throws(
-      () => saveProfile({ displayName: 'Hunc', cityCode: 'RIZ', seasonKey: season, existing: p1 }),
+      () => saveProfile({ displayName: 'Hunc', cityCode: 'US', seasonKey: season, existing: p1 }),
       /LOCKED/,
     );
     // Next season free.
     const nextStart = getCurrentSeasonStart(Date.UTC(2026, 8, 14, 12)) + 7 * 86400_000;
     const nextKey = getCurrentSeasonKey(nextStart + 1000);
     assert.notEqual(nextKey, season);
-    const p2 = saveProfile({ displayName: 'Hunc', cityCode: 'RIZ', seasonKey: nextKey, existing: p1 });
-    assert.equal(p2.cityCode, 'RIZ');
+    const p2 = saveProfile({ displayName: 'Hunc', cityCode: 'US', seasonKey: nextKey, existing: p1 });
+    assert.equal(p2.cityCode, 'US');
     assert.equal(p2.clientId, p1.clientId, 'same device keeps its id');
     void getCurrentSeasonEnd;
   } finally {
     restore();
   }
+});
+
+test('existing city profile upgrades to Türkiye without losing identity', () => {
+  const restore = mockStorage();
+  try {
+    const old = { clientId: '12345678-abcd-1234-abcd-123456789abc', displayName: 'Hunç', cityCode: 'IST', citySeasonKey: '2026-W38' };
+    localStorage.setItem('floodlight.city-profile', JSON.stringify(old));
+    assert.deepEqual(getProfile(), { ...old, cityCode: 'TR' });
+  } finally { restore(); }
 });

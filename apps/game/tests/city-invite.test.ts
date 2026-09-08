@@ -48,9 +48,9 @@ test('canonical invite URL shape', () => {
 });
 
 test('whatsapp challenge copy stays simple', () => {
-  const msg = buildChallengeMessage('İstanbul', 'https://x/friend/ABCDEF');
-  assert.match(msg, /meydan okuyorum/);
-  assert.match(msg, /İstanbul/);
+  const msg = buildChallengeMessage('Türkiye', 'https://x/friend/ABCDEF');
+  assert.match(msg, /Represent your country/);
+  assert.match(msg, /Türkiye/);
   assert.match(msg, /https:\/\/x\/friend\/ABCDEF/);
 });
 
@@ -65,7 +65,7 @@ test('invitation survives first-time setup (pending → profile → join)', () =
     assert.equal(getPendingInvite(), 'ABCDEF');
 
     // Onboarding completes; the pending invite is still there for auto-join.
-    const profile = saveProfile({ displayName: 'Mehmet', cityCode: 'RIZ', seasonKey: '2026-W38', existing: null });
+    const profile = saveProfile({ displayName: 'Mehmet', cityCode: 'US', seasonKey: '2026-W38', existing: null });
     assert.equal(getProfile()?.clientId, profile.clientId);
     assert.equal(getPendingInvite(), 'ABCDEF');
 
@@ -80,7 +80,7 @@ test('invitation survives first-time setup (pending → profile → join)', () =
 test('returning player bypasses onboarding', () => {
   const restore = mockStorage();
   try {
-    saveProfile({ displayName: 'Hunc', cityCode: 'IST', seasonKey: '2026-W38', existing: null });
+    saveProfile({ displayName: 'Hunc', cityCode: 'TR', seasonKey: '2026-W38', existing: null });
     assert.equal(hasProfile(), true);
   } finally {
     restore();

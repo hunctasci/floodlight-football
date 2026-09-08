@@ -112,7 +112,7 @@ let peerReady = false, iAmReady = false;
 let copyNote = '';
 // ---- City League meta-layer (never enters the deterministic simulation) ----
 let cityProfile: CityProfile | null = null;
-let onboardName = '', onboardCity = 'IST', onboardMsg = '';
+let onboardName = '', onboardCity = 'TR', onboardMsg = '';
 let pendingInviteCode: string | null = null;
 let autoJoinAttempted = false;
 let cityTable: CityLeagueResponse | null = null, cityMsg = '', cityBusy = false;
@@ -189,8 +189,8 @@ const barBottom=document.createElement('div');barBottom.className='cinebar botto
 let camNote='',camNoteAt=0;
 const radar=document.createElement('canvas'); radar.className='radar';radar.width=308;radar.height=184;
 function keyName(e:KeyboardEvent){return e.code}
-addEventListener('keydown',e=>{if((e.target as HTMLElement)?.tagName==='TEXTAREA')return;if(isBlockedKey(keyName(e)))e.preventDefault(); keyDown(kb, keyName(e));audio.enable();});
-addEventListener('keyup',e=>{if((e.target as HTMLElement)?.tagName==='TEXTAREA')return;if(isBlockedKey(keyName(e)))e.preventDefault(); keyUp(kb, keyName(e));});
+addEventListener('keydown',e=>{if((e.target as HTMLElement)?.matches('textarea, input, select, [contenteditable]'))return;if(isBlockedKey(keyName(e)))e.preventDefault(); keyDown(kb, keyName(e));audio.enable();});
+addEventListener('keyup',e=>{if((e.target as HTMLElement)?.matches('textarea, input, select, [contenteditable]'))return;if(isBlockedKey(keyName(e)))e.preventDefault(); keyUp(kb, keyName(e));});
 // LMB is the shot button: hold to charge, drag to aim, release to shoot.
 renderer.canvas.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || screen !== 'match') return;
@@ -220,7 +220,7 @@ function shareResult(){
   const c=document.createElement('canvas');c.width=1000;c.height=525;
   const x=c.getContext('2d')!;x.textAlign='center';
   x.fillStyle='#0c1f14';x.fillRect(0,0,1000,525);
-  x.fillStyle='#f8efdb';x.font='bold 26px monospace';x.fillText(dailyMode?'FLOODLIGHT FOOTBALL · DAILY CUP':'FLOODLIGHT FOOTBALL · SATURDAY CUP',500,70);
+  x.fillStyle='#f8efdb';x.font='bold 26px monospace';x.fillText(dailyMode?'HNC LEAGUE · DAILY CUP':'HNC LEAGUE · SATURDAY CUP',500,70);
   x.fillStyle=my.color;x.fillRect(130,110,44,44);x.fillStyle=opp.color;x.fillRect(826,110,44,44);
   x.fillStyle='#f8efdb';x.font='bold 34px monospace';
   x.fillText(my.name.toUpperCase(),340,142);x.fillText(opp.name.toUpperCase(),660,142);
@@ -232,9 +232,9 @@ function shareResult(){
   x.fillStyle='#6f8f7c';x.font='22px monospace';x.fillText('FREE · OPEN SOURCE · PLAY IN YOUR BROWSER',500,470);
   c.toBlob((blob)=>{
     if(!blob)return;
-    const file=new File([blob],'floodlight-result.png',{type:'image/png'});
-    if(navigator.canShare?.({files:[file]}))void navigator.share({files:[file],title:'Floodlight Football'}).catch(()=>{});
-    else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='floodlight-result.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);}
+    const file=new File([blob],'hnc-league-result.png',{type:'image/png'});
+    if(navigator.canShare?.({files:[file]}))void navigator.share({files:[file],title:'HNC League'}).catch(()=>{});
+    else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hnc-league-result.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);}
   });
 }
 /** Enter an online match once the driver's handshake completes. */
@@ -402,49 +402,54 @@ function waitSteps(): string {
 }
 function menu(){ if(!menuDirty)return; menuDirty=false;
   if(screen==='onboard') {
-    const cities = CITIES.map((c) => {
-      const sel = onboardCity === c.code;
-      return `<div class="menu-item ${sel?'selected':''}" data-mi-city="${c.code}" data-testid="onboard-city-${c.code}" style="${sel?`border-color:${c.colors.primary}`:''}">${sel?'▶ ':''}${c.name.toUpperCase()}</div>`;
-    }).join('');
-    panel(`<div class="eyebrow">FLOODLIGHT FOOTBALL</div><div class="title tlg">PLAY FOR<br>YOUR CITY.</div>`
-      + `<div class="hint">YOUR NAME</div>`
-      + `<textarea class="netpaste netcode" id="onboard-name" data-testid="onboard-name" rows="1" maxlength="16" placeholder="HUNÇ" autocapitalize="words" autocomplete="off" autocorrect="off" spellcheck="false">${onboardName}</textarea>`
-      + `<div class="hint">CHOOSE YOUR CITY</div>${cities}`
+    panel(`<div class="eyebrow">HNC LEAGUE</div><div class="title tlg">PLAY FOR<br>YOUR COUNTRY.</div>`
+      + `<label class="hint" for="onboard-name">YOUR NAME</label>`
+      + `<textarea class="netpaste netcode" id="onboard-name" data-testid="onboard-name" rows="1" maxlength="16" placeholder="HUNÇ" autocapitalize="words" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>`
+      + `<label class="hint" for="onboard-country">CHOOSE YOUR COUNTRY</label>`
+      + `<select class="netcode" id="onboard-country" data-testid="onboard-country">${CITIES.map(c => `<option value="${c.code}" ${c.code === onboardCity ? 'selected' : ''}>${c.flag} ${c.name}</option>`).join('')}</select>`
       + `${onboardMsg?`<div class="subtitle" data-testid="onboard-msg">${onboardMsg}</div>`:''}`
-      + `<div class="menu-item netbtn" data-act="onboard-continue" data-testid="onboard-continue">▶ CONTINUE</div>`
-      + `<div class="hint">NO SIGNUP · ONE CITY PER WEEK</div>`);
-    ui.querySelectorAll<HTMLElement>('[data-mi-city]').forEach((el) => {
-      el.style.pointerEvents = 'auto'; el.style.cursor = 'pointer';
-      el.onclick = () => { onboardCity = el.dataset.miCity ?? 'IST'; onboardMsg = ''; menuDirty = true; menu(); };
-    });
+      + `<button class="menu-item netbtn" data-act="onboard-continue" data-testid="onboard-continue">▶ CONTINUE</button>`
+      + `<div class="hint">NO SIGNUP · ONE COUNTRY PER WEEK<br>WIN +3 · DRAW +1 · PLAY FOR NATIONAL PRIDE</div>`);
+    const nameInput = ui.querySelector<HTMLTextAreaElement>('#onboard-name')!;
+    nameInput.value = onboardName;
+    nameInput.oninput = () => { onboardName = nameInput.value; };
+    nameInput.onkeydown = (event) => {
+      if (event.key === 'Enter' && !event.isComposing) {
+        event.preventDefault(); doOnboardContinue();
+      }
+    };
+    ui.querySelector<HTMLSelectElement>('#onboard-country')!.onchange = (event) => {
+      onboardCity = (event.target as HTMLSelectElement).value;
+      onboardMsg = '';
+    };
     wireMenuItems();
     return;
   }
   if(screen==='title') {
-    const items=LEAGUES_LIVE?['PLAY MATCH','ONLINE MATCH','DAILY CUP','CITY LEAGUE','LEAGUE']:['PLAY MATCH','ONLINE MATCH','DAILY CUP','CITY LEAGUE','LEAGUE · COMING SOON'];
-    const prof = cityProfile ? `<div class="subtitle">${cityProfile.displayName.toUpperCase()} · ${cityName(cityProfile.cityCode).toUpperCase()}</div><div class="hint">PLAY FOR YOUR CITY.</div>` : `<div class="hint">PLAY FOR YOUR CITY.</div>`;
+    const items=LEAGUES_LIVE?['PLAY MATCH','ONLINE MATCH','DAILY CUP','COUNTRY LEAGUE','LEAGUE']:['PLAY MATCH','ONLINE MATCH','DAILY CUP','COUNTRY LEAGUE','LEAGUE · COMING SOON'];
+    const prof = cityProfile ? `<div class="subtitle">${cityProfile.displayName.toUpperCase()} · ${cityName(cityProfile.cityCode).toUpperCase()}</div><div class="hint">PLAY FOR YOUR COUNTRY.</div>` : `<div class="hint">PLAY FOR YOUR COUNTRY.</div>`;
     let preview = '';
     try {
       if (cityTable && cityTable.standings.length >= 3) {
         const top = cityTable.standings.slice(0, 3).map((r, i) => `<div class="statline"><span>${i + 1} ${r.cityName} ${r.points} PTS</span></div>`).join('');
         const cp = cityProfile; const mine = cp ? cityTable.standings.find((r) => r.cityCode === cp.cityCode) : null;
         const ends = cityTable.season.endsAt ? seasonCountdown(Date.now(), cityTable.season.endsAt) : '';
-        preview = `<div class="hint">CITY LEAGUE · ${cityTable.season.key}${ends?` · ENDS IN ${ends}`:''}</div>${top}`
-          + (mine ? `<div class="hint">YOUR CITY: ${mine.cityName.toUpperCase()} #${mine.rank}</div>` : '')
+        preview = `<div class="hint">COUNTRY LEAGUE · ${cityTable.season.key}${ends?` · ENDS IN ${ends}`:''}</div>${top}`
+          + (mine ? `<div class="hint">YOUR COUNTRY: ${mine.cityName.toUpperCase()} #${mine.rank}</div>` : '')
           + `<div class="menu-item netbtn" data-act="goto-city">▶ VIEW FULL TABLE</div>`;
       } else if (cityMsg) {
         preview = `<div class="hint">${cityMsg}</div>`;
       } else {
-        preview = `<div class="hint">CITY LEAGUE · LOADING…</div>`;
+        preview = `<div class="hint">COUNTRY LEAGUE · LOADING…</div>`;
       }
     } catch { preview = ''; }
-    panel(`<div class="eyebrow">ARCADE FOOTBALL · 1998</div><div class="title">FLOODLIGHT<br>FOOTBALL</div>${prof}${titleNote?`<div class="message">${titleNote}</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}${preview}<div class="hint">${isTouchDevice ? 'TAP A ROW TO CHANGE IT · TAP KICK OFF TO PLAY' : '↑ / ↓ PICK A ROW · ← / → CHANGE IT · ENTER KICK OFF'}<br>STICK/ARROWS MOVE · S PASS · LONG AERIAL BALLS · D SHOOT · SWITCH AUTO + MANUAL${isTouchDevice ? '<br>LEFT STICK + PASS / LONG / SHOOT' : ''}</div>`); wireMenuItems(); return; }
+    panel(`<div class="eyebrow">ARCADE FOOTBALL · 1998</div><div class="title">HNC<br>LEAGUE</div>${prof}${titleNote?`<div class="message">${titleNote}</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}${preview}<div class="hint">${isTouchDevice ? 'TAP A ROW TO CHANGE IT · TAP KICK OFF TO PLAY' : '↑ / ↓ PICK A ROW · ← / → CHANGE IT · ENTER KICK OFF'}<br>STICK/ARROWS MOVE · S PASS · LONG AERIAL BALLS · D SHOOT · SWITCH AUTO + MANUAL${isTouchDevice ? '<br>LEFT STICK + PASS / LONG / SHOOT' : ''}</div>`); wireMenuItems(); return; }
   if(screen==='team') { const t=TEAMS[teamIndex],o=TEAMS[(teamIndex+1)%TEAMS.length]; const lvl=AI_LEVELS.find((l)=>l.id===aiLevel)?.label ?? 'PRO'; const rows=[`CLUB · ${t.name.toUpperCase()}`, `LENGTH · ${duration/60} MIN HALVES`, `CPU · ${lvl}`]; panel(`<div class="eyebrow">CHOOSE YOUR CLUB</div><div class="title tmd">SATURDAY CUP</div><div class="team-row"><div class="team-card active"><div class="team-swatch" style="background:${t.color}"></div>${t.name}<br><small>${t.city}</small></div><div class="team-card"><div class="team-swatch" style="background:${o.color}"></div>${o.name}<br><small>OPPONENT</small></div></div>${rows.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-act="cycle-${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="menu-item ${menuIndex===3?'selected':''}" data-mi="3" data-act="kickoff">${menuIndex===3?'▶ ':''}★ KICK OFF</div><div class="hint">${isTouchDevice ? 'TAP A ROW TO CHANGE IT · TAP ★ KICK OFF' : '↑ / ↓ PICK ROW · ← / → CHANGE · ENTER KICK OFF · ESC BACK'}</div>`); return; }
   if(screen==='pause') { const items=['RESUME','RESTART MATCH','MAIN MENU']; panel(`<div class="eyebrow">MATCH PAUSED</div><div class="title tlg">PAUSE</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">ARROWS MOVE · S PASS/CONTAIN · D/MOUSE SHOOT/TACKLE · LONG CROSS & SLIDE<br>SPACE SWITCH (AUTO-SWITCH ON) · E/SHIFT SPRINT · C CAMERA (${renderer.cameraLabel()}) · ↑ / ↓ SELECT · ENTER CONFIRM · ESC RESUME</div>`); return; }
   if(screen==='online') { const items=['PLAY WITH A FRIEND','JOIN WITH CODE','BACK']; panel(`<div class="eyebrow">CHALLENGE A FRIEND · ONLINE</div><div class="title tlg" data-testid="online-title">ONLINE</div><div class="subtitle">${TEAMS[teamIndex].short} · ${duration/60} MIN HALVES</div>${netStatus?`<div class="subtitle" data-testid="online-status">${netStatus}</div><div class="menu-item netbtn" data-act="copylog" data-testid="copy-debug-log">▶ COPY DEBUG LOG</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-testid="online-${x.toLowerCase().replace(/[^a-z]+/g, '-')}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
   if(screen==='host') {
     const url = roomCode ? inviteUrlFor(roomCode) : '';
-    const city = myCityName().toUpperCase() || 'YOUR CITY';
+    const city = myCityName().toUpperCase() || 'YOUR COUNTRY';
     panel(`<div class="eyebrow">YOUR CHALLENGE IS READY · YOU ARE TEAM 1</div>`
       + `<div class="title room-code txl" data-testid="room-code">${roomCode ? formatRoomCode(roomCode) : '···'}</div>`
       + `<div class="subtitle">${city} · WAITING FOR OPPONENT…</div>`
@@ -486,10 +491,10 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
       const gd = r.goalDifference >= 0 ? `+${r.goalDifference}` : `${r.goalDifference}`;
       return `<div class="statline"><span>${r.rank} ${r.cityName.toUpperCase()} ${r.played}P ${gd} ${r.points} PTS${mine}</span></div>`;
     }).join('');
-    panel(`<div class="eyebrow">CITY LEAGUE · ${cityTable?.season.key ?? '…'}</div><div class="title tlg">PLAY FOR<br>YOUR CITY.</div>`
+    panel(`<div class="eyebrow">COUNTRY LEAGUE · ${cityTable?.season.key ?? '…'}</div><div class="title tlg">PLAY FOR<br>YOUR COUNTRY.</div>`
       + (cityTable ? `<div class="hint">SEASON ENDS IN ${ends}</div>${top3}${table}` : `<div class="subtitle">${cityBusy ? 'LOADING…' : (cityMsg || 'TABLE UNAVAILABLE')}</div>`)
       + `<div class="menu-item netbtn" data-act="city-refresh">▶ REFRESH</div><div class="menu-item netbtn" data-act="city-back">▶ BACK</div>`
-      + `<div class="hint"># CITY P GD PTS · FULL STATS ON WIDE SCREENS</div>`);
+      + `<div class="hint"># COUNTRY P GD PTS · FULL STATS ON WIDE SCREENS</div>`);
     return;
   }
   if(screen==='league') { const items=['OPEN LEAGUE','CREATE LEAGUE','JOIN LEAGUE','SERVER','BACK']; const saved=getLeagueCode(); panel(`<div class="eyebrow">FRIEND LEAGUES · ROUND ROBIN</div><div class="title tlg">LEAGUE</div><div class="subtitle">${saved ? 'SAVED CODE ' + saved : getServerUrl()}</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
@@ -534,10 +539,10 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
       if (cityResult.status === 'confirming') cityLine = `<div class="subtitle" data-testid="city-status">CONFIRMING RESULT…</div>`;
       else if (cityResult.status === 'confirmed') cityLine = `<div class="subtitle" data-testid="city-status">RESULT CONFIRMED · ${cityResult.detail}</div>${cityResult.rankText?`<div class="hint">${cityResult.rankText}</div>`:''}`;
       else if (cityResult.status === 'disputed') cityLine = `<div class="subtitle" data-testid="city-status">RESULT COULD NOT BE VERIFIED</div>`;
-      else if (sameCity) cityLine = `<div class="subtitle" data-testid="city-status">FRIENDLY MATCH · NO CITY LEAGUE POINTS</div>`;
-      else if (cityResult.status === 'friendly') cityLine = `<div class="subtitle" data-testid="city-status">FRIENDLY MATCH · NO CITY LEAGUE POINTS</div>`;
+      else if (sameCity) cityLine = `<div class="subtitle" data-testid="city-status">FRIENDLY MATCH · NO COUNTRY LEAGUE POINTS</div>`;
+      else if (cityResult.status === 'friendly') cityLine = `<div class="subtitle" data-testid="city-status">FRIENDLY MATCH · NO COUNTRY LEAGUE POINTS</div>`;
       else cityLine = `<div class="subtitle" data-testid="city-status">CONFIRMING RESULT…</div>`;
-      const items=['REMATCH','CHALLENGE ANOTHER FRIEND','CITY LEAGUE','MAIN MENU'];
+      const items=['REMATCH','CHALLENGE ANOTHER FRIEND','COUNTRY LEAGUE','MAIN MENU'];
       panel(`<div class="eyebrow">FULL TIME</div><div class="title tlg" data-testid="fulltime-title">FULL TIME</div>`
         + `<div class="subtitle" data-testid="fulltime-score">${homeC} ${s.score[0]} – ${s.score[1]} ${awayC}</div>${cityLine}`
         + `<div class="statline"><span>SHOTS<strong>${s.stats.shots[0]}–${s.stats.shots[1]}</strong></span><span>SAVES<strong>${s.stats.saves[0]}–${s.stats.saves[1]}</strong></span></div>`
@@ -1048,7 +1053,7 @@ function cycleTeamRow(row: number, dir: 1 | -1) {
   menuDirty = true;
 }
 function doOnboardContinue() {
-  const raw = areaVal('onboard-name') || onboardName;
+  const raw = ui.querySelector<HTMLTextAreaElement>('#onboard-name')?.value ?? onboardName;
   onboardName = raw;
   try {
     const seasonKey = getCurrentSeasonKey();
@@ -1164,7 +1169,7 @@ async function submitCityResult() {
       const won = (myCity === cityMatch.homeCity && s.score[0] > s.score[1]) || (myCity === cityMatch.awayCity && s.score[1] > s.score[0]);
       const draw = s.score[0] === s.score[1];
       const pts = won ? 3 : draw ? 1 : 0;
-      cityResult = { status: 'confirmed', detail: `+${pts} CITY POINTS`, rankText: '' };
+      cityResult = { status: 'confirmed', detail: `+${pts} COUNTRY POINTS`, rankText: '' };
       try {
         const before = preMatchRanks[myCity];
         await refreshCityTable(true);
@@ -1386,7 +1391,7 @@ try {
     // happy-path tests run unchanged (no onboarding UI in ?e2e).
     try {
       const rnd = Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0').slice(0, 8);
-      cityProfile = saveProfile({ displayName: `E2E ${rnd}`.slice(0, 12), cityCode: 'IST', seasonKey: getCurrentSeasonKey(), existing: null });
+      cityProfile = saveProfile({ displayName: `E2E ${rnd}`.slice(0, 12), cityCode: 'TR', seasonKey: getCurrentSeasonKey(), existing: null });
     } catch { cityProfile = getProfile(); }
   }
 } catch { cityProfile = null; }

@@ -126,3 +126,19 @@ Friend leagues, profiles, results, and rankings need durable storage and are
 not built in this pass — that is when D1 enters, with its own ADR. No empty
 schemas were created for them. The current Node `LeagueStore` and the shared
 `@floodlight/protocol` DTOs are the seam a D1 adapter can implement later.
+
+### Country League upgrade
+
+Country choices use ISO 3166-1 alpha-2 codes. The existing `cityCode` JSON
+fields and `city_code` D1 columns are retained for storage/protocol compatibility;
+their new values are country codes. `/api/country-league` is the current endpoint,
+with `/api/city-league` retained as an alias.
+
+Run `npm run db:migrate:local --workspace=floodlight-football` before local tests.
+For production, run `npm run db:migrate:remote --workspace=floodlight-football`
+then `npm run deploy`. Wrangler applies the tracked D1 migrations.
+Migration 0002 maps existing Turkish city profiles to `TR`, preserving guest
+identity and season locks. Historical city match snapshots are preserved and
+excluded from country standings. Browser profiles receive the same conversion.
+Countries compete weekly: wins earn 3 points, draws 1; same-country matches
+are friendlies. Both players must submit matching results before points count.

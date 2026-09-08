@@ -78,7 +78,7 @@ export class CityLeagueApi {
   }
 
   getTable() {
-    return this.call<CityLeagueResponse>('/api/city-league', 'GET');
+    return this.call<CityLeagueResponse>('/api/country-league', 'GET');
   }
 
   createMatch(input: {
@@ -88,7 +88,7 @@ export class CityLeagueApi {
     homeCityCode: string;
     awayCityCode: string;
   }) {
-    return this.call<CityMatchCreated>('/api/city-league/matches', 'POST', input);
+    return this.call<CityMatchCreated>('/api/country-league/matches', 'POST', input);
   }
 
   submitResult(matchId: string, input: { clientId: string; matchToken: string; homeScore: number; awayScore: number }) {

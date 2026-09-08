@@ -1,10 +1,10 @@
-/* Floodlight Football service worker.
+/* HNC League service worker.
  * Navigation (the app shell) is network-first so new deploys reach players
  * on the next visit; hashed assets are immutable and stay cache-first.
  * Match traffic is unaffected (local-first sim, P2P netcode).
  * Control-plane traffic (/api/*) is never cached: rooms/signaling must stay
  * live, and caching them could serve stale room/health responses. */
-const VERSION = 'floodlight-v2';
+const VERSION = 'hnc-league-v3';
 const CORE = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (e) => {

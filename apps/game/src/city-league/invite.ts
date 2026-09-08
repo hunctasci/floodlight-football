@@ -71,8 +71,8 @@ export function buildInviteUrl(origin: string, code: string): string {
 
 /** Turkish WhatsApp challenge copy (simple, no opponent knowledge needed). */
 export function buildChallengeMessage(cityName: string, inviteUrl: string): string {
-  const city = cityName.trim() || 'Şehrim';
-  return `⚽ Floodlight Football'da sana meydan okuyorum.\n\n${city} için oynuyorum.\n\nBeni yenebilir misin?\n\n${inviteUrl}`;
+  const city = cityName.trim() || 'my country';
+  return `⚽ I play for ${city} in HNC League.\n\nRepresent your country. Can you beat me?\n\n${inviteUrl}`;
 }
 
 /** Versus variant when the opponent city is already known. */

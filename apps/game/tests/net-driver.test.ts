@@ -263,3 +263,19 @@ test('host-driven half-time converges via broadcast plus resync healing', () => 
   assert.equal(host.session!.hash(), guest.session!.hash(), 'post-half states converge');
   host.close(); guest.close();
 });
+
+test('country identities survive the multiplayer handshake and lobby updates', () => {
+  const [ta, tb] = LoopbackTransport.pair();
+  const a = { clientId: '11111111-1111-4111-8111-111111111111', displayName: 'Home', cityCode: 'TR' };
+  const b = { clientId: '22222222-2222-4222-8222-222222222222', displayName: 'Away', cityCode: 'BR' };
+  const host = new NetDriver(ta, { host: true, localProfile: a });
+  const guest = new NetDriver(tb, { host: false, localProfile: b });
+  ta.open(); tb.open();
+  assert.deepEqual(host.remoteProfile, b);
+  assert.deepEqual(guest.remoteProfile, a);
+  guest.setLocalProfile({ ...b, cityCode: 'ZZ' });
+  assert.deepEqual(host.remoteProfile, b, 'unrecognized country is rejected');
+  guest.setLocalProfile({ ...b, cityCode: 'DE' });
+  assert.equal(host.remoteProfile?.cityCode, 'DE');
+  host.close(); guest.close();
+});

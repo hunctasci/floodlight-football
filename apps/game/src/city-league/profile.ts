@@ -12,6 +12,7 @@
  * Pure validators are DOM-free and unit-tested; only get/save touch storage.
  */
 
+import { migrateCityCode } from './countries';
 import { isValidCityCode, type CityCode } from './cities';
 
 export interface CityProfile {
@@ -99,6 +100,7 @@ function parseProfile(raw: string | null): CityProfile | null {
     if (!isValidClientId(v.clientId)) return null;
     const name = sanitizeDisplayName(v.displayName);
     if (!name) return null;
+    v.cityCode = migrateCityCode(v.cityCode);
     if (!isValidCityCode(v.cityCode)) return null;
     if (typeof v.citySeasonKey !== 'string' || !/^\d{4}-W\d{2}$/.test(v.citySeasonKey)) return null;
     return {
@@ -146,12 +148,12 @@ export interface SaveProfileInput {
 export function saveProfile(input: SaveProfileInput): CityProfile {
   const name = sanitizeDisplayName(input.displayName);
   if (!name) throw new Error('NAME MUST BE 3–16 CHARACTERS');
-  if (!isValidCityCode(input.cityCode)) throw new Error('PICK YOUR CITY');
+  if (!isValidCityCode(input.cityCode)) throw new Error('PICK YOUR COUNTRY');
   if (!/^\d{4}-W\d{2}$/.test(input.seasonKey)) throw new Error('SEASON UNAVAILABLE — TRY AGAIN');
 
   const existing = input.existing ?? getProfile();
   if (existing && existing.citySeasonKey === input.seasonKey && existing.cityCode !== input.cityCode) {
-    throw new Error('CITY IS LOCKED FOR THIS SEASON');
+    throw new Error('COUNTRY IS LOCKED FOR THIS SEASON');
   }
 
   const profile: CityProfile = {
@@ -189,8 +191,8 @@ export function isCityLocked(profile: CityProfile, currentSeasonKey: string): bo
 
 /** Change city only at a new season; returns the updated profile. */
 export function changeCity(profile: CityProfile, nextCity: string, currentSeasonKey: string): CityProfile {
-  if (!isValidCityCode(nextCity)) throw new Error('PICK YOUR CITY');
-  if (isCityLocked(profile, currentSeasonKey)) throw new Error('CITY IS LOCKED FOR THIS SEASON');
+  if (!isValidCityCode(nextCity)) throw new Error('PICK YOUR COUNTRY');
+  if (isCityLocked(profile, currentSeasonKey)) throw new Error('COUNTRY IS LOCKED FOR THIS SEASON');
   return saveProfile({
     displayName: profile.displayName,
     cityCode: nextCity,

@@ -166,7 +166,7 @@ export default {
       }
     }
 
-    if (request.method === 'GET' && path === '/api/city-league') {
+    if (request.method === 'GET' && (path === '/api/country-league' || path === '/api/city-league')) {
       const ip = getIp(request);
       if (!limiter.allow(`table:${ip}`, 60, 60)) return json({ error: 'rate limited, slow down' }, 429);
       try {
@@ -176,7 +176,7 @@ export default {
       }
     }
 
-    if (request.method === 'POST' && path === '/api/city-league/matches') {
+    if (request.method === 'POST' && (path === '/api/country-league/matches' || path === '/api/city-league/matches')) {
       const ip = getIp(request);
       if (!limiter.allow(`cl-create:${ip}`, 20, 60)) return json({ error: 'rate limited, slow down' }, 429);
       const body = await readJson(request);
