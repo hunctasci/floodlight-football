@@ -3,23 +3,21 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { CONSENT_KEY, GTM_ID, getConsent, initAnalytics, needsConsent, setConsent, showConsentBanner, track } from '../src/analytics.ts';
+import { CONSENT_KEY, GA_ID, getConsent, initAnalytics, needsConsent, setConsent, showConsentBanner, track } from '../src/analytics.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const mainSrc = readFileSync(join(here, '..', 'src', 'main.ts'), 'utf8');
 const indexHtml = readFileSync(join(here, '..', 'index.html'), 'utf8');
 
-// GTM loader is production-only: dev/tests/E2E never hit the network.
+// gtag.js loader is production-only: dev/tests/E2E never hit the network.
 // (initAnalytics always pushes the inert consent-default array.)
 test('analytics boots silently outside production', () => {
-  const g = globalThis as unknown as { dataLayer?: unknown };
   (globalThis as unknown as { dataLayer: unknown }).dataLayer = [];
   initAnalytics();
   const dl = (globalThis as unknown as { dataLayer: unknown[] }).dataLayer;
-  assert.ok(!dl.some((e) => !Array.isArray(e) && (e as Record<string, unknown>).event === 'gtm.js'),
-    'no gtm.js injection outside PROD builds');
+  assert.ok(!dl.some((e) => Array.isArray(e) && e[0] === 'config'),
+    'no gtag config outside PROD builds');
   assert.ok(dl.some((e) => Array.isArray(e) && e[0] === 'consent'), 'consent default still pushed');
-  void g;
 });
 
 // Custom game events land on the dataLayer for GTM triggers.
@@ -33,16 +31,16 @@ test('track() pushes game events without a DOM', () => {
   (globalThis as unknown as { dataLayer: unknown }).dataLayer = undefined;
 });
 
-// Container id matches the owner's GTM property.
-test('container id is GTM-PVR3NWLQ', () => {
-  assert.equal(GTM_ID, 'GTM-PVR3NWLQ');
+// Measurement id matches the owner's GA4 property.
+test('measurement id is G-YTNJDKH5V0', () => {
+  assert.equal(GA_ID, 'G-YTNJDKH5V0');
 });
 
-// No hardcoded GTM snippet in the shell: injection is PROD-gated in code,
+// No hardcoded tracking snippet in the shell: injection is PROD-gated in code,
 // so sandboxed/offline runs stay hermetic.
 test('index shell stays static (no third-party tags)', () => {
-  assert.ok(!indexHtml.includes('googletagmanager'), 'no GTM in index.html');
-  assert.ok(!indexHtml.includes('GTM-'), 'no container id in index.html');
+  assert.ok(!indexHtml.includes('googletagmanager'), 'no gtag in index.html');
+  assert.ok(!indexHtml.includes('G-YTNJDKH5V0'), 'no measurement id in index.html');
 });
 
 // Lifecycle wiring: the events GTM triggers consume actually fire.

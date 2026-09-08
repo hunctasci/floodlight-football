@@ -1,20 +1,21 @@
 /**
- * Analytics: Google Tag Manager + game-event dataLayer pushes + consent.
+ * Analytics: GA4 via gtag.js + game-event dataLayer pushes + consent.
  *
- * - The GTM script is injected ONLY in production builds AND only after the
- *   player accepts tracking. Dev, tests and the Playwright E2E never touch
- *   googletagmanager.com (offline PWA shell and sandboxed CI stay hermetic;
- *   the noscript iframe is pointless for a JS-only WebGL game and omitted).
+ * - The gtag.js loader is injected ONLY in production builds AND only after
+ *   the player accepts tracking. Dev, tests and the Playwright E2E never
+ *   touch googletagmanager.com (offline PWA shell and sandboxed CI stay
+ *   hermetic; the noscript iframe is pointless for a JS-only WebGL game).
  * - Consent Mode v2: denied-by-default is pushed before anything else, so
- *   GTM tags requiring consent stay dormant until the player opts in. The
- *   choice persists in localStorage (`floodlight-consent`).
- * - `track()` pushes plain objects onto the global dataLayer in every
- *   environment (a side-effect-free array push). Configure tags/triggers for
- *   these custom events in the GTM container UI (GTM-PVR3NWLQ).
+ *   GA4 collection stays dormant until the player opts in. The choice
+ *   persists in localStorage (`floodlight-consent`).
+ * - `track()` pushes `{ event, ...params }` objects onto the global
+ *   dataLayer in every environment (a side-effect-free array push); with
+ *   gtag.js loaded these are collected as GA4 custom events automatically:
+ *   match_start, goal, match_end, online_connected, online_error.
  * - Analytics never throws and never blocks gameplay.
  */
 
-export const GTM_ID = 'GTM-PVR3NWLQ';
+export const GA_ID = 'G-YTNJDKH5V0';
 export const CONSENT_KEY = 'floodlight-consent';
 
 export type ConsentChoice = 'granted' | 'denied';
@@ -108,7 +109,7 @@ export function setConsent(choice: ConsentChoice): void {
     /* private mode: session-only */
   }
   pushConsent('update', choice);
-  if (choice === 'granted') injectGtm();
+  if (choice === 'granted') injectGtag();
 }
 
 /** True when the banner must be shown (no stored choice). */
@@ -116,18 +117,18 @@ export function needsConsent(): boolean {
   return getConsent() === null;
 }
 
-function injectGtm(): void {
+function injectGtag(): void {
   if (!isProd()) return;
   if (typeof document === 'undefined') return;
-  if (document.querySelector(`script[data-gtm="${GTM_ID}"]`)) return;
+  if (document.querySelector(`script[data-gtag="${GA_ID}"]`)) return;
   try {
-    const w = window as unknown as { dataLayer?: unknown };
-    if (!Array.isArray(w.dataLayer)) w.dataLayer = [];
-    (w.dataLayer as DataLayer).push({ 'gtm.start': Date.now(), event: 'gtm.js' });
+    // gtag() bootstrap: queue the js/config commands the loader consumes.
+    layer().push(['js', new Date()] as unknown as Record<string, unknown>);
+    layer().push(['config', GA_ID] as unknown as Record<string, unknown>);
     const s = document.createElement('script');
     s.async = true;
-    s.dataset.gtm = GTM_ID;
-    s.src = `https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`;
+    s.dataset.gtag = GA_ID;
+    s.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`;
     document.head.appendChild(s);
   } catch {
     /* analytics never breaks the game */
@@ -135,14 +136,14 @@ function injectGtm(): void {
 }
 
 /**
- * Boot analytics: push denied-by-default first (GTM tags stay dormant),
- * then load immediately only for previously-accepting players. New players
+ * Boot analytics: push denied-by-default first (GA4 stays dormant), then
+ * load immediately only for previously-accepting players. New players
  * decide via `showConsentBanner()`.
  */
 export function initAnalytics(): void {
   try {
     pushConsent('default', 'denied');
-    if (getConsent() === 'granted') injectGtm();
+    if (getConsent() === 'granted') injectGtag();
   } catch {
     /* ignore */
   }
