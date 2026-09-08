@@ -58,6 +58,7 @@ export interface CityLeagueStore {
   upsertPlayer(row: PlayerRow): Promise<void>;
   getMatch(id: string): Promise<MatchRow | null>;
   createMatch(row: NewMatch): Promise<void>;
+  submitAndResolve?(submission: SubmissionRow): Promise<MatchRow>;
   /** Finalize exactly once via the store's atomic path (D1 batch / memory). */
   setMatchResult(
     id: string,

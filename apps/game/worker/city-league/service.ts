@@ -131,6 +131,10 @@ export class CityLeagueService {
       throw new CityLeagueError('BAD_REQUEST', 'invalid city');
     }
 
+    const [homePlayer, awayPlayer] = await Promise.all([this.store.getPlayer(input.homeClientId), this.store.getPlayer(input.awayClientId)]);
+    if (!homePlayer || !awayPlayer || homePlayer.city_code !== input.homeCityCode || awayPlayer.city_code !== input.awayCityCode) {
+      throw new CityLeagueError('FORBIDDEN', 'country must match each saved player profile');
+    }
     const seasonKey = this.currentSeasonKey();
     const matchId = makeMatchId();
     const matchToken = makeCityMatchToken();
@@ -163,14 +167,14 @@ export class CityLeagueService {
     if (!validScore(input.homeScore) || !validScore(input.awayScore)) {
       throw new CityLeagueError('BAD_REQUEST', 'invalid score');
     }
-    if (match.status === 'confirmed' || match.status === 'disputed' || match.status === 'abandoned') {
-      return { status: match.status, matchId: match.id, homeScore: match.home_score, awayScore: match.away_score };
-    }
-
     const presented = await sha256Hex(input.matchToken);
     if (presented !== match.match_token_hash) {
       throw new CityLeagueError('FORBIDDEN', 'invalid token');
     }
+    if (match.status === 'confirmed' || match.status === 'disputed' || match.status === 'abandoned') {
+      return { status: match.status, matchId: match.id, homeScore: match.home_score, awayScore: match.away_score };
+    }
+
 
     const submission = {
       match_id: matchId,
@@ -180,6 +184,10 @@ export class CityLeagueService {
       submitted_at: this.now(),
     };
 
+    if (this.store.submitAndResolve) {
+      const resolved = await this.store.submitAndResolve(submission);
+      return { status: resolved.status, matchId: resolved.id, homeScore: resolved.home_score, awayScore: resolved.away_score };
+    }
     // Inspect both sides including this new report.
     const existing = await this.store.listSubmissions(matchId);
     const byClient = new Map(existing.map((s) => [s.client_id, s]));

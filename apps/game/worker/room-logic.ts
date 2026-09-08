@@ -23,6 +23,7 @@ export const MAX_PAYLOAD_BYTES = 65536;
 export interface RoomAttachment {
   peerId: string;
   role: 'host' | 'guest';
+  relayed?: boolean;
   joinedAt: number;
 }
 

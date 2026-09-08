@@ -142,3 +142,36 @@ identity and season locks. Historical city match snapshots are preserved and
 excluded from country standings. Browser profiles receive the same conversion.
 Countries compete weekly: wins earn 3 points, draws 1; same-country matches
 are friendlies. Both players must submit matching results before points count.
+
+### Country lobby and matchmaking
+
+The main menu is now the country lobby: Play, Challenge a Friend, World Table.
+Play searches for one other human from a different country. Each human controls
+an 11-player national team; matches use two 60-second halves. Friend matches
+remain available, and same-country games remain unranked friendlies.
+
+`MATCHMAKER` is a SQLite Durable Object bound in Wrangler. One global queue
+(`world-v1`) synchronously reserves pairs before allocating a room, preventing
+a player from being paired twice. Queue tickets are random bearer secrets;
+polls and cancellation require the ticket. Waiting tickets expire after 20
+seconds without a heartbeat, while matched assignments last 90 seconds.
+Rooms allocated by matchmaking admit only their two reserved session peer IDs.
+D1 continues to own profiles, season locks, match records and score submissions.
+Run `npm run cf:types` after binding changes, then deploy normally with Wrangler.
+
+Country profiles determine team names and cosmetic kit colors on both peers.
+Away colors change when shirts clash; this does not change gameplay or ratings.
+Flag palette source: lipis/flag-icons v7.3.2 (MIT, see flag-icons-LICENSE), with
+common national football colors overriding the flag-derived colors.
+
+D1 now inserts immutable first score reports and resolves agreement/disagreement
+in one atomic batch, including simultaneous submissions. Country choices at
+match creation must match the players' saved profiles. Results still rely on
+both clients reporting honestly; this is not server-authoritative anti-cheat.
+
+Country matchmaking transports binary game packets through the reserved room's
+Cloudflare WebSocket relay, avoiding direct WebRTC/NAT connectivity failures.
+The relay accepts only the two reserved session IDs, caps packet sizes and
+packet rates, and never calculates match scores. Friend invite rooms continue
+to use WebRTC. For global scale, regional queue routing and relay latency
+measurement should precede further expansion of the single global queue.

@@ -7,7 +7,7 @@
  *   season_key = active season
  *
  * Excluded: pending/disputed/abandoned, same-city friendlies, other seasons.
- * Solo/AI never produce match rows, so they never reach this function.
+ * Practice never produces match rows. Verified country bot matches count.
  *
  * Ranking: points → goal difference → goals scored → wins → city code
  * (deterministic final tie-break).

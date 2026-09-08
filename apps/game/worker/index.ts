@@ -11,8 +11,8 @@
  * - POST /api/city-league/matches → issue a league matchId + token.
  * - POST /api/matches/:id/result → dual-submit final score (ADR-004).
  *
- * Gameplay never touches this Worker: post-handshake InputFrames stay
- * WebRTC P2P (see apps/game/src/net/). Solo needs no backend at all.
+ * Country matches relay binary packets through their reserved Room object.
+ * Friend matches keep WebRTC P2P gameplay (see apps/game/src/net/).
  * The Node backend in apps/server remains as the self-hosted reference.
  */
 
@@ -24,9 +24,11 @@ import { CityLeagueError, CityLeagueService } from './city-league/service';
 import { MemoryCityLeagueStore } from './city-league/store';
 
 export { RoomDurableObject };
+export { Matchmaker } from './matchmaker';
 
 interface Env {
   ROOMS: DurableObjectNamespace;
+  MATCHMAKER: DurableObjectNamespace;
   DB?: D1Database;
   ASSETS?: Fetcher;
   TURN_URLS?: string;
@@ -96,6 +98,23 @@ export default {
       if (!limiter.allow(`turn:${ip}`, 30, 60)) return json({ error: 'rate limited, slow down' }, 429);
       const { servers } = await resolveTurnServers(env);
       return json({ iceServers: servers });
+    }
+
+    if (request.method === 'POST' && ['/api/matchmaking/join', '/api/matchmaking/poll', '/api/matchmaking/cancel'].includes(path)) {
+      const ip = getIp(request);
+      const action = path.split('/').pop()!;
+      if (!limiter.allow(`queue:${action}:${ip}`, action === 'join' ? 20 : 120, 60)) return json({ error: 'Too many requests. Try again shortly.' }, 429);
+      const body = await readJson(request);
+      if (!body) return json({ error: 'Invalid request' }, 400);
+      let payload: Record<string, unknown> = body;
+      if (action === 'join') {
+        if (!env.DB) return json({ error: 'Matchmaking unavailable' }, 503);
+        if (typeof body.clientId !== 'string' || !CLIENT_ID_RE.test(body.clientId) || typeof body.peerId !== 'string' || !CLIENT_ID_RE.test(body.peerId)) return json({ error: 'Invalid player' }, 400);
+        const player = await env.DB.prepare('SELECT city_code FROM players WHERE client_id = ?').bind(body.clientId).first<{ city_code: string }>();
+        if (!player) return json({ error: 'Choose your country first' }, 400);
+        payload = { clientId: body.clientId, peerId: body.peerId, countryCode: player.city_code };
+      } else if (typeof body.ticket !== 'string' || !/^[a-f0-9]{64}$/.test(body.ticket)) return json({ error: 'Invalid search ticket' }, 400);
+      return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('world-v1')).fetch(`https://queue/${action}`, { method: 'POST', body: JSON.stringify(payload) });
     }
 
     if (request.method === 'POST' && path === '/api/rooms') {
@@ -195,12 +214,24 @@ export default {
       }
     }
 
+    const botResult = path.match(/^\/api\/bot-matches\/([a-f0-9-]{36})\/result$/);
+    if (request.method === 'POST' && botResult) {
+      if (!limiter.allow(`bot-result:${getIp(request)}`, 5, 60)) return json({ error: 'Please try again shortly' },429);
+      const raw = await request.text();
+      if (raw.length > 300000) return json({ error:'Replay too large' },413);
+      let body: Record<string, unknown>;
+      try { body = JSON.parse(raw); } catch { return json({ error:'Invalid replay' },400); }
+      if (!body || typeof body.clientId !== 'string' || typeof body.matchToken !== 'string' || typeof body.replay !== 'string') return json({ error:'Invalid replay' },400);
+      return env.MATCHMAKER.get(env.MATCHMAKER.idFromName('world-v1')).fetch('https://queue/bot-result', { method:'POST',body:JSON.stringify({ ...body,matchId:botResult[1] }) });
+    }
+
     const resultMatch = path.match(/^\/api\/matches\/([A-Za-z0-9-]{1,64})\/result$/);
     if (request.method === 'POST' && resultMatch) {
       const ip = getIp(request);
       if (!limiter.allow(`cl-result:${ip}`, 30, 60)) return json({ error: 'rate limited, slow down' }, 429);
       const body = await readJson(request);
       if (!body) return json({ error: 'invalid body' }, 400);
+      if (env.DB && await env.DB.prepare('SELECT match_id FROM bot_matches WHERE match_id=?').bind(resultMatch[1]).first()) return json({ error:'Computer matches require a verified replay' },403);
       try {
         const out = await cityService(env).submitResult(resultMatch[1], {
           clientId: String(body.clientId ?? ''),

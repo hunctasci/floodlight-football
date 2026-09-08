@@ -29,8 +29,8 @@ const err = (message: string): string => JSON.stringify({ t: 'error', message })
  * One instance per multiplayer room (idFromName(roomCode)).
  *
  * Control plane only: relays SDP offer/answer, trickle ICE candidates and
- * presence between at most two peers. Never sees gameplay InputFrames
- * (those stay WebRTC P2P).
+ * presence between at most two peers. Reserved country rooms also relay
+ * binary game packets; friend-room gameplay stays WebRTC P2P.
  *
  * Hibernation-safe: per-socket identity lives in WS attachments
  * (serializeAttachment/deserializeAttachment); room lifecycle lives in SQLite;
@@ -38,6 +38,7 @@ const err = (message: string): string => JSON.stringify({ t: 'error', message })
  */
 export class RoomDurableObject extends DurableObject<Env> {
   private sessions = new Map<WebSocket, RoomAttachment>();
+  private relayRates = new Map<WebSocket, { second: number; count: number }>();
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -156,6 +157,8 @@ export class RoomDurableObject extends DurableObject<Env> {
     this.ensureTables();
     const url = new URL(request.url);
 
+    this.ctx.storage.sql.exec('CREATE TABLE IF NOT EXISTS allowed_peers (peer TEXT PRIMARY KEY)');
+
     // Internal init from the public Worker (POST /init {code, hostId, matchToken}).
     if (request.method === 'POST' && url.pathname.endsWith('/init')) {
       let body: Record<string, unknown>;
@@ -174,6 +177,10 @@ export class RoomDurableObject extends DurableObject<Env> {
         return new Response(err('invalid message'), { status: 400 });
       }
       if (this.getRoom()) return new Response(err('room exists'), { status: 409 });
+      if (Array.isArray(body.allowedPeers)) {
+        if (body.allowedPeers.length !== 2 || !body.allowedPeers.every(isValidClientId) || !body.allowedPeers.includes(hostId)) return new Response(err('invalid roster'), { status: 400 });
+        for (const peer of body.allowedPeers) this.ctx.storage.sql.exec('INSERT INTO allowed_peers(peer) VALUES (?)', peer as string);
+      }
       const now = Date.now();
       const expiresAt = now + ROOM_TTL_SEC * 1000;
       this.ctx.storage.sql.exec(
@@ -208,6 +215,8 @@ export class RoomDurableObject extends DurableObject<Env> {
         await this.destroyRoom();
         return this.rejectSocket('room not found or expired', 4404);
       }
+      const allowed = this.ctx.storage.sql.exec('SELECT peer FROM allowed_peers').toArray();
+      if (allowed.length && !allowed.some((row) => row.peer === clientId)) return this.rejectSocket('This match belongs to two other players', 4403);
       const members = this.listMembers();
       const added = addMember(members, clientId);
       if (!added.ok) {
@@ -223,7 +232,7 @@ export class RoomDurableObject extends DurableObject<Env> {
       const pair = new WebSocketPair();
       const [client, server] = Object.values(pair);
       this.ctx.acceptWebSocket(server);
-      const attachment: RoomAttachment = { peerId: clientId, role, joinedAt: now };
+      const attachment: RoomAttachment = { peerId: clientId, role, joinedAt: now, relayed: allowed.length === 2 };
       server.serializeAttachment(attachment);
       this.sessions.set(server, attachment);
 
@@ -261,7 +270,7 @@ export class RoomDurableObject extends DurableObject<Env> {
       return;
     }
     const selfId = att.peerId;
-    const raw = typeof message === 'string' ? message : new TextDecoder().decode(message);
+
 
     // Lazy expiry: never resurrect a stale room.
     const room = this.getRoom();
@@ -280,7 +289,23 @@ export class RoomDurableObject extends DurableObject<Env> {
       return;
     }
 
-    const parsed = parseInbound(raw);
+    if (message instanceof ArrayBuffer) {
+      // Binary gameplay is only admitted in private matchmaking rooms.
+      if (!att.relayed || message.byteLength > 65536) { ws.close(4400, 'invalid gameplay packet'); return; }
+      const second = Math.floor(Date.now() / 1000);
+      const rate = this.relayRates.get(ws);
+      const next = rate?.second === second ? { second, count: rate.count + 1 } : { second, count: 1 };
+      this.relayRates.set(ws, next);
+      if (next.count > 240) { ws.close(4429, 'too many gameplay packets'); return; }
+      for (const [other, otherAtt] of this.sessions) {
+        if (otherAtt.peerId !== selfId && otherAtt.relayed) {
+          try { other.send(message); } catch { /* Peer's close event handles removal. */ }
+        }
+      }
+      return;
+    }
+
+    const parsed = parseInbound(message as string);
     if (parsed.kind === 'ping') {
       this.send(ws, JSON.stringify({ t: 'pong' }));
       return;
@@ -339,12 +364,14 @@ export class RoomDurableObject extends DurableObject<Env> {
       }
     })();
     this.sessions.delete(ws);
+    this.relayRates.delete(ws);
     if (att?.peerId) await this.removePeer(ws, att.peerId);
   }
 
   override async webSocketError(ws: WebSocket, _error: unknown): Promise<void> {
     const att = this.sessions.get(ws) ?? null;
     this.sessions.delete(ws);
+    this.relayRates.delete(ws);
     if (att?.peerId) await this.removePeer(ws, att.peerId);
   }
 

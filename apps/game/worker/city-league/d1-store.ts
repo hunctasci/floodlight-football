@@ -107,6 +107,25 @@ export class D1CityLeagueStore implements CityLeagueStore {
       .run();
   }
 
+  /** First report is immutable; both concurrent reports finalize in one D1 batch. */
+  async submitAndResolve(row: SubmissionRow): Promise<MatchRow> {
+    const same = `(SELECT COUNT(*) FROM submissions WHERE match_id = matches.id) = 2
+      AND (SELECT MIN(home_score) = MAX(home_score) AND MIN(away_score) = MAX(away_score) FROM submissions WHERE match_id = matches.id)`;
+    await this.db.batch([
+      this.db.prepare(`INSERT INTO submissions(match_id,client_id,home_score,away_score,submitted_at)
+        VALUES(?,?,?,?,?) ON CONFLICT(match_id,client_id) DO NOTHING`)
+        .bind(row.match_id,row.client_id,row.home_score,row.away_score,row.submitted_at),
+      this.db.prepare(`UPDATE matches SET
+        status = CASE WHEN ${same} THEN 'confirmed' ELSE 'disputed' END,
+        home_score = CASE WHEN ${same} THEN (SELECT MIN(home_score) FROM submissions WHERE match_id=matches.id) ELSE NULL END,
+        away_score = CASE WHEN ${same} THEN (SELECT MIN(away_score) FROM submissions WHERE match_id=matches.id) ELSE NULL END,
+        confirmed_at = CASE WHEN ${same} THEN ? ELSE NULL END
+        WHERE id = ? AND status = 'pending' AND (SELECT COUNT(*) FROM submissions WHERE match_id=matches.id) = 2`)
+        .bind(row.submitted_at,row.match_id),
+    ]);
+    return (await this.getMatch(row.match_id))!;
+  }
+
   async listSubmissions(matchId: string): Promise<SubmissionRow[]> {
     const res = await this.db
       .prepare('SELECT match_id, client_id, home_score, away_score, submitted_at FROM submissions WHERE match_id = ?')

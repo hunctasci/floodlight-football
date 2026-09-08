@@ -9,7 +9,7 @@
     "run_worker_first": ["/api/*", "/healthz"]
   },
   "durable_objects": {
-    "bindings": [{ "name": "ROOMS", "class_name": "RoomDurableObject" }]
+    "bindings": [{ "name": "ROOMS", "class_name": "RoomDurableObject" }, { "name": "MATCHMAKER", "class_name": "Matchmaker" }]
   },
   "d1_databases": [
     {
@@ -20,6 +20,7 @@
     }
   ],
   "exports": {
-    "RoomDurableObject": { "type": "durable-object", "storage": "sqlite" }
+    "RoomDurableObject": { "type": "durable-object", "storage": "sqlite" },
+    "Matchmaker": { "type": "durable-object", "storage": "sqlite" }
   }
 }

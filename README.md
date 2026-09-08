@@ -1,3 +1,15 @@
+## HNC League — play for your country
+
+The country lobby has one primary action: **Play for your country**. Cloudflare
+matchmaking pairs two players representing different countries, then starts a
+1v1 human match with full national teams and country-colored kits. Games have
+two 60-second halves. Wins add 3 points and draws add 1 to the weekly world table;
+both players must report matching scores. Country selection is locked weekly.
+
+Country matches use a reserved Cloudflare WebSocket relay, with profiles and
+results in D1. Friend challenges are also available through the secondary menu.
+Same-country friend matches do not award country points.
+
 # Floodlight Football — open-source arcade football
 
 11v11 browser football (Three.js + deterministic sim), local AI, P2P online,
@@ -118,3 +130,5 @@ Decisions: [P2P + thin backend](docs/adr/001-p2p-thin-backend.md) ·
 - Conventional commits (`feat:`, `fix:`, `docs:` …), feature branches, PRs need green CI.
 - Every behavior change ships with a headless test (`tsx --test`, no DOM/WebGL needed).
 - `npm test && npm run build --workspaces --if-present` before pushing.
+
+Country matchmaking fills an empty search after roughly 8–10 seconds with a computer-controlled country opponent, disclosed in the lobby. Completed matches submit an input replay for server verification before both countries receive normal league points. No background bot matches are generated. Play with a Friend creates a shareable room directly; friends can also join with a code.

@@ -90,18 +90,17 @@ export async function maybeCompleteOnboarding(page: Page) {
   const name = `E2E${Math.floor(Math.random() * 0xffff).toString(16).padStart(4, '0')}`;
   await page.getByTestId('onboard-name').fill(name);
   await cont.click();
-  await expect(page.getByText('ONLINE MATCH').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('challenge-friend').first()).toBeVisible({ timeout: 15_000 });
 }
 
 /** ONLINE MATCH from the title screen without reloading (same page lifetime). */
 export async function enterOnlineMenu(page: Page) {
-  await expect(page.getByText('ONLINE MATCH').first()).toBeVisible({ timeout: 15_000 });
-  await page.getByText('ONLINE MATCH').first().click();
-  await expect(page.getByText('PLAY WITH A FRIEND').first()).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByTestId('challenge-friend').first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('challenge-friend')).toContainText('PLAY WITH A FRIEND');
 }
 
 export async function createFriendRoom(page: Page): Promise<{ roomCode: string }> {
-  await page.getByText('PLAY WITH A FRIEND').first().click();
+  await page.getByTestId('challenge-friend').click();
   // Host screen appears immediately (CREATING ROOM...), the readable code
   // arrives after POST /api/rooms. Display is grouped (ABC DEF): strip it.
   await expect(page.getByTestId('room-code')).toBeVisible({ timeout: 15_000 });

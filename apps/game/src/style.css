@@ -48,3 +48,21 @@
 .wstep.active{color:#f8efdb}
 .wsep{color:#596579}
 @media(prefers-reduced-motion:reduce){.waitspinner{animation:none}}
+/* Country lobby: one clear action, then friend challenge and world standings. */
+.country-hero h1{font:clamp(26px,7vw,44px)/1.05 Impact,Arial Black,sans-serif;margin:8px 0;color:#f8efdb;text-transform:uppercase;overflow-wrap:anywhere}
+.country-hero p{font-size:13px;color:#b7c1cf;margin:10px 0 20px}
+.country-flag{display:block;font-size:56px;line-height:1.2;margin:16px auto 8px;text-shadow:none}
+.country-stats{display:grid;grid-template-columns:repeat(3,1fr);border-block:1px solid #596579;padding:16px 0;gap:8px;margin-bottom:20px}
+.country-stats strong{display:block;color:#f7bf30;font-size:clamp(15px,4vw,23px);overflow-wrap:anywhere}
+.country-stats span{display:block;font-size:9px;color:#b7c1cf;margin-top:7px;letter-spacing:.08em}
+.panel button.menu-item{background:#15253c;color:#f8efdb;border:1px solid #596579;font:700 12px ui-monospace,monospace;min-height:44px;pointer-events:auto}
+.panel .lobby-play,.panel .lobby-play.selected{display:block;width:100%;background:#f7bf30;color:#101b31;text-shadow:none;border:2px solid #f7bf30;padding:18px 12px;font-size:clamp(15px,4vw,19px)}
+.lobby-play span{display:block;font-size:10px;margin-top:9px;letter-spacing:.08em}
+.lobby-secondary{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.panel button.selected{border-color:#f7bf30;box-shadow:inset 0 0 0 1px #f7bf30}
+.panel button:focus-visible,.lobby-help summary:focus-visible{outline:3px solid #f7bf30;outline-offset:3px}
+.lobby-help{pointer-events:auto;color:#b7c1cf;font-size:11px;line-height:1.6;text-align:left;margin-top:20px;border-top:1px solid #596579;padding-top:14px}
+.lobby-help summary{cursor:pointer;text-align:center;color:#f8efdb;min-height:32px}
+@media(max-width:420px){.country-flag{font-size:44px;margin-top:12px}.country-stats{padding:12px 0}.country-hero p{margin-bottom:14px}.lobby-secondary{gap:6px}.panel button.menu-item{font-size:10px}.panel .lobby-play{font-size:16px}}
+
+.panel .lobby-friend button.menu-item{width:100%;border:1px solid #84d7f2;background:#153b4b;color:#e8faff;font-size:16px;padding:15px 12px;margin-top:10px}.lobby-friend span{display:block;font-size:10px;letter-spacing:1px;margin-top:7px;color:#acd9e9}.matchmaking-info{font:12px/1.5 system-ui,sans-serif;color:#afbac5;margin:12px auto;max-width:380px}

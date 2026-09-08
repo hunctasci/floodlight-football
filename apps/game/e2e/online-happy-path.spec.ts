@@ -177,7 +177,7 @@ test('E2E 3 — two isolated sessions have unique online peer identities', async
     await openOnlineMenu(host, { e2e: true });
     const { roomCode } = await createFriendRoom(host);
     await guest.goto(`/?e2e=1`);
-    await expect(guest.getByText('ONLINE MATCH')).toBeVisible({ timeout: 15_000 });
+    await expect(guest.getByTestId('challenge-friend')).toBeVisible({ timeout: 15_000 });
     const h = await peerIds(host);
     // Guest has its own session id even before joining (fresh per attempt).
     await openOnlineMenu(guest, { e2e: false });
@@ -248,12 +248,11 @@ test('E2E 6 — second session after quitting a started match (reconnect)', asyn
     await host.keyboard.press('Escape');
     await expect(host.getByText('MATCH PAUSED').first()).toBeVisible({ timeout: 10_000 });
     await host.getByText('MAIN MENU').first().click();
-    await expect(host.getByText('ONLINE MATCH').first()).toBeVisible({ timeout: 10_000 });
-    await expect(guest.getByText('ONLINE MATCH').first()).toBeVisible({ timeout: 20_000 });
+    await expect(host.getByTestId('challenge-friend').first()).toBeVisible({ timeout: 10_000 });
+    await expect(guest.getByTestId('challenge-friend').first()).toBeVisible({ timeout: 20_000 });
 
     // SECOND SESSION: brand-new room, same pages, all the way to kickoff.
-    await host.getByText('ONLINE MATCH').first().click();
-    await expect(host.getByText('PLAY WITH A FRIEND').first()).toBeVisible({ timeout: 10_000 });
+    await enterOnlineMenu(host);
     const { roomCode: room2 } = await createFriendRoom(host);
     expect(room2).not.toBe(first.roomCode);
     await enterOnlineMenu(guest);

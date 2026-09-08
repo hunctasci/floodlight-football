@@ -20,10 +20,10 @@ for (const mobile of [false, true]) {
     const saved = page.waitForResponse(r => r.url().endsWith('/api/profile') && r.request().method() === 'POST');
     await page.getByTestId('onboard-continue').click();
     expect((await saved).status()).toBe(200);
-    await expect(page.getByText('ONLINE MATCH', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('challenge-friend')).toBeVisible();
     await page.reload();
-    await expect(page.getByText('ONLINE MATCH', { exact: true })).toBeVisible();
-    await expect(page.getByText('HUNC WASIM · GERMANY')).toBeVisible();
+    await expect(page.getByTestId('challenge-friend')).toBeVisible();
+    await expect(page.getByText('Hunc Wasim, your country needs you.')).toBeVisible();
   });
 }
 
@@ -31,7 +31,7 @@ test('Enter submits a name without inserting a newline', async ({ page }) => {
   await page.goto('/');
   await page.getByTestId('onboard-name').fill('Keyboard');
   await page.getByTestId('onboard-name').press('Enter');
-  await expect(page.getByText('ONLINE MATCH', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('challenge-friend')).toBeVisible();
 });
 
 test('D1 confirms matching country results and awards league points', async ({ request }) => {

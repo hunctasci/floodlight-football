@@ -1,3 +1,8 @@
+import type { BotAssignment } from './city-league/bot-match';
+import { encodeInput, decodeInput } from './net/codec';
+import { RoomTransport } from './net/room-transport';
+import { queueRequest, type MatchAssignment } from './net/matchmaking';
+import { countryTeams } from './city-league/kits';
 import './style.css';
 import { MatchEngine } from './engine';
 import { AI_LEVELS, type AiLevel } from './engine';
@@ -43,7 +48,7 @@ import { getProfile, saveProfile, type CityProfile } from './city-league/profile
 
 type Screen = 'title'|'team'|'match'|'pause'|'half'|'full'|'online'|'host'|'join'|'netready'
   |'league'|'leaguecreate'|'leaguejoin'|'leagueserver'|'leagueview'|'leaguesubmit'|'leagueresolve'|'leaguescore'
-  |'onboard'|'city';
+  |'onboard'|'city'|'search';
 const app=document.querySelector<HTMLDivElement>('#app')!;
 const renderer=new GameRenderer(app); const audio=new MatchAudio();
 const flowTest=import.meta.env.DEV&&new URLSearchParams(location.search).has('test');
@@ -112,6 +117,80 @@ let peerReady = false, iAmReady = false;
 let copyNote = '';
 // ---- City League meta-layer (never enters the deterministic simulation) ----
 let cityProfile: CityProfile | null = null;
+let queueGeneration = 0, queueTicket = '', queueWaiting = 0, queueStarted = 0;
+let queueTimer: ReturnType<typeof setTimeout> | undefined;
+let botMatch: BotAssignment | null = null;
+let botReplay: number[] = [];
+let rankedMode = false, cityMatchBusy = false;
+function cancelSearch() {
+  queueGeneration++;
+  clearTimeout(queueTimer);
+  const ticket = queueTicket; queueTicket = '';
+  if (ticket) void queueRequest('cancel', { ticket }).catch(() => {});
+}
+async function findCountryMatch() {
+  if (!cityProfile || screen === 'search') return;
+  closeNet(); cancelSearch();
+  const generation = ++queueGeneration;
+  screen = 'search'; queueStarted = Date.now(); queueWaiting = 0; netStatus = ''; menuDirty = true;
+  const peerId = createSessionPeerId();
+  const alive = () => generation === queueGeneration && screen === 'search';
+  try {
+    await cityApi().upsertProfile({ clientId: cityProfile.clientId, displayName: cityProfile.displayName, cityCode: cityProfile.cityCode });
+    if (!alive()) return;
+    const first = await queueRequest('join', { clientId: cityProfile.clientId, peerId });
+    if (!alive()) { if (first.ticket) void queueRequest('cancel', { ticket: first.ticket }).catch(() => {}); return; }
+    queueTicket = first.ticket ?? '';
+    const update = async (reply: Awaited<ReturnType<typeof queueRequest>>) => {
+      if (!alive()) return;
+      queueWaiting = reply.waiting ?? 0; menuDirty = true;
+      if (reply.status === 'matched' && reply.kind === 'bot' && reply.bot) { launchBot(reply.bot); return; }
+      if (reply.status === 'matched' && reply.roomCode && reply.role && reply.peerId) {
+        rankedMode = true; duration = 60;
+        const assignment = reply as MatchAssignment;
+        screen = assignment.role === 'host' ? 'host' : 'join';
+        roomCode = assignment.roomCode; netStatus = 'OPPONENT FOUND · CONNECTING';
+        void startRankedMatch(assignment);
+        return;
+      }
+      if (reply.status === 'expired' || reply.status === 'cancelled') throw new Error('Search ended. Tap Play to find another opponent.');
+      queueTimer = setTimeout(() => {
+        void queueRequest('poll', { ticket: queueTicket }).then(update).catch(fail);
+      }, 2500);
+    };
+    const fail = (error: unknown) => {
+      if (!alive()) return;
+      cancelSearch(); screen = 'title'; netStatus = error instanceof Error ? error.message : 'Could not find a match. Try again.'; menuDirty = true;
+    };
+    await update(first);
+  } catch (error) {
+    if (!alive()) return;
+    cancelSearch(); screen = 'title'; netStatus = error instanceof Error ? error.message : 'Matchmaking unavailable'; menuDirty = true;
+  }
+}
+addEventListener('pagehide', cancelSearch);
+async function startRankedMatch(assignment: MatchAssignment) {
+  const generation = ++netGen;
+  netBusy = true; myPeerId = assignment.peerId; netlog.clear();
+  netlog.log('signal', 'country match uses reserved Cloudflare room relay');
+  mpState = 'negotiating';
+  try {
+    const connected = await RoomTransport.connect(location.origin, assignment.roomCode, assignment.peerId);
+    if (generation !== netGen) { connected.transport.close(); return; }
+    roomCode = assignment.roomCode; matchToken = connected.matchToken;
+    hookDriver(new NetDriver(connected.transport, { host: assignment.role === 'host', duration: import.meta.env.DEV && e2eMode ? 5 : 60, delay: 12, matchToken, localProfile: myCityProfilePacket() }));
+  } catch (error) {
+    if (generation !== netGen) return;
+    closeNet(); screen = 'title'; menuIndex = 0;
+    netStatus = error instanceof Error ? error.message : 'Connection failed. Try again.'; menuDirty = true;
+  }
+}
+function autoReadyRanked() {
+  if (rankedMode && cityMatch && screen === 'netready' && !iAmReady) {
+    setTimeout(() => { if (rankedMode && cityMatch && screen === 'netready' && !iAmReady) doReady(); }, 700);
+  }
+}
+
 let onboardName = '', onboardCity = 'TR', onboardMsg = '';
 let pendingInviteCode: string | null = null;
 let autoJoinAttempted = false;
@@ -189,8 +268,8 @@ const barBottom=document.createElement('div');barBottom.className='cinebar botto
 let camNote='',camNoteAt=0;
 const radar=document.createElement('canvas'); radar.className='radar';radar.width=308;radar.height=184;
 function keyName(e:KeyboardEvent){return e.code}
-addEventListener('keydown',e=>{if((e.target as HTMLElement)?.matches('textarea, input, select, [contenteditable]'))return;if(isBlockedKey(keyName(e)))e.preventDefault(); keyDown(kb, keyName(e));audio.enable();});
-addEventListener('keyup',e=>{if((e.target as HTMLElement)?.matches('textarea, input, select, [contenteditable]'))return;if(isBlockedKey(keyName(e)))e.preventDefault(); keyUp(kb, keyName(e));});
+addEventListener('keydown',e=>{if((e.target as HTMLElement)?.matches('textarea, input, select, button, summary, [contenteditable]'))return;if(isBlockedKey(keyName(e)))e.preventDefault(); keyDown(kb, keyName(e));audio.enable();});
+addEventListener('keyup',e=>{if((e.target as HTMLElement)?.matches('textarea, input, select, button, summary, [contenteditable]'))return;if(isBlockedKey(keyName(e)))e.preventDefault(); keyUp(kb, keyName(e));});
 // LMB is the shot button: hold to charge, drag to aim, release to shoot.
 renderer.canvas.addEventListener('mousedown', (e) => {
   if (e.button !== 0 || screen !== 'match') return;
@@ -238,10 +317,45 @@ function shareResult(){
   });
 }
 /** Enter an online match once the driver's handshake completes. */
+function launchBot(assignment: BotAssignment) {
+  closeNet(); botMatch = assignment; botReplay = []; dailyMode = false;
+  cityMatch = { matchId: assignment.matchId, matchToken: assignment.matchToken,
+    homeClientId: assignment.homeClientId, awayClientId: assignment.awayClientId,
+    homeCity: assignment.homeCountry, awayCity: assignment.opponentCountry };
+  cityResult = { status: 'idle', detail: '', rankText: '' };
+  preMatchRanks = Object.fromEntries((cityTable?.standings ?? []).map(r => [r.cityCode, r.rank]));
+  engine = new MatchEngine(0, assignment.halfDuration, assignment.seed, assignment.difficulty as AiLevel);
+  engine.state.teams = countryTeams(assignment.homeCountry, assignment.opponentCountry);
+  viewTeam = 0; soloClock.reset(); renderer.setFollow(null, null);
+  screen = 'match'; menuIndex = 0; menuDirty = true;
+  audio.event({ type: 'whistle' });
+}
+function stepSolo(frame: InputFrame) {
+  if (engine.state.phase === 'fulltime' || engine.state.phase === 'halftime') return;
+  if (botMatch) {
+    const bytes = encodeInput(frame);
+    botReplay.push(...bytes);
+    engine.update(1 / 60, decodeInput(bytes));
+  } else engine.update(1 / 60, frame);
+}
+async function submitBotResult() {
+  let binary = '';
+  for (const byte of botReplay) binary += String.fromCharCode(byte);
+  const response = await fetch(`/api/bot-matches/${botMatch!.matchId}/result`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ clientId: cityProfile!.clientId, matchToken: botMatch!.matchToken, replay: btoa(binary) }),
+    signal: AbortSignal.timeout(60000),
+  });
+  const result = await response.json();
+  if (!response.ok) throw new Error(result.error ?? 'Result could not be confirmed');
+  return result;
+}
 function launchNet(driver: NetDriver) {
   net = driver;
   engine = driver.session!.engine;
   viewTeam = driver.myTeam;
+  const local = cityProfile?.cityCode, remote = driver.remoteProfile?.cityCode;
+  if (local && remote) engine.state.teams = driver.myTeam === 0 ? countryTeams(local, remote) : countryTeams(remote, local);
   renderer.setFollow(engine.controlOf(viewTeam), engine.targetOf(viewTeam));
   screen = 'match'; menuIndex = 0; soloClock.reset();
   mpState = 'playing';
@@ -271,6 +385,7 @@ function closeNegTransport() {
   resetNegotiationState(neg);
 }
 function closeNet() {
+  cancelSearch(); rankedMode = false; botMatch = null; botReplay = [];
   // Invalidate every in-flight async handshake step FIRST: a stale offer,
   // answer or join that resolves after teardown must never hook a driver
   // into a solo match or a newer session (second-connect cross-talk).
@@ -426,27 +541,32 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
     return;
   }
   if(screen==='title') {
-    const items=LEAGUES_LIVE?['PLAY MATCH','ONLINE MATCH','DAILY CUP','COUNTRY LEAGUE','LEAGUE']:['PLAY MATCH','ONLINE MATCH','DAILY CUP','COUNTRY LEAGUE','LEAGUE · COMING SOON'];
-    const prof = cityProfile ? `<div class="subtitle">${cityProfile.displayName.toUpperCase()} · ${cityName(cityProfile.cityCode).toUpperCase()}</div><div class="hint">PLAY FOR YOUR COUNTRY.</div>` : `<div class="hint">PLAY FOR YOUR COUNTRY.</div>`;
-    let preview = '';
-    try {
-      if (cityTable && cityTable.standings.length >= 3) {
-        const top = cityTable.standings.slice(0, 3).map((r, i) => `<div class="statline"><span>${i + 1} ${r.cityName} ${r.points} PTS</span></div>`).join('');
-        const cp = cityProfile; const mine = cp ? cityTable.standings.find((r) => r.cityCode === cp.cityCode) : null;
-        const ends = cityTable.season.endsAt ? seasonCountdown(Date.now(), cityTable.season.endsAt) : '';
-        preview = `<div class="hint">COUNTRY LEAGUE · ${cityTable.season.key}${ends?` · ENDS IN ${ends}`:''}</div>${top}`
-          + (mine ? `<div class="hint">YOUR COUNTRY: ${mine.cityName.toUpperCase()} #${mine.rank}</div>` : '')
-          + `<div class="menu-item netbtn" data-act="goto-city">▶ VIEW FULL TABLE</div>`;
-      } else if (cityMsg) {
-        preview = `<div class="hint">${cityMsg}</div>`;
-      } else {
-        preview = `<div class="hint">COUNTRY LEAGUE · LOADING…</div>`;
-      }
-    } catch { preview = ''; }
-    panel(`<div class="eyebrow">ARCADE FOOTBALL · 1998</div><div class="title">HNC<br>LEAGUE</div>${prof}${titleNote?`<div class="message">${titleNote}</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}${preview}<div class="hint">${isTouchDevice ? 'TAP A ROW TO CHANGE IT · TAP KICK OFF TO PLAY' : '↑ / ↓ PICK A ROW · ← / → CHANGE IT · ENTER KICK OFF'}<br>STICK/ARROWS MOVE · S PASS · LONG AERIAL BALLS · D SHOOT · SWITCH AUTO + MANUAL${isTouchDevice ? '<br>LEFT STICK + PASS / LONG / SHOOT' : ''}</div>`); wireMenuItems(); return; }
+    const country = cityProfile ? getCity(cityProfile.cityCode) : null;
+    if (country) engine.state.teams = countryTeams(country.code, country.code === 'BR' ? 'TR' : 'BR');
+    const mine = cityTable?.standings.find(r => r.cityCode === cityProfile?.cityCode);
+    const ends = cityTable ? seasonCountdown(Date.now(), cityTable.season.endsAt) : '';
+    panel(`<div class="eyebrow">HNC LEAGUE · WORLD LOBBY</div>
+      <div class="country-hero"><span class="country-flag">${country?.flag ?? '⚽'}</span><h1>${country?.name ?? 'Your country'}</h1><p>${cityProfile?.displayName ?? ''}, your country needs you.</p></div>
+      <div class="country-stats"><div><strong>${mine ? '#' + mine.rank : '—'}</strong><span>WORLD RANK</span></div><div><strong>${mine?.points ?? '—'}</strong><span>COUNTRY POINTS</span></div><div><strong>${ends || 'WEEKLY'}</strong><span>SEASON ENDS</span></div></div>
+      <button class="menu-item lobby-play ${menuIndex === 0 ? 'selected' : ''}" data-mi="0" data-testid="find-match">PLAY FOR ${country?.name.toUpperCase() ?? 'YOUR COUNTRY'} <span>FIND A 1V1 OPPONENT →</span></button>
+      <div class="lobby-friend"><button class="menu-item ${menuIndex === 1 ? 'selected' : ''}" data-mi="1" data-testid="challenge-friend">PLAY WITH A FRIEND <span>CREATE A LINK · SHARE · KICK OFF →</span></button></div><div class="lobby-secondary"><button class="menu-item netbtn" data-act="join-friend">JOIN WITH CODE</button><button class="menu-item ${menuIndex === 2 ? 'selected' : ''}" data-mi="2" data-testid="world-table">WORLD TABLE</button></div>
+      ${netStatus ? `<div class="subtitle" role="status">${netStatus.replace(/[<>&]/g, '')}</div>` : ''}
+      <div class="hint">COUNTRY VS COUNTRY · NATIONAL TEAMS<br>WIN +3 · DRAW +1 · EVERY CONFIRMED RESULT COUNTS</div>
+      <p class="matchmaking-info">Computer-controlled opponents may fill empty slots. These matches also count toward country standings.</p><details class="lobby-help"><summary>HOW IT WORKS & CONTROLS</summary><p>We find an opponent representing another country. Control your full national team. Play two 60-second halves and climb the weekly world table together.</p><p>Your country stays locked for the week. Matches between the same country are friendlies. Points count after the result is verified.</p><p>${isTouchDevice ? 'STICK: MOVE · PASS · LONG · SHOOT · SWITCH' : 'ARROWS: MOVE · S: PASS · W/A: LONG · D: SHOOT · SPACE: SWITCH · SHIFT: SPRINT'}</p></details>`);
+    return;
+  }
+  if(screen==='search') {
+    const country = cityProfile ? getCity(cityProfile.cityCode) : null;
+    panel(`<div class="eyebrow">HNC LEAGUE · MATCHMAKING</div><div class="country-flag">${country?.flag ?? '⚽'}</div><div class="title tlg">FINDING YOUR<br>OPPONENT</div><div class="waitspinner"></div><div class="subtitle">Representing ${country?.name ?? 'your country'}</div><div class="hint" role="status">${queueWaiting > 1 ? `${queueWaiting} PLAYERS SEARCHING` : 'FINDING A RIVAL FROM ANOTHER COUNTRY'}<br>${Date.now() - queueStarted > 20000 ? 'Preparing your match. You can also invite a friend.' : 'Another country. Your next rivalry.'}</div><button class="menu-item netbtn" data-act="search-cancel" data-testid="cancel-search">CANCEL SEARCH</button><button class="menu-item netbtn" data-act="search-friend">INVITE A FRIEND INSTEAD</button>`);
+    return;
+  }
+  if(rankedMode && (screen === 'host' || screen === 'join')) {
+    panel(`<div class="eyebrow">COUNTRY MATCH · 1V1</div><div class="title tlg">OPPONENT<br>FOUND</div>${waitSteps()}<div class="subtitle">${netStatus}</div><div class="hint">CONNECTING YOUR MATCH · TWO 60-SECOND HALVES</div><button class="menu-item netbtn" data-act="cancel">CANCEL</button>`);
+    return;
+  }
   if(screen==='team') { const t=TEAMS[teamIndex],o=TEAMS[(teamIndex+1)%TEAMS.length]; const lvl=AI_LEVELS.find((l)=>l.id===aiLevel)?.label ?? 'PRO'; const rows=[`CLUB · ${t.name.toUpperCase()}`, `LENGTH · ${duration/60} MIN HALVES`, `CPU · ${lvl}`]; panel(`<div class="eyebrow">CHOOSE YOUR CLUB</div><div class="title tmd">SATURDAY CUP</div><div class="team-row"><div class="team-card active"><div class="team-swatch" style="background:${t.color}"></div>${t.name}<br><small>${t.city}</small></div><div class="team-card"><div class="team-swatch" style="background:${o.color}"></div>${o.name}<br><small>OPPONENT</small></div></div>${rows.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-act="cycle-${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="menu-item ${menuIndex===3?'selected':''}" data-mi="3" data-act="kickoff">${menuIndex===3?'▶ ':''}★ KICK OFF</div><div class="hint">${isTouchDevice ? 'TAP A ROW TO CHANGE IT · TAP ★ KICK OFF' : '↑ / ↓ PICK ROW · ← / → CHANGE · ENTER KICK OFF · ESC BACK'}</div>`); return; }
-  if(screen==='pause') { const items=['RESUME','RESTART MATCH','MAIN MENU']; panel(`<div class="eyebrow">MATCH PAUSED</div><div class="title tlg">PAUSE</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">ARROWS MOVE · S PASS/CONTAIN · D/MOUSE SHOOT/TACKLE · LONG CROSS & SLIDE<br>SPACE SWITCH (AUTO-SWITCH ON) · E/SHIFT SPRINT · C CAMERA (${renderer.cameraLabel()}) · ↑ / ↓ SELECT · ENTER CONFIRM · ESC RESUME</div>`); return; }
-  if(screen==='online') { const items=['PLAY WITH A FRIEND','JOIN WITH CODE','BACK']; panel(`<div class="eyebrow">CHALLENGE A FRIEND · ONLINE</div><div class="title tlg" data-testid="online-title">ONLINE</div><div class="subtitle">${TEAMS[teamIndex].short} · ${duration/60} MIN HALVES</div>${netStatus?`<div class="subtitle" data-testid="online-status">${netStatus}</div><div class="menu-item netbtn" data-act="copylog" data-testid="copy-debug-log">▶ COPY DEBUG LOG</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-testid="online-${x.toLowerCase().replace(/[^a-z]+/g, '-')}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
+  if(screen==='pause') { const items=['RESUME',botMatch?'FIND NEW MATCH':'RESTART MATCH','MAIN MENU']; panel(`<div class="eyebrow">MATCH PAUSED</div><div class="title tlg">PAUSE</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">ARROWS MOVE · S PASS/CONTAIN · D/MOUSE SHOOT/TACKLE · LONG CROSS & SLIDE<br>SPACE SWITCH (AUTO-SWITCH ON) · E/SHIFT SPRINT · C CAMERA (${renderer.cameraLabel()}) · ↑ / ↓ SELECT · ENTER CONFIRM · ESC RESUME</div>`); return; }
+  if(screen==='online') { const items=['PLAY WITH A FRIEND','JOIN WITH CODE','BACK']; panel(`<div class="eyebrow">CHALLENGE A FRIEND · ONLINE</div><div class="title tlg" data-testid="online-title">ONLINE</div><div class="subtitle">${myCityName().toUpperCase()} · 1V1 · 2 MIN MATCH</div>${netStatus?`<div class="subtitle" data-testid="online-status">${netStatus}</div><div class="menu-item netbtn" data-act="copylog" data-testid="copy-debug-log">▶ COPY DEBUG LOG</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-testid="online-${x.toLowerCase().replace(/[^a-z]+/g, '-')}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
   if(screen==='host') {
     const url = roomCode ? inviteUrlFor(roomCode) : '';
     const city = myCityName().toUpperCase() || 'YOUR COUNTRY';
@@ -455,6 +575,7 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
       + `<div class="subtitle">${city} · WAITING FOR OPPONENT…</div>`
       + `<div class="subtitle" data-testid="host-status">${netStatus || '…'}</div>${waitSteps()}`
       + (url?`<textarea class="netpaste netcode" readonly data-testid="invite-url" rows="2">${url}</textarea>`:'')
+      + `<button class="menu-item netbtn lobby-play" data-act="share-invite">SHARE INVITE LINK →</button>`
       + `<div class="menu-item netbtn" data-act="whatsapp" data-testid="host-whatsapp">▶ CHALLENGE ON WHATSAPP</div>`
       + `<div class="menu-item netbtn" data-act="copy-invite" data-testid="host-copy">▶ COPY CHALLENGE</div>`
       + `${copyNote?`<div class="hint">${copyNote}</div>`:''}<div class="menu-item netbtn" data-act="copylog" data-testid="copy-debug-log">▶ COPY DEBUG LOG</div><div class="menu-item netbtn" data-act="cancel" data-testid="host-cancel">▶ CANCEL</div>`);
@@ -476,7 +597,7 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
         }
       }
     } catch { /* display only */ }
-    panel(`<div class="eyebrow" data-testid="ready-room">ROOM ${roomCode} · ${TEAMS[teamIndex].short} · ${duration/60} MIN</div><div class="title tlg">READY?</div>${vs}<div class="subtitle" data-testid="ready-status">YOU ${iAmReady ? 'READY ✓' : '…'} · FRIEND ${peerReady ? 'READY ✓' : '…'}</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-testid="ready-${x.toLowerCase().replace(/[^a-z]+/g, '-')}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">BOTH SIDES PRESS READY — THEN KICK OFF</div>`); return;
+    panel(`<div class="eyebrow" data-testid="ready-room">${rankedMode ? 'COUNTRY MATCH' : 'FRIEND MATCH'} · 1V1</div><div class="title tlg">READY?</div>${vs}<div class="subtitle" data-testid="ready-status">YOU ${iAmReady ? 'READY ✓' : '…'} · OPPONENT ${peerReady ? 'READY ✓' : '…'}</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-testid="ready-${x.toLowerCase().replace(/[^a-z]+/g, '-')}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">${rankedMode ? 'YOUR MATCH STARTS AUTOMATICALLY WHEN CONNECTED' : 'BOTH SIDES PRESS READY — THEN KICK OFF'}</div>`); return;
   }
   if(screen==='city') {
     const rows = cityTable?.standings ?? [];
@@ -491,7 +612,7 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
       const gd = r.goalDifference >= 0 ? `+${r.goalDifference}` : `${r.goalDifference}`;
       return `<div class="statline"><span>${r.rank} ${r.cityName.toUpperCase()} ${r.played}P ${gd} ${r.points} PTS${mine}</span></div>`;
     }).join('');
-    panel(`<div class="eyebrow">COUNTRY LEAGUE · ${cityTable?.season.key ?? '…'}</div><div class="title tlg">PLAY FOR<br>YOUR COUNTRY.</div>`
+    panel(`<div class="eyebrow">COUNTRY LEAGUE · ${cityTable?.season.key ?? '…'}</div><div class="title tlg">WORLD TABLE</div><button class="menu-item netbtn" data-act="city-back">← LOBBY</button>`
       + (cityTable ? `<div class="hint">SEASON ENDS IN ${ends}</div>${top3}${table}` : `<div class="subtitle">${cityBusy ? 'LOADING…' : (cityMsg || 'TABLE UNAVAILABLE')}</div>`)
       + `<div class="menu-item netbtn" data-act="city-refresh">▶ REFRESH</div><div class="menu-item netbtn" data-act="city-back">▶ BACK</div>`
       + `<div class="hint"># COUNTRY P GD PTS · FULL STATS ON WIDE SCREENS</div>`);
@@ -531,7 +652,7 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
   if(screen==='half') { const hs=engine.state; panel(`<div class="eyebrow">HALF TIME · ${hs.score[0]} – ${hs.score[1]}</div><div class="title tlg" data-testid="halftime-title">HALF TIME</div><div class="subtitle" data-testid="halftime-score">${hs.teams[0].short} ${hs.score[0]} – ${hs.score[1]} ${hs.teams[1].short}</div><div class="hint">SECOND HALF STARTS SHORTLY — PRESS ENTER TO CONTINUE</div>`); return; }
   {
     const s=engine.state;
-    if (net && cityMatch) {
+    if ((net || botMatch) && cityMatch) {
       const homeC = cityName(cityMatch.homeCity).toUpperCase();
       const awayC = cityName(cityMatch.awayCity).toUpperCase();
       const sameCity = cityMatch.homeCity === cityMatch.awayCity;
@@ -539,10 +660,11 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
       if (cityResult.status === 'confirming') cityLine = `<div class="subtitle" data-testid="city-status">CONFIRMING RESULT…</div>`;
       else if (cityResult.status === 'confirmed') cityLine = `<div class="subtitle" data-testid="city-status">RESULT CONFIRMED · ${cityResult.detail}</div>${cityResult.rankText?`<div class="hint">${cityResult.rankText}</div>`:''}`;
       else if (cityResult.status === 'disputed') cityLine = `<div class="subtitle" data-testid="city-status">RESULT COULD NOT BE VERIFIED</div>`;
+      else if (cityResult.status === 'error') cityLine = `<div class="subtitle">RESULT NOT CONFIRMED · CHECK YOUR CONNECTION</div><button class="menu-item netbtn" data-act="retry-result">RETRY RESULT</button>`;
       else if (sameCity) cityLine = `<div class="subtitle" data-testid="city-status">FRIENDLY MATCH · NO COUNTRY LEAGUE POINTS</div>`;
       else if (cityResult.status === 'friendly') cityLine = `<div class="subtitle" data-testid="city-status">FRIENDLY MATCH · NO COUNTRY LEAGUE POINTS</div>`;
       else cityLine = `<div class="subtitle" data-testid="city-status">CONFIRMING RESULT…</div>`;
-      const items=['REMATCH','CHALLENGE ANOTHER FRIEND','COUNTRY LEAGUE','MAIN MENU'];
+      const items=['PLAY NEXT MATCH','CHALLENGE A FRIEND','WORLD TABLE','LOBBY'];
       panel(`<div class="eyebrow">FULL TIME</div><div class="title tlg" data-testid="fulltime-title">FULL TIME</div>`
         + `<div class="subtitle" data-testid="fulltime-score">${homeC} ${s.score[0]} – ${s.score[1]} ${awayC}</div>${cityLine}`
         + `<div class="statline"><span>SHOTS<strong>${s.stats.shots[0]}–${s.stats.shots[1]}</strong></span><span>SAVES<strong>${s.stats.saves[0]}–${s.stats.saves[1]}</strong></span></div>`
@@ -619,6 +741,8 @@ function attachDriver(d: NetDriver) {
       } catch { /* meta-layer only */ }
       screen = 'netready'; menuIndex = 0; peerReady = false; iAmReady = false; menuDirty = true;
       mpState = 'connected';
+      if (d.myTeam === 0) void ensureCityMatch(true);
+      autoReadyRanked();
     }
     else if (e.type === 'peerProfile') {
       menuDirty = true;
@@ -637,7 +761,7 @@ function attachDriver(d: NetDriver) {
           cityResult = home.cityCode === away.cityCode
             ? { status: 'friendly', detail: '', rankText: '' }
             : { status: 'idle', detail: '', rankText: '' };
-          menuDirty = true;
+          menuDirty = true; autoReadyRanked();
         } else if (!cityMatch) {
           cityMatch = { matchId: e.matchId, matchToken: e.matchToken, homeClientId: '', awayClientId: '', homeCity: '', awayCity: '' };
         }
@@ -656,10 +780,11 @@ function attachDriver(d: NetDriver) {
       // Lobby drop (READY shown, match not started): clean FRIEND LEFT.
       // Mid-match drop: AI takes over so solo can continue.
       if (screen === 'netready') {
+        const wasRanked = rankedMode;
         netGen++; closeNet(); mpState = 'error';
-        netStatus = 'FRIEND LEFT'; screen = 'online'; menuIndex = 0; menuDirty = true;
+        netStatus = 'OPPONENT LEFT · FIND ANOTHER MATCH'; screen = wasRanked ? 'title' : 'online'; menuIndex = 0; menuDirty = true;
       } else {
-        engine.state.message = 'PEER LEFT — AI TAKES OVER'; engine.state.messageTime = 3;
+        closeNet(); screen = 'title'; menuIndex = 0; netStatus = 'OPPONENT DISCONNECTED · NO COUNTRY POINTS AWARDED'; menuDirty = true;
       }
     }
     else if (e.type === 'error') {
@@ -667,19 +792,21 @@ function attachDriver(d: NetDriver) {
       netlog.log('error', `driver error: ${msg.slice(0, 80)}`);
       const relay = relaySource;
       track('online_error', { msg: msg.slice(0, 80), relay });
+      const wasRanked = rankedMode;
       closeNet(); mpState = 'error';
       // STUN-only direct path failed after signaling succeeded: say what
       // helps (another network / TURN relay) instead of "try again".
-      netStatus = withRelayHint(msg, relay); screen = 'online'; menuIndex = 0; menuDirty = true;
+      netStatus = wasRanked ? msg : withRelayHint(msg, relay); screen = wasRanked ? 'title' : 'online'; menuIndex = 0; menuDirty = true;
     }
   };
 }
 let netGen = 0;
-function cancelNet() { netGen++; closeNet(); mpState = 'idle'; screen = 'online'; menuIndex = 0; menuDirty = true; }
+function cancelNet() { const wasRanked = rankedMode; netGen++; closeNet(); mpState = 'idle'; screen = wasRanked ? 'title' : 'online'; menuIndex = 0; menuDirty = true; }
 /** Lobby failure: invalidate in-flight async steps, tear down, show why. */
 function deadNet(message: string) {
+  const wasRanked = rankedMode;
   netGen++; closeNet(); mpState = 'error';
-  netStatus = message; screen = 'online'; menuIndex = 0; menuDirty = true;
+  netStatus = message; screen = wasRanked ? 'title' : 'online'; menuIndex = 0; menuDirty = true;
 }
 const netMsg = (e: unknown) => friendlyNetError(e);
 function hookDriver(d: NetDriver) {
@@ -972,8 +1099,9 @@ function doJoin() {
   cloudJoin(code);
 }
 function doReady() {
+  if (rankedMode && !cityMatch) return;
   if (!net || iAmReady) return;
-  iAmReady = true; net.setReady(); mpState = 'ready'; menuDirty = true;
+  iAmReady = true; mpState = 'ready'; net.setReady(); menuDirty = true;
 }
 /** Copy the redacted net diagnostic log (no token/SDP/IPs) for bug reports. */
 function doCopyLog() {
@@ -1078,6 +1206,12 @@ function doOnboardContinue() {
     menuDirty = true;
   }
 }
+async function doShareInvite() {
+  if (!roomCode) return;
+  if (!navigator.share) { doCopyInvite(); return; }
+  try { await navigator.share({ title: 'HNC League', text: 'Represent your country. Challenge me in HNC League!', url: inviteUrlFor(roomCode) }); }
+  catch (error) { if (!(error instanceof Error && error.name === 'AbortError')) doCopyInvite(); }
+}
 function doWhatsApp() {
   if (!roomCode) return;
   const url = inviteUrlFor(roomCode);
@@ -1110,7 +1244,9 @@ async function ensureCityMatch(hostSide: boolean) {
   const me = myCityProfilePacket();
   if (!me) return;
   // Home is always the host (team 0). Guest waits for the host announcement.
-  if (!hostSide) return;
+  if (!hostSide || cityMatchBusy) return;
+  cityMatchBusy = true;
+  const matchDriver = net;
   const home = viewTeam === 0 ? me : remote;
   const away = viewTeam === 0 ? remote : me;
   try {
@@ -1121,6 +1257,7 @@ async function ensureCityMatch(hostSide: boolean) {
       homeCityCode: home.cityCode,
       awayCityCode: away.cityCode,
     });
+    if (net !== matchDriver) return;
     cityMatch = {
       matchId: created.matchId,
       matchToken: created.matchToken,
@@ -1129,6 +1266,7 @@ async function ensureCityMatch(hostSide: boolean) {
       homeCity: home.cityCode,
       awayCity: away.cityCode,
     };
+    autoReadyRanked();
     try { net.announceCityMatch(created.matchId, created.matchToken); } catch { /* peer gets it on retry */ }
     if (cityMatch.homeCity === cityMatch.awayCity) {
       cityResult = { status: 'friendly', detail: '', rankText: '' };
@@ -1137,13 +1275,14 @@ async function ensureCityMatch(hostSide: boolean) {
     }
     menuDirty = true;
   } catch {
-    // League unavailable: match stays a friendly, gameplay unaffected.
+    if (net !== matchDriver) return;
+    if (rankedMode) { deadNet('COUNTRY LEAGUE UNAVAILABLE · PLEASE TRY AGAIN'); return; }
     cityResult = { status: 'friendly', detail: '', rankText: '' };
-  }
+  } finally { cityMatchBusy = false; }
 }
 /** Final-whistle dual-submit (meta-layer only, never blocks rematch). */
 async function submitCityResult() {
-  if (!net || dailyMode) return;
+  if ((!net && !botMatch) || dailyMode) return;
   if (!cityMatch || !cityProfile) {
     if (net && !cityMatch) cityResult = { status: 'friendly', detail: '', rankText: '' };
     menuDirty = true;
@@ -1158,12 +1297,20 @@ async function submitCityResult() {
   menuDirty = true;
   const s = engine.state;
   try {
-    const res = await cityApi().submitResult(cityMatch.matchId, {
+    const resultMatch = cityMatch;
+    const submission = {
       clientId: cityProfile.clientId,
       matchToken: cityMatch.matchToken,
       homeScore: s.score[0],
       awayScore: s.score[1],
-    });
+    };
+    let res = botMatch ? await submitBotResult() : await cityApi().submitResult(resultMatch.matchId, submission);
+    for (let attempt = 0; res.status === 'pending' && attempt < 20; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (cityMatch !== resultMatch) return;
+      res = await cityApi().submitResult(resultMatch.matchId, submission);
+    }
+    if (cityMatch !== resultMatch) return;
     if (res.status === 'confirmed') {
       const myCity = cityProfile.cityCode;
       const won = (myCity === cityMatch.homeCity && s.score[0] > s.score[1]) || (myCity === cityMatch.awayCity && s.score[1] > s.score[0]);
@@ -1184,13 +1331,7 @@ async function submitCityResult() {
       cityResult = { status: 'disputed', detail: '', rankText: '' };
     } else {
       cityResult = { status: 'confirming', detail: '', rankText: '' };
-      // Peer hasn't submitted yet: poll once more via a later refresh is
-      // unnecessary — the peer's submit will confirm server-side and the
-      // table refresh below still shows movement.
       try { await refreshCityTable(true); } catch { /* ignore */ }
-      // Re-check by re-submitting? No — one row per (match,client); the
-      // first report stands and the peer's arrival confirms it.
-      // Show confirming until the player navigates; rematch is never blocked.
     }
   } catch {
     cityResult = { status: 'error', detail: '', rankText: '' };
@@ -1198,18 +1339,19 @@ async function submitCityResult() {
   menuDirty = true;
 }
 function handleMenuEnter(act?: string) {
+  if (act === 'retry-result') { void submitCityResult(); return; }
+  if (act === 'join-friend') { closeNet(); screen = 'join'; menuIndex = 0; menuDirty = true; return; }
   if (screen === 'onboard') {
     if (act === 'onboard-continue') { doOnboardContinue(); return; }
     doOnboardContinue(); return;
   }
+  if (screen === 'search') {
+    cancelSearch(); screen = act === 'search-friend' ? 'online' : 'title'; menuIndex = 0; menuDirty = true; return;
+  }
   if (screen === 'title') {
-    if (act === 'goto-city') { screen = 'city'; menuIndex = 0; menuDirty = true; void refreshCityTable(); return; }
-    if (menuIndex === 0) { screen = 'team'; menuIndex = 0; titleNote = ''; }
-    else if (menuIndex === 1) { if (NET_LIVE) screen = 'online'; else titleNote = 'ONLINE MATCH — COMING SOON'; }
-    else if (menuIndex === 2) launchDaily();
-    else if (menuIndex === 3) { screen = 'city'; menuIndex = 0; void refreshCityTable(); }
-    else if (LEAGUES_LIVE) { screen = 'league'; menuIndex = 0; leagueMsg = ''; }
-    else titleNote = 'FRIEND LEAGUES — COMING SOON';
+    if (menuIndex === 0 && act !== 'goto-city') { void findCountryMatch(); return; }
+    if (menuIndex === 1 && act !== 'goto-city') { rankedMode = false; screen = 'host'; menuIndex = 0; netStatus = ''; startHost(); }
+    else { screen = 'city'; menuIndex = 0; void refreshCityTable(); }
   }
   else if (screen === 'team') {
     if (act === 'cycle-0') cycleTeamRow(0, 1);
@@ -1226,6 +1368,7 @@ function handleMenuEnter(act?: string) {
   else if (screen === 'host') {
     if (act === 'cancel') cancelNet();
     else if (act === 'copylog') doCopyLog();
+    else if (act === 'share-invite') void doShareInvite();
     else if (act === 'whatsapp') doWhatsApp();
     else if (act === 'copy-invite') doCopyInvite();
   }
@@ -1237,7 +1380,7 @@ function handleMenuEnter(act?: string) {
   }
   else if (screen === 'city') {
     if (act === 'city-refresh') { void refreshCityTable(); return; }
-    screen = 'title'; menuIndex = 3; menuDirty = true; return;
+    screen = 'title'; menuIndex = 2; menuDirty = true; return;
   }
   else if (screen === 'league') {
     if (menuIndex === 0) { screen = 'leagueview'; menuIndex = 0; leagueMsg = ''; refreshLeague(); }
@@ -1283,22 +1426,15 @@ function handleMenuEnter(act?: string) {
   }
   else if (screen === 'pause') {
     if (menuIndex === 0) resumePlay();
-    else if (menuIndex === 1) launch();
+    else if (menuIndex === 1) { if (botMatch) { closeNet(); screen = 'title'; void findCountryMatch(); } else launch(); }
     else { closeNet(); screen = 'title'; }
   }
   else if (screen === 'half') continueFromHalf();
   else if (screen === 'full') {
-    if (net && cityMatch) {
+    if ((net || botMatch) && cityMatch) {
       if (menuIndex === 0) {
-        // REMATCH: fresh room + fresh league match (never reuse ids/tokens).
-        const keepProfile = cityProfile;
-        void keepProfile;
-        closeNet();
-        cityMatch = null;
-        cityResult = { status: 'idle', detail: '', rankText: '' };
-        screen = 'online'; menuIndex = 0; menuDirty = true;
-        // Jump straight into a new challenge for pace.
-        screen = 'host'; roomCode = ''; netStatus = ''; copyNote = ''; startHost();
+        closeNet(); screen = 'title'; menuIndex = 0;
+        void findCountryMatch();
         return;
       } else if (menuIndex === 1) {
         closeNet();
@@ -1316,8 +1452,8 @@ function handleMenuEnter(act?: string) {
   }
   menuDirty = true;
 }
-function handleMenu(){if(pressed.size||released.size||touch.pressed.size||touch.released.size)menuDirty=true;if(hit('KeyM')){muted=audio.toggle();consume('KeyM')}if(screen==='match'){if(hit('Escape')){consume('Escape');openPause()}if(hit('KeyC')){camNote=renderer.cycleCamera();camNoteAt=performance.now();consume('KeyC')}return}const confirm=hit('Enter');if(confirm)consume('Enter');const up=hit('KeyW')||hit('ArrowUp'),dn=hit('KeyS')||hit('ArrowDown');if(screen==='onboard'){if(up||dn){const idx=CITIES.findIndex((c)=>c.code===onboardCity);const n=CITIES.length;const nxt=CITIES[((idx<0?0:idx)+(up?n-1:1))%n].code;onboardCity=nxt;}if(hit('Escape')){}if(confirm)handleMenuEnter('onboard-continue');}else if(screen==='title'){if(up||dn)menuIndex=(menuIndex+(up?4:1))%5;if(hit('Escape'))menuIndex=0;if(confirm)handleMenuEnter()}else if(screen==='team'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+3)%4;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%4;if(hit('KeyA')||hit('ArrowLeft'))cycleTeamRow(menuIndex,-1);if(hit('KeyD')||hit('ArrowRight'))cycleTeamRow(menuIndex,1);if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='online'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='host'){if(hit('Escape'))cancelNet();}else if(screen==='join'){if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter('join');}else if(screen==='netready'){if(up||dn)menuIndex=1-menuIndex;if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter();}else if(screen==='league'){if(up)menuIndex=(menuIndex+4)%5;if(dn)menuIndex=(menuIndex+1)%5;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='leaguecreate'||screen==='leaguejoin'||screen==='leagueserver'){if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leagueview'){const n=Math.max(1,leagueActions.length);if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguesubmit'||screen==='leagueresolve'){const n=leaguePick.length+1;if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='leagueview';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguescore'){if(hit('Escape')){screen=scoreMode==='resolve'?'leagueresolve':'leaguesubmit';menuIndex=0}else if(confirm)handleMenuEnter()}else if(screen==='pause'){if(hit('Escape'))resumePlay();if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}else if(screen==='half'){if(net&&viewTeam===1&&engine.state.phase!=='halftime')handleMenuEnter();else if(confirm)handleMenuEnter();else if(performance.now()-halfAt>(net&&viewTeam===1?5000:1500))handleMenuEnter()}else if(screen==='city'){if(confirm)handleMenuEnter('city-back');if(hit('Escape')){screen='title';menuIndex=3;}}else if(screen==='full'){const fn=(net&&cityMatch)?4:3;if(up)menuIndex=(menuIndex+fn-1)%fn;if(dn)menuIndex=(menuIndex+1)%fn;if(confirm)handleMenuEnter()}menu();}
-function frame(now:number){const raw=Math.min(.1,(now-last)/1000);last=now;let stepped=false;if(net&&(screen==='host'||screen==='join'||screen==='netready')){try{net.poll();}catch{/* poll never throws; error surfaces via driver events */}}if(screen==='match'){handleMenu();if(screen==='match'){capturePrev(engine.state);if(net&&net.session){net.poll();const f=input();net.frame(f,raw);stepped=true;for(const e of net.session.drainEvents()){audio.event(e);if(e.type==='goal')track('goal',{a:engine.state.score[0],b:engine.state.score[1]});}renderer.setFollow(engine.controlOf(viewTeam),engine.targetOf(viewTeam));}else{const due=soloClock.push(raw);let first=true;for(let n=0;n<due;n++){const f=input();if(!first){f.pass=false;f.passReleased=false;f.long=false;f.shootPressed=false;f.shootReleased=false;f.switchPlayer=false}engine.update(1/60,f);for(const e of engine.events.splice(0)){audio.event(e);if(e.type==='goal')track('goal',{a:engine.state.score[0],b:engine.state.score[1]});if(e.type==='shot'){renderer.impact(e.power??28)}if(e.type==='tackle'&&e.slide){renderer.impact(9)}}first=false;stepped=true;}}const s=engine.state;if(s.phase==='halftime'){screen='half';halfAt=performance.now();menuDirty=true;audio.event({type:'whistle'})}if(s.phase==='fulltime'){screen='full';menuIndex=0;menuDirty=true;if(net)mpState='finished';audio.event({type:'whistle'});track('match_end',{a:s.score[0],b:s.score[1],mode:dailyMode?'daily':(net?'online':'solo')});if(dailyMode)setDailyBest(s.score[0]);if(net&&!dailyMode)void submitCityResult()}let alpha=1;if(s.phase!==interpPhase||engine.tick<interpTickMark){capturePrev(s)}else{const debt=net?net.debt():soloClock.debt;alpha=Math.max(0,Math.min(1,debt/TICK_DT))}interpPhase=s.phase;interpTickMark=engine.tick;renderer.render(s,raw,false,displayPositions(s,alpha));const cine=renderer.inCinematic();barTop.classList.toggle('on',cine);barBottom.classList.toggle('on',cine);if(now-hudAt>66){hud(s);hudAt=now}}}else {renderer.render(engine.state,raw,screen==='title'||screen==='team');barTop.classList.remove('on');barBottom.classList.remove('on');if(screen==='half'&&now-halfAt>2500)continueFromHalf();handleMenu()}updateTouchVisibility();fitOrientation();if(import.meta.env.DEV&&now-devStatusAt>100){const s=engine.state,p=s.players[s.controlled],b=s.ball;document.body.dataset.match=JSON.stringify({phase:s.phase,screen,half:s.half,elapsed:s.elapsed,time:s.time,score:s.score,controlled:s.controlled,player:{x:p?.x,z:p?.z,vx:p?.vx,vz:p?.vz},ball:{x:b.x,z:b.z,y:b.y,owner:b.owner,flight:b.flight},stats:s.stats});devStatusAt=now}if(screen!=='match'||stepped){clearKeyboardEdges(kb);clearTouchEdges(touch)}requestAnimationFrame(frame)}
+function handleMenu(){if(pressed.size||released.size||touch.pressed.size||touch.released.size)menuDirty=true;if(hit('KeyM')){muted=audio.toggle();consume('KeyM')}if(screen==='match'){if(hit('Escape')){consume('Escape');openPause()}if(hit('KeyC')){camNote=renderer.cycleCamera();camNoteAt=performance.now();consume('KeyC')}return}const confirm=hit('Enter');if(confirm)consume('Enter');const up=hit('KeyW')||hit('ArrowUp'),dn=hit('KeyS')||hit('ArrowDown');if(screen==='onboard'){if(up||dn){const idx=CITIES.findIndex((c)=>c.code===onboardCity);const n=CITIES.length;const nxt=CITIES[((idx<0?0:idx)+(up?n-1:1))%n].code;onboardCity=nxt;}if(hit('Escape')){}if(confirm)handleMenuEnter('onboard-continue');}else if(screen==='title'){if(up||dn)menuIndex=(menuIndex+(up?2:1))%3;if(hit('Escape'))menuIndex=0;if(confirm)handleMenuEnter()}else if(screen==='search'){if(hit('Escape'))handleMenuEnter('search-cancel');}else if(screen==='team'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+3)%4;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%4;if(hit('KeyA')||hit('ArrowLeft'))cycleTeamRow(menuIndex,-1);if(hit('KeyD')||hit('ArrowRight'))cycleTeamRow(menuIndex,1);if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='online'){if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='host'){if(hit('Escape'))cancelNet();}else if(screen==='join'){if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter('join');}else if(screen==='netready'){if(up||dn)menuIndex=1-menuIndex;if(hit('Escape'))cancelNet();else if(confirm)handleMenuEnter();}else if(screen==='league'){if(up)menuIndex=(menuIndex+4)%5;if(dn)menuIndex=(menuIndex+1)%5;if(hit('Escape'))screen='title';if(confirm)handleMenuEnter()}else if(screen==='leaguecreate'||screen==='leaguejoin'||screen==='leagueserver'){if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leagueview'){const n=Math.max(1,leagueActions.length);if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='league';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguesubmit'||screen==='leagueresolve'){const n=leaguePick.length+1;if(up)menuIndex=(menuIndex+n-1)%n;if(dn)menuIndex=(menuIndex+1)%n;if(hit('Escape')){screen='leagueview';menuIndex=0}if(confirm)handleMenuEnter()}else if(screen==='leaguescore'){if(hit('Escape')){screen=scoreMode==='resolve'?'leagueresolve':'leaguesubmit';menuIndex=0}else if(confirm)handleMenuEnter()}else if(screen==='pause'){if(hit('Escape'))resumePlay();if(hit('KeyW')||hit('ArrowUp'))menuIndex=(menuIndex+2)%3;if(hit('KeyS')||hit('ArrowDown'))menuIndex=(menuIndex+1)%3;if(confirm)handleMenuEnter()}else if(screen==='half'){if(net&&viewTeam===1&&engine.state.phase!=='halftime')handleMenuEnter();else if(confirm)handleMenuEnter();else if(performance.now()-halfAt>(net&&viewTeam===1?5000:1500))handleMenuEnter()}else if(screen==='city'){if(confirm)handleMenuEnter('city-back');if(hit('Escape')){screen='title';menuIndex=2;}}else if(screen==='full'){const fn=((net||botMatch)&&cityMatch)?4:3;if(up)menuIndex=(menuIndex+fn-1)%fn;if(dn)menuIndex=(menuIndex+1)%fn;if(confirm)handleMenuEnter()}menu();}
+function frame(now:number){const raw=Math.min(.1,(now-last)/1000);last=now;let stepped=false;if(net&&(screen==='host'||screen==='join'||screen==='netready')){try{net.poll();}catch{/* poll never throws; error surfaces via driver events */}}if(screen==='match'){handleMenu();if(screen==='match'){capturePrev(engine.state);if(net&&net.session){net.poll();const f=input();net.frame(f,raw);stepped=true;for(const e of net.session.drainEvents()){audio.event(e);if(e.type==='goal')track('goal',{a:engine.state.score[0],b:engine.state.score[1]});}renderer.setFollow(engine.controlOf(viewTeam),engine.targetOf(viewTeam));}else{const due=soloClock.push(raw);let first=true;for(let n=0;n<due;n++){const f=input();if(!first){f.pass=false;f.passReleased=false;f.long=false;f.shootPressed=false;f.shootReleased=false;f.switchPlayer=false}stepSolo(f);for(const e of engine.events.splice(0)){audio.event(e);if(e.type==='goal')track('goal',{a:engine.state.score[0],b:engine.state.score[1]});if(e.type==='shot'){renderer.impact(e.power??28)}if(e.type==='tackle'&&e.slide){renderer.impact(9)}}first=false;stepped=true;}}const s=engine.state;if(s.phase==='halftime'){screen='half';halfAt=performance.now();menuDirty=true;audio.event({type:'whistle'})}if(s.phase==='fulltime'){screen='full';menuIndex=0;menuDirty=true;if(net)mpState='finished';audio.event({type:'whistle'});track('match_end',{a:s.score[0],b:s.score[1],mode:dailyMode?'daily':(net?'online':'solo')});if(dailyMode)setDailyBest(s.score[0]);if((net||botMatch)&&!dailyMode)void submitCityResult()}let alpha=1;if(s.phase!==interpPhase||engine.tick<interpTickMark){capturePrev(s)}else{const debt=net?net.debt():soloClock.debt;alpha=Math.max(0,Math.min(1,debt/TICK_DT))}interpPhase=s.phase;interpTickMark=engine.tick;renderer.render(s,raw,false,displayPositions(s,alpha));const cine=renderer.inCinematic();barTop.classList.toggle('on',cine);barBottom.classList.toggle('on',cine);if(now-hudAt>66){hud(s);hudAt=now}}}else {renderer.render(engine.state,raw,screen==='title'||screen==='team');barTop.classList.remove('on');barBottom.classList.remove('on');if(screen==='half'&&now-halfAt>2500)continueFromHalf();handleMenu()}updateTouchVisibility();fitOrientation();if(import.meta.env.DEV&&now-devStatusAt>100){const s=engine.state,p=s.players[s.controlled],b=s.ball;document.body.dataset.match=JSON.stringify({phase:s.phase,screen,half:s.half,elapsed:s.elapsed,time:s.time,score:s.score,controlled:s.controlled,player:{x:p?.x,z:p?.z,vx:p?.vx,vz:p?.vz},ball:{x:b.x,z:b.z,y:b.y,owner:b.owner,flight:b.flight},stats:s.stats});devStatusAt=now}if(screen!=='match'||stepped){clearKeyboardEdges(kb);clearTouchEdges(touch)}requestAnimationFrame(frame)}
 addEventListener('resize',()=>renderer.resize());
 // PWA: offline app shell in production only (never cache dev iterations).
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

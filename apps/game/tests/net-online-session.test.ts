@@ -252,7 +252,7 @@ test('lobby errors stay player-friendly, never leak SDP/ICE/DO internals', () =>
 // --- Service worker cannot strand players on old multiplayer UI ---------------
 
 test('service worker is network-first for navigation, never caches /api', () => {
-  assert.ok(swSrc.includes('floodlight-v'), 'versioned cache namespace');
+  assert.ok(swSrc.includes('hnc-league-v'), 'versioned cache namespace');
   assert.ok(!swSrc.includes('floodlight-v1'), 'old cache version evicted (bumped past v1)');
   assert.ok(swSrc.includes('skipWaiting'), 'new deploys activate immediately');
   assert.ok(swSrc.includes('clients.claim'), 'new worker takes control');
