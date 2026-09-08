@@ -53,8 +53,10 @@ test('normal UI has ONE host action and no SDP/reply ceremony', () => {
   const joins = mainSrc.match(/cloudJoin\(/g) ?? [];
   assert.ok(joins.length >= 2, `expected single join path (found ${joins.length} cloudJoin refs)`);
   assert.ok(mainSrc.includes('doJoin'), 'typed-code join present');
-  assert.ok(!mainSrc.includes('pendingInvite'), 'no link auto-join state');
-  assert.ok(!mainSrc.includes('?room='), 'no link-join query handling');
+  // City League: /friend/CODE links are additive (same code alphabet, token
+  // never in the URL); the pending invite only survives onboarding to auto-
+  // join the same cloudJoin path — never a second signaling implementation.
+  assert.ok(mainSrc.includes('cloudJoin('), 'link + code converge on cloudJoin');
 });
 
 test('main uses per-session peer ids, never persistent id for signaling', () => {
@@ -100,7 +102,10 @@ test('lobby drives the NetDriver handshake (no stuck-at-CONNECTED)', () => {
 test('host screen shows the grouped code for read-out', () => {
   assert.equal(formatRoomCode('ABCDEF'), 'ABC DEF');
   assert.ok(mainSrc.includes('formatRoomCode(roomCode)'), 'host renders the grouped code');
-  assert.ok(mainSrc.includes('READ THE CODE'), 'read-out-first copy');
+  assert.ok(
+    mainSrc.includes('READ THE CODE') || mainSrc.includes('YOUR CHALLENGE IS READY'),
+    'read-out-first copy',
+  );
 });
 
 test('typed codes normalize tolerantly (case/space/dash)', () => {

@@ -11,18 +11,52 @@ same origin.
 
 ```text
 Browser ── same origin ──► Worker + Static Assets
-  ├─ /               → game shell (SPA fallback)
+  ├─ /               → game shell (SPA fallback, incl. /friend/:code)
   ├─ /api/health     → {status, service} (+ /healthz alias)
   ├─ POST /api/rooms → {roomCode, matchToken}
-  └─ /api/rooms/:code/socket → RoomDurableObject (one DO per room)
+  ├─ /api/rooms/:code/socket → RoomDurableObject (one DO per room)
+  ├─ POST /api/profile → guest profile upsert (City League, D1)
+  ├─ GET  /api/city-league → {season, standings} (D1, current week)
+  ├─ POST /api/city-league/matches → {matchId, matchToken, seasonKey}
+  └─ POST /api/matches/:id/result → {status: pending|confirmed|disputed}
 ```
 
 - Solo: entirely local (engine + renderer + input, no network).
 - Multiplayer: `CloudflareSignalingClient` coordinates rooms; the match
   itself runs WebRTC P2P lockstep (3-byte inputs, hashes, resync).
 - Rooms: 6-char codes, 2 members max, ~2 h TTL (DO alarms), SQLite lifecycle
-  rows only, hibernated sockets with attachments. No D1, no KV, no Redis.
+  rows only, hibernated sockets with attachments. Shareable invites are
+  `{origin}/friend/CODE` (same code alphabet, token never in the URL) plus
+  WhatsApp `wa.me` share; codes remain the offline fallback.
+- City League meta-layer (D1): `players` / `matches` / `submissions` only
+  (see `apps/game/migrations/0001_city_league.sql`). Cities are static app
+  config (`src/city-league/cities.ts`); seasons are Monday 00:00
+  Europe/Istanbul weeks (`seasonKey YYYY-Www`, server authoritative).
+  Standings derive from confirmed cross-city matches of the active season.
 - PWA: installable, offline app shell (production service worker only).
+
+## City League D1 setup (Cloudflare)
+
+One D1 database bound as `DB` (see `apps/game/wrangler.jsonc`):
+
+```sh
+# one-time: create the database
+npx wrangler d1 create floodlight-football --cwd apps/game
+
+# put the returned database_id into apps/game/wrangler.jsonc (d1_databases[0])
+# local schema + apply
+npx wrangler d1 migrations list floodlight-football --local --cwd apps/game
+npx wrangler d1 execute floodlight-football --local --file=migrations/0001_city_league.sql --cwd apps/game
+
+# remote (production) apply + deploy
+npx wrangler d1 execute floodlight-football --remote --file=migrations/0001_city_league.sql --cwd apps/game
+npm run build --workspace=floodlight-football
+npm run deploy
+```
+
+Local dev without D1 still runs: the Worker falls back to a per-isolate
+memory store (parity for rooms/signaling, no persistence). Production must
+bind D1 or standings will not persist across isolates.
 
 ```sh
 npm run dev:game        # frontend + Worker + local DOs (vite plugin, no Docker)
@@ -77,6 +111,14 @@ docker build -f apps/server/Dockerfile .  # server image (CI also builds this)
   Cloudflare Vite plugin) and `npm run dev:server` (memory store; add
   `REDIS_URL=redis://localhost:6379` for the Redis path). Point the game's
   LEAGUE → SERVER setting at the Node URL to exercise the reference backend.
+
+## City League vs Node reference
+
+Cloudflare production is `Worker + Durable Objects + D1 + WebRTC` only. The
+Node/Postgres league (`apps/server`) remains as the self-hosted reference and
+is never a dependency of the Cloudflare path — concepts/DTOs/dual-submit
+were reused, the schema was deliberately not ported (no private leagues,
+memberships or fixtures in D1).
 
 ## Leagues / persistence (later)
 

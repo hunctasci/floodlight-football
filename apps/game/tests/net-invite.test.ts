@@ -46,6 +46,9 @@ test('typed code variants normalize to the same room identity', () => {
 });
 
 // 4. No reply-code step exists in the normal player UI.
+// City League adds shareable /friend/CODE links + WhatsApp alongside the
+// code read-out (PLAY FOR YOUR CITY): codes remain the offline fallback,
+// links never carry SDP/secrets. Both paths converge on cloudJoin.
 test('normal UI has no SDP / reply-code / server-URL ceremony', () => {
   for (const banned of [
     'CREATE INVITE LINK', 'SEND THE REPLY BACK', 'PASTE THE REPLY', 'PASTE THE INVITE',
@@ -56,10 +59,16 @@ test('normal UI has no SDP / reply-code / server-URL ceremony', () => {
   }
   assert.ok(mainSrc.includes('PLAY WITH A FRIEND'), 'host entry shows the code');
   assert.ok(mainSrc.includes('JOIN WITH CODE'), 'code-only join entry');
-  assert.ok(mainSrc.includes('READ THE CODE'), 'host screen is read-out-first');
-  for (const banned of ['COPY LINK', 'SHARE THE LINK', 'invite-url', 'invitelink', '?room=', 'pendingInvite']) {
+  assert.ok(
+    mainSrc.includes('READ THE CODE') || mainSrc.includes('YOUR CHALLENGE IS READY'),
+    'host screen is read-out-first',
+  );
+  for (const banned of ['COPY LINK', 'SHARE THE LINK', 'invitelink']) {
     assert.ok(!mainSrc.includes(banned), `code-only UI must not contain ${JSON.stringify(banned)}`);
   }
+  // Shareable challenge links (City League): code read-out stays, links are
+  // additive (same origin /friend/CODE, token never in the URL).
+  assert.ok(mainSrc.includes('/friend/') || mainSrc.includes('inviteUrl'), 'challenge link present');
 });
 
 // 5. Host creates the Cloudflare room before producing an invitation.

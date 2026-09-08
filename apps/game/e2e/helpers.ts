@@ -75,7 +75,22 @@ function assertNoLeak(text: string) {
 
 export async function openOnlineMenu(page: Page, opts: { e2e?: boolean } = {}) {
   await page.goto(opts.e2e === false ? '/' : '/?e2e=1');
+  await maybeCompleteOnboarding(page);
   await enterOnlineMenu(page);
+}
+
+/** First-launch City League onboarding (no signup): name + city → CONTINUE. */
+export async function maybeCompleteOnboarding(page: Page) {
+  const cont = page.getByTestId('onboard-continue');
+  try {
+    await expect(cont).toBeVisible({ timeout: 3_000 });
+  } catch {
+    return;
+  }
+  const name = `E2E${Math.floor(Math.random() * 0xffff).toString(16).padStart(4, '0')}`;
+  await page.getByTestId('onboard-name').fill(name);
+  await cont.click();
+  await expect(page.getByText('ONLINE MATCH').first()).toBeVisible({ timeout: 15_000 });
 }
 
 /** ONLINE MATCH from the title screen without reloading (same page lifetime). */

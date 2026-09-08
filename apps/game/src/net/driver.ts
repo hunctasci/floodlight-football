@@ -9,15 +9,23 @@ import { MAX_CATCH_UP, SimulationClock } from '../game/clock';
 import { EMPTY_INPUT, type InputFrame, type TeamId } from '../types';
 import type { DataTransport } from './transport';
 
+export interface CityProfilePacket {
+  clientId: string;
+  displayName: string;
+  cityCode: string;
+}
+
 export type ControlMsg =
-  | { t: 'hello'; proto: number; seedPart: number; clientId: string; teamIndex: number; duration: number; matchToken?: string; sim: number; input: number; tune: string }
-  | { t: 'welcome'; proto: number; seed: number; yourTeam: TeamId; teamIndex: number; duration: number; matchToken?: string; sim: number; input: number; tune: string }
+  | { t: 'hello'; proto: number; seedPart: number; clientId: string; teamIndex: number; duration: number; matchToken?: string; sim: number; input: number; tune: string; profile?: CityProfilePacket }
+  | { t: 'welcome'; proto: number; seed: number; yourTeam: TeamId; teamIndex: number; duration: number; matchToken?: string; sim: number; input: number; tune: string; profile?: CityProfilePacket }
   | { t: 'ready' }
   | { t: 'pause' }
   | { t: 'resume' }
   | { t: 'quit' }
   | { t: 'resync-request'; tick: number }
-  | { t: 'continue-half' };
+  | { t: 'continue-half' }
+  | { t: 'profile'; profile: CityProfilePacket }
+  | { t: 'city-match'; matchId: string; matchToken: string };
 
 export type DriverState = 'handshake' | 'playing' | 'closed';
 
@@ -28,6 +36,8 @@ export type DriverEvent =
   | { type: 'peerPaused'; paused: boolean }
   | { type: 'peerQuit' }
   | { type: 'peerDropped' }
+  | { type: 'peerProfile'; profile: CityProfilePacket }
+  | { type: 'cityMatch'; matchId: string; matchToken: string }
   | { type: 'error'; message: string };
 
 export interface DriverOpts {
@@ -43,6 +53,8 @@ export interface DriverOpts {
   delay?: number;
   openTimeoutMs?: number;
   helloRetryMs?: number;
+  /** Persistent City League identity (optional, meta-layer only). */
+  localProfile?: CityProfilePacket | null;
 }
 
 /**
@@ -75,6 +87,10 @@ export class NetDriver {
   private localReady = false;
   private peerReady = false;
   private startedEmitted = false;
+  /** City League meta-layer (never touches simulation determinism). */
+  private localProfile: CityProfilePacket | null = null;
+  remoteProfile: CityProfilePacket | null = null;
+  cityMatch: { matchId: string; matchToken: string } | null = null;
   /** Edge buttons accumulate here until staged into exactly one tick. */
   private edgeAcc = { pass: false, passReleased: false, long: false, shootPressed: false, shootReleased: false, switchPlayer: false };
   /** Consecutive stalled frames before the link is declared dead. */
@@ -92,6 +108,7 @@ export class NetDriver {
     this.delay = opts.delay ?? 3;
     this.openTimeoutMs = opts.openTimeoutMs ?? 20000;
     this.helloRetryMs = opts.helloRetryMs ?? 500;
+    this.localProfile = opts.localProfile ?? null;
     transport.onmessage = (d) => this.onData(d);
     transport.onstate = (s) => {
       if (s === 'open') this.onOpen();
@@ -125,8 +142,32 @@ export class NetDriver {
       t: 'hello', proto: NET_PROTO, seedPart: this.hostPart,
       clientId: this.clientId, teamIndex: this.teamIndex, duration: this.duration,
       ...(this.matchToken ? { matchToken: this.matchToken } : {}),
+      ...(this.localProfile ? { profile: this.localProfile } : {}),
       ...localVersions(),
     });
+  }
+
+  /** Update the local City League identity mid-lobby (profile loaded late). */
+  setLocalProfile(p: CityProfilePacket | null) {
+    this.localProfile = p;
+    if (p && this.session) this.sendControl({ t: 'profile', profile: p });
+  }
+
+  /** Host announces the league matchId/token issued for this game. */
+  announceCityMatch(matchId: string, matchToken: string) {
+    this.cityMatch = { matchId, matchToken };
+    if (this.session) this.sendControl({ t: 'city-match', matchId, matchToken });
+  }
+
+  private acceptProfile(p: unknown) {
+    if (!p || typeof p !== 'object') return;
+    const v = p as Record<string, unknown>;
+    if (typeof v.clientId !== 'string' || typeof v.displayName !== 'string' || typeof v.cityCode !== 'string') return;
+    if (v.clientId.length < 8 || v.clientId.length > 64) return;
+    if (v.displayName.length < 1 || v.displayName.length > 24) return;
+    if (!/^[A-Z]{3}$/.test(v.cityCode)) return;
+    this.remoteProfile = { clientId: v.clientId, displayName: v.displayName.slice(0, 24), cityCode: v.cityCode };
+    this.emit({ type: 'peerProfile', profile: this.remoteProfile });
   }
 
   /** Both sides presented a room token but they differ: wrong room, refuse. */
@@ -171,27 +212,33 @@ export class NetDriver {
       if (m.proto !== NET_PROTO) { this.fail('net proto mismatch'); return; }
       const mismatch = checkVersions(m);
       if (mismatch) { this.fail(mismatch); return; }
-      if (!this.checkToken(m.matchToken)) return;
+      if (!this.checkToken((m as { matchToken?: string }).matchToken)) return;
+      if ((m as { profile?: unknown }).profile) this.acceptProfile((m as { profile?: unknown }).profile);
       try {
         const w = answerHello(this.hostPart, {
           t: 'hello', proto: m.proto, seedPart: m.seedPart, clientId: m.clientId,
-          sim: m.sim, input: m.input, tune: m.tune,
+          sim: (m as { sim: number }).sim, input: (m as { input: number }).input, tune: (m as { tune: string }).tune,
         });
         this.sendControl({
           t: 'welcome', proto: NET_PROTO, seed: w.seed, yourTeam: 1,
           teamIndex: this.teamIndex, duration: this.duration,
           ...(this.matchToken ? { matchToken: this.matchToken } : {}),
+          ...(this.localProfile ? { profile: this.localProfile } : {}),
           ...localVersions(),
         });
         this.begin(w.seed);
+        if (this.localProfile) this.sendControl({ t: 'profile', profile: this.localProfile });
       } catch (e) { this.fail(e instanceof Error ? e.message : 'handshake failed'); }
     } else if (m.t === 'welcome' && this.myTeam === 1 && this.state === 'handshake') {
       if (m.proto !== NET_PROTO) { this.fail('net proto mismatch'); return; }
       const mismatch = checkVersions(m);
       if (mismatch) { this.fail(mismatch); return; }
-      if (!this.checkToken(m.matchToken)) return;
-      this.teamIndex = m.teamIndex; this.duration = m.duration;
-      this.begin(m.seed);
+      if (!this.checkToken((m as { matchToken?: string }).matchToken)) return;
+      if ((m as { profile?: unknown }).profile) this.acceptProfile((m as { profile?: unknown }).profile);
+      this.teamIndex = (m as { teamIndex: number }).teamIndex;
+      this.duration = (m as { duration: number }).duration;
+      this.begin((m as { seed: number }).seed);
+      if (this.localProfile) this.sendControl({ t: 'profile', profile: this.localProfile });
       if (this.localReady) this.sendControl({ t: 'ready' });
       this.maybeStart();
     } else if (m.t === 'hello' && this.myTeam === 0 && this.session && this.state === 'playing') {
@@ -200,10 +247,19 @@ export class NetDriver {
         t: 'welcome', proto: NET_PROTO, seed: this.seed, yourTeam: 1,
         teamIndex: this.teamIndex, duration: this.duration,
         ...(this.matchToken ? { matchToken: this.matchToken } : {}),
+        ...(this.localProfile ? { profile: this.localProfile } : {}),
         ...localVersions(),
       });
     } else if (!this.session) {
       return;
+    } else if (m.t === 'profile') {
+      this.acceptProfile((m as { profile?: unknown }).profile);
+    } else if (m.t === 'city-match') {
+      const mm = m as { matchId?: unknown; matchToken?: unknown };
+      if (typeof mm.matchId === 'string' && typeof mm.matchToken === 'string' && mm.matchToken.length >= 16) {
+        this.cityMatch = { matchId: mm.matchId, matchToken: mm.matchToken };
+        this.emit({ type: 'cityMatch', matchId: mm.matchId, matchToken: mm.matchToken });
+      }
     } else if (m.t === 'ready') {
       this.peerReady = true;
       this.emit({ type: 'peerReady' });

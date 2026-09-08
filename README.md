@@ -36,13 +36,13 @@ the self-hosted reference backend (rooms + leagues over WS/REST).
 
 Solo play works with no backend. Online room codes are
 coordinated by the Cloudflare control plane (Worker + Durable Object rooms,
-same origin as the game); no database, Redis, or login is involved — rooms
-are ephemeral (~2 h TTL) and match traffic stays WebRTC P2P. Leagues still
-need the Node reference server. The game falls back to the Node WS protocol
-automatically when the page is served next to Node instead of Cloudflare
-(Docker self-host). Docker is never required by the Cloudflare path. No D1
-yet — persistent data (profiles, leagues, results) comes later with the
-meta game.
+same origin as the game); rooms are ephemeral (~2 h TTL) and match traffic
+stays WebRTC P2P — no Redis or login is involved. City League results,
+profiles and standings persist in Cloudflare D1 (`players`/`matches`/
+`submissions` only); solo/AI never touches it. The game falls back to the
+Node WS protocol automatically when the page is served next to Node instead
+of Cloudflare (Docker self-host). Docker is never required by the
+Cloudflare path.
 
 ## Interesting engineering problems
 

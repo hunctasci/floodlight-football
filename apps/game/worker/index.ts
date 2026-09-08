@@ -6,6 +6,10 @@
  * - GET  /api/rooms/:code/socket → WebSocket signaling relayed by the room's
  *   Durable Object (SDP offer/answer + trickle ICE + presence).
  * - GET  /api/health (alias /healthz) → minimal liveness probe.
+ * - POST /api/profile          → lazy guest profile upsert (City League).
+ * - GET  /api/city-league      → weekly standings (confirmed cross-city).
+ * - POST /api/city-league/matches → issue a league matchId + token.
+ * - POST /api/matches/:id/result → dual-submit final score (ADR-004).
  *
  * Gameplay never touches this Worker: post-handshake InputFrames stay
  * WebRTC P2P (see apps/game/src/net/). Solo needs no backend at all.
@@ -15,11 +19,15 @@
 import { RoomDurableObject } from './room';
 import { CLIENT_ID_RE, ROOM_CODE_RE, createRateLimiter, makeMatchToken, makeRoomCode } from './room-logic';
 import { resolveTurnServers } from './turn';
+import { D1CityLeagueStore } from './city-league/d1-store';
+import { CityLeagueError, CityLeagueService } from './city-league/service';
+import { MemoryCityLeagueStore } from './city-league/store';
 
 export { RoomDurableObject };
 
 interface Env {
   ROOMS: DurableObjectNamespace;
+  DB?: D1Database;
   ASSETS?: Fetcher;
   TURN_URLS?: string;
   TURN_USERNAME?: string;
@@ -39,6 +47,36 @@ const getIp = (req: Request): string =>
 
 /** Best-effort per-isolate limiter (shared with room-logic, tested). */
 const limiter = createRateLimiter();
+
+/** Per-isolate fallback when D1 is not bound (local dev without `wrangler d1`). */
+let memoryFallback: MemoryCityLeagueStore | null = null;
+
+function cityService(env: Env): CityLeagueService {
+  const db = (env as unknown as Record<string, unknown>).DB as
+    | import('./city-league/d1-store').D1Like
+    | undefined;
+  if (db && typeof (db as { prepare?: unknown }).prepare === 'function') {
+    return new CityLeagueService(new D1CityLeagueStore(db));
+  }
+  if (!memoryFallback) memoryFallback = new MemoryCityLeagueStore();
+  return new CityLeagueService(memoryFallback);
+}
+
+function cityError(e: unknown): Response {
+  if (e instanceof CityLeagueError) {
+    const status = e.code === 'NOT_FOUND' ? 404 : e.code === 'LOCKED' ? 423 : e.code === 'FORBIDDEN' ? 403 : 400;
+    return json({ error: e.message.toLowerCase() }, status);
+  }
+  return json({ error: 'server error' }, 500);
+}
+
+async function readJson(request: Request): Promise<Record<string, unknown> | null> {
+  try {
+    return (await request.json()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -108,6 +146,72 @@ export default {
       // idFromName(code) scopes exactly one room per code, no global relay.
       const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
       return stub.fetch(request);
+    }
+
+    // ---- City League meta layer (D1; never touches simulation/lockstep) ----
+    if (request.method === 'POST' && path === '/api/profile') {
+      const ip = getIp(request);
+      if (!limiter.allow(`profile:${ip}`, 30, 60)) return json({ error: 'rate limited, slow down' }, 429);
+      const body = await readJson(request);
+      if (!body) return json({ error: 'invalid body' }, 400);
+      try {
+        const out = await cityService(env).upsertProfile({
+          clientId: String(body.clientId ?? ''),
+          displayName: String(body.displayName ?? ''),
+          cityCode: String(body.cityCode ?? ''),
+        });
+        return json(out, 200);
+      } catch (e) {
+        return cityError(e);
+      }
+    }
+
+    if (request.method === 'GET' && path === '/api/city-league') {
+      const ip = getIp(request);
+      if (!limiter.allow(`table:${ip}`, 60, 60)) return json({ error: 'rate limited, slow down' }, 429);
+      try {
+        return json(await cityService(env).getTable(), 200);
+      } catch {
+        return json({ error: 'server error' }, 500);
+      }
+    }
+
+    if (request.method === 'POST' && path === '/api/city-league/matches') {
+      const ip = getIp(request);
+      if (!limiter.allow(`cl-create:${ip}`, 20, 60)) return json({ error: 'rate limited, slow down' }, 429);
+      const body = await readJson(request);
+      if (!body) return json({ error: 'invalid body' }, 400);
+      try {
+        const out = await cityService(env).createMatch({
+          roomCode: String(body.roomCode ?? ''),
+          homeClientId: String(body.homeClientId ?? ''),
+          awayClientId: String(body.awayClientId ?? ''),
+          homeCityCode: String(body.homeCityCode ?? ''),
+          awayCityCode: String(body.awayCityCode ?? ''),
+        });
+        return json(out, 201);
+      } catch (e) {
+        return cityError(e);
+      }
+    }
+
+    const resultMatch = path.match(/^\/api\/matches\/([A-Za-z0-9-]{1,64})\/result$/);
+    if (request.method === 'POST' && resultMatch) {
+      const ip = getIp(request);
+      if (!limiter.allow(`cl-result:${ip}`, 30, 60)) return json({ error: 'rate limited, slow down' }, 429);
+      const body = await readJson(request);
+      if (!body) return json({ error: 'invalid body' }, 400);
+      try {
+        const out = await cityService(env).submitResult(resultMatch[1], {
+          clientId: String(body.clientId ?? ''),
+          matchToken: String(body.matchToken ?? ''),
+          homeScore: (body.homeScore as number) ?? -1,
+          awayScore: (body.awayScore as number) ?? -1,
+        });
+        return json(out, 200);
+      } catch (e) {
+        return cityError(e);
+      }
     }
 
     // Unknown /api route: JSON 404 (never leak internals).
