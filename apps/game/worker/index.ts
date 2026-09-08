@@ -84,6 +84,10 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
+    if (url.hostname === 'www.hncleague.com') {
+      url.hostname = 'hncleague.com'; url.protocol = 'https:';
+      return Response.redirect(url.toString(), 308);
+    }
 
     if (request.method === 'GET' && (path === '/api/health' || path === '/healthz')) {
       return json({ status: 'ok', service: 'floodlight' });
@@ -252,7 +256,16 @@ export default {
     // serves dist/ automatically in production; this covers wrangler dev).
     if (env.ASSETS) {
       try {
-        return await env.ASSETS.fetch(request);
+        // Only real friend links receive the game shell; unknown paths remain 404s.
+        const friendLink = /^\/friend\/[A-HJ-NP-Z2-9]{6}\/?$/i.test(path);
+        const assetUrl = new URL(request.url);
+        if (friendLink) assetUrl.pathname = '/';
+        const response = await env.ASSETS.fetch(friendLink ? new Request(assetUrl, request) : request);
+        if (path.startsWith('/friend/')) {
+          const headers = new Headers(response.headers); headers.set('X-Robots-Tag', 'noindex, nofollow');
+          return new Response(response.body, { status: response.status, headers });
+        }
+        return response;
       } catch {
         return json({ error: 'not found' }, 404);
       }

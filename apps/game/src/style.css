@@ -66,3 +66,5 @@
 @media(max-width:420px){.country-flag{font-size:44px;margin-top:12px}.country-stats{padding:12px 0}.country-hero p{margin-bottom:14px}.lobby-secondary{gap:6px}.panel button.menu-item{font-size:10px}.panel .lobby-play{font-size:16px}}
 
 .panel .lobby-friend button.menu-item{width:100%;border:1px solid #84d7f2;background:#153b4b;color:#e8faff;font-size:16px;padding:15px 12px;margin-top:10px}.lobby-friend span{display:block;font-size:10px;letter-spacing:1px;margin-top:7px;color:#acd9e9}.matchmaking-info{font:12px/1.5 system-ui,sans-serif;color:#afbac5;margin:12px auto;max-width:380px}
+
+.rules-link{display:inline-block;color:#b5def1;font:12px/1.5 system-ui,sans-serif;margin:8px;padding:8px;pointer-events:auto}.panel button.menu-item.lobby-play{background:#f7bf30;color:#101b31;border-color:#f7bf30}

@@ -175,3 +175,11 @@ The relay accepts only the two reserved session IDs, caps packet sizes and
 packet rates, and never calculates match scores. Friend invite rooms continue
 to use WebRTC. For global scale, regional queue routing and relay latency
 measurement should precede further expansion of the single global queue.
+
+### Public domain and search previews
+
+Wrangler owns Custom Domains for `hncleague.com` and `www.hncleague.com`. The Worker permanently redirects www to the apex, preserving paths and queries. Static Assets must have `binding: "ASSETS"` because `run_worker_first: true` runs redirect and friend-link handling before serving files. Unknown paths return 404; valid `/friend/XXXXXX` paths explicitly receive the game shell with `X-Robots-Tag: noindex, nofollow`.
+
+Public canonical URLs, result shares and production friend invites use `https://hncleague.com`. Homepage metadata includes Open Graph, X cards and VideoGame JSON-LD. The 1200×630 social image is `public/social/country-clash-v1.png`; its editable SVG source is alongside it. `/how-to-play.html` provides crawlable rules and controls. `/sitemap.xml` lists the two public pages, and `/robots.txt` points to it. Search Console sitemap submission requires a verified property; deployment alone does not submit or guarantee indexing.
+
+References: [Cloudflare Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/) and [Google JavaScript SEO](https://developers.google.com/search/docs/crawling-indexing/javascript/javascript-seo-basics).

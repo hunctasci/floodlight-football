@@ -226,7 +226,7 @@ async function refreshCityTable(silent = false) {
   cityBusy = false; menuDirty = true;
 }
 function inviteUrlFor(code: string): string {
-  try { return buildInviteUrl(location.origin, code); } catch { return ''; }
+  try { return buildInviteUrl(import.meta.env.DEV ? location.origin : 'https://hncleague.com', code); } catch { return ''; }
 }
 function myCityName(): string {
   return cityProfile ? (getCity(cityProfile.cityCode)?.name ?? cityProfile.cityCode) : '';
@@ -294,13 +294,14 @@ function launch(){closeNet();dailyMode=false;track('match_start',{mode:'solo',ha
 /** Daily Cup: one deterministic match per calendar day, same seed worldwide. */
 function launchDaily(){closeNet();dailyMode=true;track('match_start',{mode:'daily',halves:duration/60});engine=new MatchEngine(teamIndex,flowTest?8:duration,dailySeed(),aiLevel);viewTeam=0;renderer.setFollow(null,null);screen='match';menuIndex=0;audio.event({type:'whistle'});}
 /** Full-time share card: score + stats as a PNG via Web Share (or download). */
+const publicGameUrl = import.meta.env.DEV ? location.origin + '/' : 'https://hncleague.com/';
 let resultShareNote = '';
 function resultShareText() {
   const s = engine.state;
   return `HNC League · ${s.teams[0].name} ${s.score[0]}–${s.score[1]} ${s.teams[1].name}\nI played for ${s.teams[viewTeam].name}. Can you do better for your country?`;
 }
 async function shareCountryResult(copyOnly = false) {
-  const text = resultShareText(), url = location.origin + '/';
+  const text = resultShareText(), url = publicGameUrl;
   try {
     if (!copyOnly && navigator.share) { await navigator.share({ title: 'HNC League · Full time', text, url }); return; }
     resultShareNote = await copyText(`${text}\n${url}`) ? 'RESULT LINK COPIED · SEND IT TO YOUR FRIENDS' : 'COULD NOT COPY · TRY WHATSAPP OR SAVE THE CARD';
@@ -324,11 +325,11 @@ function shareResult(){
   const pos=Math.round(s.stats.possession[0]/Math.max(1,s.stats.possession[0]+s.stats.possession[1])*100);
   x.fillText(`SHOTS ${s.stats.shots[0]}–${s.stats.shots[1]}   SAVES ${s.stats.saves[0]}–${s.stats.saves[1]}   BALL ${pos}%`,500,330);
   if(dailyMode)x.fillText(`DAILY BEST ${Math.max(getDailyBest(),s.score[0])}`,500,385);
-  x.fillStyle='#6f8f7c';x.font='22px monospace';x.fillText('PLAY FOR YOUR COUNTRY · ' + location.host,500,470,900);
+  x.fillStyle='#6f8f7c';x.font='22px monospace';x.fillText('PLAY FOR YOUR COUNTRY · HNCLEAGUE.COM',500,470,900);
   c.toBlob((blob)=>{
     if(!blob)return;
     const file=new File([blob],'hnc-league-result.png',{type:'image/png'});
-    if(navigator.canShare?.({files:[file]}))void navigator.share({files:[file],title:'HNC League',text:resultShareText(),url:location.origin+'/'}).catch(()=>{});
+    if(navigator.canShare?.({files:[file]}))void navigator.share({files:[file],title:'HNC League',text:resultShareText(),url:publicGameUrl}).catch(()=>{});
     else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='hnc-league-result.png';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);}
   });
 }
@@ -568,7 +569,7 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
       <div class="lobby-friend"><button class="menu-item ${menuIndex === 1 ? 'selected' : ''}" data-mi="1" data-testid="challenge-friend">PLAY WITH A FRIEND <span>CREATE A LINK · SHARE · KICK OFF →</span></button></div><div class="lobby-secondary"><button class="menu-item netbtn" data-act="join-friend">JOIN WITH CODE</button><button class="menu-item ${menuIndex === 2 ? 'selected' : ''}" data-mi="2" data-testid="world-table">WORLD TABLE</button></div>
       ${netStatus ? `<div class="subtitle" role="status">${netStatus.replace(/[<>&]/g, '')}</div>` : ''}
       <div class="hint">COUNTRY VS COUNTRY · NATIONAL TEAMS<br>WIN +3 · DRAW +1 · EVERY CONFIRMED RESULT COUNTS</div>
-      <p class="matchmaking-info">Computer-controlled opponents may fill empty slots. These matches also count toward country standings.</p><details class="lobby-help"><summary>HOW IT WORKS & CONTROLS</summary><p>We find an opponent representing another country. Control your full national team. Play two 60-second halves and climb the weekly world table together.</p><p>Your country stays locked for the week. Matches between the same country are friendlies. Points count after the result is verified.</p><p>${isTouchDevice ? 'STICK: MOVE · PASS · LONG · SHOOT · SWITCH' : 'ARROWS: MOVE · S: PASS · W/A: LONG · D: SHOOT · SPACE: SWITCH · SHIFT: SPRINT'}</p></details>`);
+      <p class="matchmaking-info">Computer-controlled opponents may fill empty slots. These matches also count toward country standings.</p><a class="rules-link" href="/how-to-play.html" target="_blank" rel="noopener">RULES & HOW TO PLAY ↗</a><details class="lobby-help"><summary>HOW IT WORKS & CONTROLS</summary><p>We find an opponent representing another country. Control your full national team. Play two 60-second halves and climb the weekly world table together.</p><p>Your country stays locked for the week. Matches between the same country are friendlies. Points count after the result is verified.</p><p>${isTouchDevice ? 'STICK: MOVE · PASS · LONG · SHOOT · SWITCH' : 'ARROWS: MOVE · S: PASS · W/A: LONG · D: SHOOT · SPACE: SWITCH · SHIFT: SPRINT'}</p></details>`);
     return;
   }
   if(screen==='search') {
@@ -683,7 +684,7 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
       const items=['PLAY NEXT MATCH','CHALLENGE A FRIEND','WORLD TABLE','LOBBY'];
       panel(`<div class="eyebrow">FULL TIME</div><div class="title tlg" data-testid="fulltime-title">FULL TIME</div>`
         + `<div class="subtitle" data-testid="fulltime-score">${homeC} ${s.score[0]} – ${s.score[1]} ${awayC}</div>${cityLine}`
-        + `<button class="menu-item netbtn lobby-play" data-act="share-result" data-testid="share-result">SHARE YOUR RESULT →</button><div class="lobby-secondary"><button class="menu-item netbtn" data-act="result-whatsapp">WHATSAPP</button><button class="menu-item netbtn" data-act="result-copy">COPY RESULT LINK</button></div><button class="menu-item netbtn" data-act="result-card">SAVE / SHARE SCORECARD</button>${resultShareNote ? `<div class="hint" role="status">${resultShareNote}</div>` : ''}`
+        + `<button class="menu-item netbtn lobby-play" data-act="share-result" data-testid="share-result">SHARE YOUR RESULT →</button><div class="lobby-secondary"><button class="menu-item netbtn" data-act="result-whatsapp">WHATSAPP</button><button class="menu-item netbtn" data-act="result-copy">COPY RESULT LINK</button></div><button class="menu-item netbtn" data-act="result-x">POST ON X</button><button class="menu-item netbtn" data-act="result-card">SAVE / SHARE SCORECARD</button>${resultShareNote ? `<div class="hint" role="status">${resultShareNote}</div>` : ''}`
         + `<div class="statline"><span>SHOTS<strong>${s.stats.shots[0]}–${s.stats.shots[1]}</strong></span><span>SAVES<strong>${s.stats.saves[0]}–${s.stats.saves[1]}</strong></span></div>`
         + `${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM</div>`);
       return;
@@ -1359,8 +1360,9 @@ function handleMenuEnter(act?: string) {
   if (screen === 'full') {
     if (act === 'share-result') { void shareCountryResult(); return; }
     if (act === 'result-copy') { void shareCountryResult(true); return; }
+    if (act === 'result-x') { window.open('https://twitter.com/intent/tweet?' + new URLSearchParams({ text: resultShareText(), url: publicGameUrl }), '_blank', 'noopener,noreferrer'); return; }
     if (act === 'result-card') { shareResult(); return; }
-    if (act === 'result-whatsapp') { window.open(buildWhatsAppUrl(resultShareText() + '\n' + location.origin + '/'), '_blank', 'noopener,noreferrer'); return; }
+    if (act === 'result-whatsapp') { window.open(buildWhatsAppUrl(resultShareText() + '\n' + publicGameUrl), '_blank', 'noopener,noreferrer'); return; }
   }
   if (act === 'retry-result') { void submitCityResult(); return; }
   if (act === 'join-friend') { closeNet(); screen = 'join'; menuIndex = 0; menuDirty = true; return; }
