@@ -15,7 +15,7 @@
     {
       "binding": "DB",
       "database_name": "floodlight-football",
-      "database_id": "local-city-league",
+      "database_id": "05263c02-53d3-4c6d-b5fe-ca69b6149fb0",
       "migrations_dir": "migrations"
     }
   ],
