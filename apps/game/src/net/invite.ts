@@ -77,6 +77,21 @@ export function friendlyNetError(e: unknown): string {
   return 'CONNECTION FAILED — TRY AGAIN';
 }
 
+/**
+ * ICE no-path hint. When the handshake dies after SDP + candidates flowed
+ * (nominated pair, zero bytes) and no TURN relay was configured, "try again"
+ * is dishonest — retrying the same direct path fails the same way. Tell the
+ * player what actually helps: another network or a TURN relay (?turn=…).
+ * Pure function so headless tests can pin the copy.
+ */
+export function withRelayHint(message: string, relaySource: string): string {
+  if (relaySource !== 'off') return message;
+  if (/LOST|TIMEOUT|FAILED|UNREACHABLE|NEGOTIATION/.test(message.toUpperCase())) {
+    return 'NO DIRECT PATH — TRY ANOTHER NETWORK OR ADD TURN (?turn=…)';
+  }
+  return message;
+}
+
 /** Copy text with a textarea fallback for older/mobile browsers. */
 export async function copyText(text: string): Promise<boolean> {
   try {

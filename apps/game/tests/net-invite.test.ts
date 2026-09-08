@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import {
   buildInviteUrl, friendlyNetError, inviteCodeFromSearch, normalizeRoomCode, parseInviteUrl,
+  withRelayHint,
 } from '../src/net/invite.ts';
 import { isValidSignalPayload, parseInbound, addMember, MAX_MEMBERS } from '../worker/room-logic.ts';
 import { isValidSignalPayload as isValidClientPayload } from '../src/net/transport.ts';
@@ -191,6 +192,21 @@ test('lobby errors are player-friendly', () => {
   assert.equal(friendlyNetError(new SignalError('SERVER UNREACHABLE')), 'CONNECTION FAILED — CHECK INTERNET');
   assert.equal(friendlyNetError(new SignalError('BAD SERVER REPLY')), 'INVITE EXPIRED — ASK FOR A NEW LINK');
   assert.equal(friendlyNetError(new Error('rtc failed')), 'CONNECTION FAILED — TRY AGAIN');
+});
+
+// STUN-only direct-path failure says what helps (another network / TURN),
+// instead of a dishonest "try again". With a relay configured, pass through.
+test('no-path failure hints at TURN only when relay is off', () => {
+  assert.equal(
+    withRelayHint('CONNECTION LOST', 'off'),
+    'NO DIRECT PATH — TRY ANOTHER NETWORK OR ADD TURN (?turn=…)',
+  );
+  assert.equal(
+    withRelayHint('PEER HANDSHAKE TIMEOUT', 'off'),
+    'NO DIRECT PATH — TRY ANOTHER NETWORK OR ADD TURN (?turn=…)',
+  );
+  assert.equal(withRelayHint('CONNECTION LOST', 'endpoint'), 'CONNECTION LOST');
+  assert.equal(withRelayHint('ROOM IS FULL', 'off'), 'ROOM IS FULL');
 });
 
 // ---- scripted fake (the tests play the Durable Object) ----

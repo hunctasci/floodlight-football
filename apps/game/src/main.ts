@@ -25,6 +25,7 @@ import {
 import { candidateFamily, netlog, redactCandidate, shortPeer } from './net/netlog';
 import {
   buildInviteUrl, canShare, copyText, friendlyNetError, inviteCodeFromSearch, normalizeRoomCode,
+withRelayHint,
 } from './net/invite';
 import {
   LeagueApi, LeagueApiError, dailyKey, dailySeed, getClientId, getDailyBest, getDisplayName, getLeagueCode, getServerUrl,
@@ -94,6 +95,8 @@ let dailyMode = false;
 // myPeerId is a FRESH per-session connection identity (never the persistent
 // league/user id): two tabs sharing one device id still join as two peers.
 let sig: SignalingClient | null = null;
+/** TURN relay provenance for this attempt ('off' = STUN-only, see net/transport). */
+let relaySource = 'off';
 let roomCode = '', matchToken = '', peerId = '', myPeerId = '';
 let peerReady = false, iAmReady = false;
 // Shareable invite for the current host room (code only, no SDP/secrets).
@@ -213,7 +216,7 @@ function closeNet() {
   if (net) { try { net.quit(); } catch { /* link already dead */ } net = null; }
   closeNegTransport();
   if (sig) { try { sig.close(); } catch { /* already gone */ } sig = null; }
-  roomCode = ''; matchToken = ''; peerId = ''; myPeerId = '';
+  roomCode = ''; matchToken = ''; peerId = ''; myPeerId = ''; relaySource = 'off';
   inviteUrl = ''; copyNote = '';
   peerReady = false; iAmReady = false;
   netStatus = ''; netBusy = false;
@@ -418,8 +421,11 @@ function attachDriver(d: NetDriver) {
     else if (e.type === 'error') {
       const msg = e.message.toUpperCase();
       netlog.log('error', `driver error: ${msg.slice(0, 80)}`);
+      const relay = relaySource;
       closeNet(); mpState = 'error';
-      netStatus = msg; screen = 'online'; menuIndex = 0; menuDirty = true;
+      // STUN-only direct path failed after signaling succeeded: say what
+      // helps (another network / TURN relay) instead of "try again".
+      netStatus = withRelayHint(msg, relay); screen = 'online'; menuIndex = 0; menuDirty = true;
     }
   };
 }
@@ -517,6 +523,7 @@ function startHost() {
       ]);
       signal = sigConnected;
       extraServers = relay.servers;
+      relaySource = relay.source;
       netlog.log('signal', `relay source=${relay.source}`);
     } catch (e) { if (alive()) { mpState = 'error'; deadNet(netMsg(e)); } return; }
     if (!alive()) return fini(signal);
@@ -635,6 +642,7 @@ function cloudJoin(code: string) {
       ]);
       signal = sigConnected;
       extraServers = relay.servers;
+      relaySource = relay.source;
       netlog.log('signal', `relay source=${relay.source}`);
     } catch (e) {
       if (alive()) {
