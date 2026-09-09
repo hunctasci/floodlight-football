@@ -4,3 +4,5 @@ dist/
 *.log
 .env
 .env.local
+# Generated social-video output (specs and code are committed, media is not).
+social/output/

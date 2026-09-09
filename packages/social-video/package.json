@@ -1,0 +1,22 @@
+{
+  "name": "@floodlight/social-video",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "render-frame": "tsx scripts/render-frame.ts",
+    "validate": "tsx scripts/render-frame.ts --dry-run --scene faceoff --home TR --away GR --seed 42"
+  },
+  "dependencies": {
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/node": "^24.0.0",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2",
+    "vite": "8.2.2"
+  }
+}

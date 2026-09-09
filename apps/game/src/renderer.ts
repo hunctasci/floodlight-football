@@ -57,6 +57,25 @@ export interface DisplayPositions {
   px: Float32Array; pz: Float32Array; bx: number; by: number; bz: number;
 }
 
+/**
+ * Optional renderer sizing. Omitted = legacy game behavior (container/window
+ * size, capped device pixel ratio). Social export passes an exact buffer so
+ * stills never depend on `innerWidth`/`devicePixelRatio`.
+ */
+export interface RendererOptions {
+  mode?: 'game' | 'social';
+  width?: number;
+  height?: number;
+  pixelRatio?: number;
+}
+
+/** Fixed lens for a deterministic social still (built by a semantic preset). */
+export interface SocialCameraPose {
+  pos: { x: number; y: number; z: number };
+  look: { x: number; y: number; z: number };
+  fov: number;
+}
+
 type Cine = { type: 'goal' | 'intro'; t: number; dur: number; side: number; variant: GoalCineVariant; fromPos: THREE.Vector3; fromLook: THREE.Vector3 } | null;
 
 /** Classic pentagon ball skin painted once onto a shared canvas texture. */
@@ -113,6 +132,8 @@ export class GameRenderer {
   private trailAge: number[] = [];
   private trailTick = 0;
   private fovPunch = 0;
+  /** Exact export buffer for social stills; null = legacy game sizing. */
+  private fixedSize: { w: number; h: number; pr: number } | null = null;
 
   /** Shot impact juice: power-scaled camera shake + quick fov punch. */
   impact(power: number) {
@@ -138,10 +159,16 @@ export class GameRenderer {
   /** True while a letterboxed cinematic (goal replay sweep) owns the lens. */
   inCinematic(): boolean { return this.cine?.type === 'goal'; }
 
-  constructor(container: HTMLElement) {
+  constructor(container: HTMLElement, opts: RendererOptions = {}) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
-    this.renderer.setSize(container.clientWidth || innerWidth, container.clientHeight || innerHeight);
+    if (opts.width !== undefined && opts.height !== undefined) {
+      this.fixedSize = { w: opts.width, h: opts.height, pr: opts.pixelRatio ?? 1 };
+    }
+    this.renderer.setPixelRatio(this.fixedSize ? this.fixedSize.pr : Math.min(devicePixelRatio, 1.5));
+    this.renderer.setSize(
+      this.fixedSize ? this.fixedSize.w : (container.clientWidth || innerWidth),
+      this.fixedSize ? this.fixedSize.h : (container.clientHeight || innerHeight),
+    );
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -440,7 +467,54 @@ export class GameRenderer {
     }
     this.renderer.render(this.scene,this.camera);
   }
+
+  /**
+   * Deterministic social still: stages the given state with a fixed lens, a
+   * frozen animation clock, no HUD markers, no ball trail, no shake and no
+   * camera easing. The live-game `render()` path above is untouched.
+   */
+  renderSocial(state: MatchState, cam: SocialCameraPose, clockFixed = 1.0): void {
+    this.clock = clockFixed;
+    this.shake = 0; this.fovPunch = 0; this.cine = null;
+    this.lastFlight = state.ball.flight;
+    this.ensureAvatars(state);
+    const ball = state.ball;
+    this.ball.position.set(ball.x, Math.max(.25, ball.y), ball.z);
+    this.ball.rotation.set(0, 0, 0);
+    this.ballShadow.position.set(ball.x, .015, ball.z);
+    this.ballShadow.scale.setScalar(1 + Math.min(1, ball.y) * .45);
+    state.players.forEach((p, i) => {
+      const a = this.avatars[i];
+      a.root.position.set(p.x, 0, p.z);
+      a.root.rotation.set(0, Math.atan2(p.facingX, p.facingZ), 0);
+      a.legL.rotation.x = 0; a.legR.rotation.x = 0;
+      a.armL.rotation.x = 0; a.armR.rotation.x = 0;
+      a.armL.rotation.z = 0; a.armR.rotation.z = 0;
+      a.shadow.position.set(p.x, .015, p.z);
+      a.shadow.scale.setScalar(1);
+    });
+    this.marker.visible = false; this.arrow.visible = false; this.target.visible = false;
+    for (const m of this.trail) m.visible = false;
+    this.camPos.set(cam.pos.x, cam.pos.y, cam.pos.z);
+    this.camLook.set(cam.look.x, cam.look.y, cam.look.z);
+    if (this.camera.fov !== cam.fov) { this.camera.fov = cam.fov; this.camera.updateProjectionMatrix(); }
+    this.camera.position.copy(this.camPos);
+    this.camera.lookAt(this.camLook);
+    for (const g of this.goalNets) {
+      const net = g.getObjectByName('net');
+      if (net) net.position.x = 0;
+    }
+    this.renderer.render(this.scene, this.camera);
+  }
   resize(){
+    if (this.fixedSize) {
+      // Social export: exact buffer, never the window size.
+      this.renderer.setPixelRatio(this.fixedSize.pr);
+      this.camera.aspect = this.fixedSize.w / this.fixedSize.h;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(this.fixedSize.w, this.fixedSize.h);
+      return;
+    }
     // NOTE: updateStyle must stay enabled. With `false`, high-DPI screens keep
     // a canvas buffer larger than its CSS box, so the frame overflows and the
     // near touchline slides out of view as resolution scales up.
