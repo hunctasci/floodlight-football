@@ -82,6 +82,25 @@ Recommended inspection frames for a 4 sec / 30 fps faceoff:
 npm run social:frame -- --scene faceoff --home TR --away GR --frame 60 --output social/output/preview.png
 ```
 
+Recommended inspection frames for a default 6 sec / 30 fps attack-goal
+(180 frames):
+
+```text
+0     establish (ball with the midfielder)
+30    first pass travelling
+60    buildup, receiver carrying
+90    shooter settling the final ball, keeper set
+105   shot flying, keeper diving  ← the money frame, check this first
+115   ball inside the net
+130   goal cinematic angle
+150   celebration
+179   final hero frame (leave headroom for text)
+```
+
+```bash
+npm run social:frame -- --scene attack-goal --home TR --away GR --frame 105 --output social/output/preview.png
+```
+
 `frame` is a deterministic random-access timeline position — no sequence
 render is needed to preview it.
 
@@ -97,6 +116,13 @@ reel = 1080x1920 (9:16, pixelRatio 1)   ← the only format for now
 faceoff   Staged 4-second rivalry shot: players approach over the ball while
           the portrait camera dollies from wide establishing to a tight
           low-angle final composition. Ball stays centered; no simulation.
+
+attack-goal   Scripted 6-second football action (default): attack → pass →
+          final ball → shot → keeper dive → goal → celebration, staged with
+          real HNC entities and canonical kits. Semantic options only:
+          --attack-team home|away (default home),
+          --attack-style central|wing|counter (default central).
+          No coordinates in the spec — never invent positions.
 ```
 
 ## Country codes

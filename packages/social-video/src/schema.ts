@@ -1,15 +1,23 @@
 import { isValidCountryCode } from '../../../apps/game/src/city-league/countries';
 import {
-  DEFAULT_DURATION, DEFAULT_FORMAT, DEFAULT_FPS, DEFAULT_SCENE, DEFAULT_SEED,
-  MAX_DURATION, MAX_FPS, MIN_DURATION, MIN_FPS, SOCIAL_FORMATS, type SocialFormatId,
+  DEFAULT_FORMAT, DEFAULT_FPS, DEFAULT_SCENE, DEFAULT_SEED,
+  MAX_DURATION, MAX_FPS, MIN_DURATION, MIN_FPS, SCENE_DEFAULT_DURATION, SOCIAL_FORMATS, type SocialFormatId,
 } from './config';
 
 /**
  * Minimal semantic spec for a social frame. Agents think in scene + country
  * codes + seed; Three.js coordinates live inside scene presets, never here.
  */
-export const SOCIAL_SCENES = ['faceoff'] as const;
+export const SOCIAL_SCENES = ['faceoff', 'attack-goal'] as const;
 export type SocialSceneId = (typeof SOCIAL_SCENES)[number];
+
+/** Which side stages the attack in action scenes. */
+export const ATTACK_TEAMS = ['home', 'away'] as const;
+export type AttackTeam = (typeof ATTACK_TEAMS)[number];
+
+/** Semantic attacking lanes; coordinates stay inside scene presets. */
+export const ATTACK_STYLES = ['central', 'wing', 'counter'] as const;
+export type AttackStyle = (typeof ATTACK_STYLES)[number];
 
 export interface SocialFrameSpec {
   scene: SocialSceneId;
@@ -76,13 +84,25 @@ export function parseFps(v: unknown): number {
   return n;
 }
 
-export function parseDuration(v: unknown): number {
-  if (v === undefined || v === null || v === '') return DEFAULT_DURATION;
+export function parseDuration(v: unknown, fallback: number = SCENE_DEFAULT_DURATION.faceoff): number {
+  if (v === undefined || v === null || v === '') return fallback;
   const n = typeof v === 'number' ? v : Number(v);
   if (!Number.isFinite(n) || n <= MIN_DURATION || n > MAX_DURATION) {
     throw new SocialSpecError(`Invalid duration: ${String(v)}. Supported range is (0–${MAX_DURATION}] seconds.`);
   }
   return n;
+}
+
+export function parseAttackTeam(v: unknown): AttackTeam {
+  if (v === undefined || v === null || v === '') return 'home';
+  if (typeof v === 'string' && (ATTACK_TEAMS as readonly string[]).includes(v)) return v as AttackTeam;
+  throw new SocialSpecError(`Unknown attack team: ${String(v)} (supported: ${ATTACK_TEAMS.join(', ')})`);
+}
+
+export function parseAttackStyle(v: unknown): AttackStyle {
+  if (v === undefined || v === null || v === '') return 'central';
+  if (typeof v === 'string' && (ATTACK_STYLES as readonly string[]).includes(v)) return v as AttackStyle;
+  throw new SocialSpecError(`Unknown attack style: ${String(v)} (supported: ${ATTACK_STYLES.join(', ')})`);
 }
 
 /**
@@ -122,7 +142,7 @@ export function resolveSpec(input: RawFrameInput): ResolvedFrameSpec {
  * presets, never here.
  */
 export type SocialVideoSpec = {
-  scene: 'faceoff';
+  scene: 'faceoff' | 'attack-goal';
 
   home: string;
   away: string;
@@ -134,32 +154,45 @@ export type SocialVideoSpec = {
   fps?: number;
 
   duration?: number;
+
+  /** Action scenes only: which side stages the attack (default home). */
+  attackTeam?: 'home' | 'away';
+
+  /** Action scenes only: semantic attacking lane (default central). */
+  attackStyle?: 'central' | 'wing' | 'counter';
 };
 
 /** Raw agent/CLI video input: everything optional and unvalidated. */
 export interface RawVideoInput extends RawFrameInput {
   fps?: unknown;
   duration?: unknown;
+  attackTeam?: unknown;
+  attackStyle?: unknown;
 }
 
 export interface ResolvedVideoSpec extends ResolvedFrameSpec {
   fps: number;
   duration: number;
   totalFrames: number;
+  attackTeam: AttackTeam;
+  attackStyle: AttackStyle;
 }
 
 /**
  * Validate raw input and fill deterministic defaults. Pure: the same input
  * always resolves to the same output; throws SocialSpecError on bad input.
- * Frame count rule: totalFrames = Math.round(duration * fps), so valid
- * frame indices are 0 ... totalFrames - 1.
+ * Duration defaults per scene (faceoff 4s, attack-goal 6s); explicit
+ * --duration always wins. Frame count rule: totalFrames =
+ * Math.round(duration * fps), so valid frame indices are 0 ... totalFrames - 1.
  */
 export function resolveVideoSpec(input: RawVideoInput): ResolvedVideoSpec {
   const base = resolveSpec(input);
   const fps = parseFps(input.fps);
-  const duration = parseDuration(input.duration);
+  const duration = parseDuration(input.duration, SCENE_DEFAULT_DURATION[base.scene]);
   const totalFrames = Math.round(duration * fps);
-  return Object.freeze({ ...base, fps, duration, totalFrames });
+  const attackTeam = parseAttackTeam(input.attackTeam);
+  const attackStyle = parseAttackStyle(input.attackStyle);
+  return Object.freeze({ ...base, fps, duration, totalFrames, attackTeam, attackStyle });
 }
 
 /**

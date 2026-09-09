@@ -1,7 +1,6 @@
 import { GameRenderer } from '../../../apps/game/src/renderer';
 import { resolveVideoSpec } from './schema';
-import { compileVideo, evaluateFrame } from './timeline';
-import { faceoffFrameToRenderInput } from './scenes/faceoff';
+import { compileVideo, evaluateFrame, sceneFrameToRenderInput } from './timeline';
 
 declare global {
   interface Window {
@@ -34,6 +33,8 @@ function boot(): void {
       seed: q.get('seed'),
       fps: q.get('fps'),
       duration: q.get('duration'),
+      attackTeam: q.get('attackTeam'),
+      attackStyle: q.get('attackStyle'),
     }));
     const stage = document.getElementById('stage');
     if (!stage) throw new Error('Missing #stage mount');
@@ -45,8 +46,8 @@ function boot(): void {
     });
     const renderFrame = (frame: number): Promise<void> => {
       const desc = evaluateFrame(compiled, frame);
-      const input = faceoffFrameToRenderInput(desc, compiled.home, compiled.away);
-      renderer.renderSocial(input.state, input.camera, input.clock, input.pose);
+      const input = sceneFrameToRenderInput(compiled, desc);
+      renderer.renderSocial(input.state, input.camera, input.clock, input.pose, input.effects);
       // Resolve once the frame has been presented — no arbitrary sleeps on
       // the screenshot side; Playwright awaits this exact promise.
       return new Promise((resolve) => {

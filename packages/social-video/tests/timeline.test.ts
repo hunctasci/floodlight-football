@@ -5,13 +5,20 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { clamp01, lerp, smoothstep, easeInOut, segmentProgress } from '../src/timeline/math.ts';
 import {
-  compileVideo, evaluateFrame, frameFilename, type CompiledSocialVideo,
+  compileVideo, evaluateFrame, frameFilename, type CompiledSocialVideo, type SocialFrameDescription,
 } from '../src/timeline.ts';
 import {
   frameTime, parseDuration, parseFps, resolveVideoSpec, SocialSpecError,
 } from '../src/schema.ts';
 
 const std = () => compileVideo({ scene: 'faceoff', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 4 });
+
+/** Narrow a faceoff evaluation (same runtime values as before scenes split). */
+function faceoffDesc(compiled: CompiledSocialVideo, frame: number): SocialFrameDescription {
+  const desc = evaluateFrame(compiled, frame);
+  if (desc.scene !== 'faceoff') throw new Error(`expected faceoff, got ${desc.scene}`);
+  return desc;
+}
 
 test('timeline math primitives are pure and bounded', () => {
   assert.equal(clamp01(-2), 0);
@@ -71,7 +78,7 @@ test('frame filenames are zero-padded to 6 digits', () => {
 test('evaluateFrame returns a well-formed description at 0, 60 and 119', () => {
   const compiled = std();
   for (const frame of [0, 60, 119]) {
-    const desc = evaluateFrame(compiled, frame);
+    const desc = faceoffDesc(compiled, frame);
     assert.equal(desc.frame, frame);
     assert.equal(desc.time, frame / 30);
     assert.equal(desc.clock, desc.time);
@@ -129,14 +136,14 @@ test('seed 42 vs 43 differ stylistically but preserve identity and length', () =
 });
 
 function gap(compiled: CompiledSocialVideo, frame: number): number {
-  const desc = evaluateFrame(compiled, frame);
+  const desc = faceoffDesc(compiled, frame);
   return Math.hypot(desc.home.x - desc.away.x, desc.home.z - desc.away.z);
 }
 
 test('faceoff beats: still start, approach, tension hold, final push', () => {
   const compiled = std();
   // Frame 0 sits exactly on the staged base positions (no approach yet).
-  const first = evaluateFrame(compiled, 0);
+  const first = faceoffDesc(compiled, 0);
   assert.equal(first.home.x, compiled.faceoff.homeBase.x);
   assert.equal(first.away.x, compiled.faceoff.awayBase.x);
   assert.equal(first.home.bob, Math.sin(compiled.faceoff.breathPhaseHome) * 0.022);
@@ -150,7 +157,7 @@ test('faceoff beats: still start, approach, tension hold, final push', () => {
     assert.ok(gap(compiled, frame) > 1.5, `frame ${frame} keeps separation`);
   }
   // Final frame carries the rivalry stance; the opener does not.
-  const last = evaluateFrame(compiled, 119);
+  const last = faceoffDesc(compiled, 119);
   assert.ok(last.home.lean > 0 && last.home.armLift > 0);
   assert.equal(first.home.lean, 0);
   assert.equal(first.home.armLift, 0);

@@ -96,6 +96,7 @@ export interface SocialActorFrame {
 
 /** Complete deterministic description of one timeline frame. */
 export interface SocialFrameDescription {
+  scene: 'faceoff';
   frame: number;
   time: number;
   home: SocialActorFrame;
@@ -192,6 +193,7 @@ export function evaluateFaceoffFrame(args: {
   const home = assembleActor(homePos, awayPos, data.breathPhaseHome, time, finalPush);
   const away = assembleActor(awayPos, homePos, data.breathPhaseAway, time, finalPush);
   return {
+    scene: 'faceoff' as const,
     frame,
     time,
     home,

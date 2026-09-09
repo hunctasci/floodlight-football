@@ -100,6 +100,7 @@ export class SocialRenderSession {
           scene: compiled.scene, home: compiled.home, away: compiled.away,
           format: compiled.format, seed: String(compiled.seed),
           fps: String(compiled.fps), duration: String(compiled.duration),
+          attackTeam: compiled.attackTeam, attackStyle: compiled.attackStyle,
         });
         await page.goto(`http://127.0.0.1:${port}/render.html?${params.toString()}`, { waitUntil: 'load' });
         await page.waitForFunction(

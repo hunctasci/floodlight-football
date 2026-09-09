@@ -14,6 +14,12 @@ export const DEFAULT_SEED = 42;
 export const DEFAULT_FPS = 30;
 export const DEFAULT_DURATION = 4;
 
+/** Scene-level default clip lengths: each scene paces its own beats. */
+export const SCENE_DEFAULT_DURATION = {
+  faceoff: 4,
+  'attack-goal': 6,
+} as const;
+
 /** Supported frame rates (integer FPS). */
 export const MIN_FPS = 24;
 export const MAX_FPS = 60;

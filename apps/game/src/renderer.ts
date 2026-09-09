@@ -78,8 +78,9 @@ export interface SocialCameraPose {
 
 /**
  * Micro-pose for one social avatar, evaluated by the timeline (breathing,
- * lean, arm lift). All zeros = neutral idle, identical to stills without a
- * pose. The renderer only applies final values — it knows no time or frames.
+ * lean, arm lift, stride, dive roll, celebration spin). All zeros = neutral
+ * idle, identical to stills without a pose. The renderer only applies final
+ * values — it knows no time or frames.
  */
 export interface SocialActorPose {
   /** Vertical root offset in metres. */
@@ -88,6 +89,39 @@ export interface SocialActorPose {
   lean: number;
   /** Symmetric arm raise in radians (0 = relaxed at the sides). */
   armLift: number;
+  /** Stride swing in radians (left leg forward, right leg back). */
+  legSwing?: number;
+  /** Symmetric arm spread in radians (dive reach, spin celebration). */
+  armSpread?: number;
+  /** Lateral body roll in radians (keeper dive). */
+  roll?: number;
+  /** Extra yaw in radians added to the facing (spin celebration). */
+  spin?: number;
+}
+
+/** Deterministic ball-trail segment staged by the timeline. */
+export interface SocialBallTrail {
+  fromX: number;
+  fromY: number;
+  fromZ: number;
+  /** 0 = hidden, 1 = full trail from `from` to the ball. */
+  intensity: number;
+}
+
+/**
+ * Deterministic social effects, evaluated by the timeline like everything
+ * else. All values are final per-frame amounts — no accumulation, no history,
+ * no randomness — so any frame renders identically in any process.
+ */
+export interface SocialEffects {
+  /** Shot trail along the from→ball segment. */
+  trail?: SocialBallTrail;
+  /** FOV reduction in degrees (shot punch). */
+  fovPunch?: number;
+  /** Absolute camera offset in metres (timeline-computed deterministic shake). */
+  shakeX?: number;
+  /** Absolute camera offset in metres (timeline-computed deterministic shake). */
+  shakeY?: number;
 }
 
 type Cine = { type: 'goal' | 'intro'; t: number; dur: number; side: number; variant: GoalCineVariant; fromPos: THREE.Vector3; fromLook: THREE.Vector3 } | null;
@@ -489,7 +523,7 @@ export class GameRenderer {
    * (breathing/lean/arms); omitted = neutral idle. The live-game `render()`
    * path above is untouched.
    */
-  renderSocial(state: MatchState, cam: SocialCameraPose, clockFixed = 1.0, pose?: SocialActorPose[]): void {
+  renderSocial(state: MatchState, cam: SocialCameraPose, clockFixed = 1.0, pose?: SocialActorPose[], effects?: SocialEffects): void {
     this.clock = clockFixed;
     this.shake = 0; this.fovPunch = 0; this.cine = null;
     this.lastFlight = state.ball.flight;
@@ -502,20 +536,40 @@ export class GameRenderer {
     state.players.forEach((p, i) => {
       const a = this.avatars[i];
       const mp = pose?.[i] ?? { bob: 0, lean: 0, armLift: 0 };
+      const swing = mp.legSwing ?? 0, spread = mp.armSpread ?? 0;
       a.root.position.set(p.x, mp.bob, p.z);
-      a.root.rotation.set(-mp.lean, Math.atan2(p.facingX, p.facingZ), 0);
-      a.legL.rotation.x = 0; a.legR.rotation.x = 0;
-      a.armL.rotation.x = -mp.armLift; a.armR.rotation.x = -mp.armLift;
-      a.armL.rotation.z = 0; a.armR.rotation.z = 0;
+      a.root.rotation.set(-mp.lean, Math.atan2(p.facingX, p.facingZ) + (mp.spin ?? 0), mp.roll ?? 0);
+      a.legL.rotation.x = swing; a.legR.rotation.x = -swing;
+      a.armL.rotation.x = -mp.armLift - swing * .5; a.armR.rotation.x = -mp.armLift + swing * .5;
+      a.armL.rotation.z = spread; a.armR.rotation.z = -spread;
       a.shadow.position.set(p.x, .015, p.z);
       a.shadow.scale.setScalar(1);
     });
     this.marker.visible = false; this.arrow.visible = false; this.target.visible = false;
-    for (const m of this.trail) m.visible = false;
+    const fx = effects ?? {};
+    const trail = fx.trail;
+    if (trail && trail.intensity > 0) {
+      // Deterministic restaging of the pooled puffs along from→ball.
+      const n = this.trail.length;
+      for (let i = 0; i < n; i++) {
+        const m = this.trail[i], k = n > 1 ? i / (n - 1) : 0;
+        const fade = (1 - k) * trail.intensity;
+        m.visible = fade > 0.01;
+        m.position.set(
+          trail.fromX + (ball.x - trail.fromX) * k,
+          Math.max(.2, trail.fromY + (Math.max(.25, ball.y) - trail.fromY) * k),
+          trail.fromZ + (ball.z - trail.fromZ) * k,
+        );
+        (m.material as THREE.MeshBasicMaterial).opacity = .4 * fade;
+        m.scale.setScalar(1 + k * 1.6);
+      }
+    } else for (const m of this.trail) m.visible = false;
     this.camPos.set(cam.pos.x, cam.pos.y, cam.pos.z);
     this.camLook.set(cam.look.x, cam.look.y, cam.look.z);
-    if (this.camera.fov !== cam.fov) { this.camera.fov = cam.fov; this.camera.updateProjectionMatrix(); }
+    const fov = Math.max(20, cam.fov - (fx.fovPunch ?? 0));
+    if (this.camera.fov !== fov) { this.camera.fov = fov; this.camera.updateProjectionMatrix(); }
     this.camera.position.copy(this.camPos);
+    if (fx.shakeX || fx.shakeY) this.camera.position.add(new THREE.Vector3(fx.shakeX ?? 0, fx.shakeY ?? 0, 0));
     this.camera.lookAt(this.camLook);
     for (const g of this.goalNets) {
       const net = g.getObjectByName('net');

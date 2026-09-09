@@ -14,13 +14,14 @@ import { renderFramesToDir } from '../src/render/frame';
 
 function usage(): string {
   return [
-    'Usage: social:frames --home <CODE> --away <CODE> [--scene faceoff] [--format reel] [--seed 42] [--fps 30] [--duration 4] --output <dir/>',
+    'Usage: social:frames --home <CODE> --away <CODE> [--scene faceoff|attack-goal] [--format reel] [--seed 42] [--fps 30] [--duration <sec>] [--attack-team home|away] [--attack-style central|wing|counter] --output <dir/>',
     '',
     'Examples:',
     '  npm run social:frames -- --home TR --away GR --scene faceoff --output social/output/tr-vs-gr-faceoff/',
+    '  npm run social:frames -- --home TR --away GR --scene attack-goal --output social/output/tr-vs-gr-goal/',
     '',
     'Country codes come from the game\'s canonical country list (e.g. TR GR BR AR DE FR).',
-    'Defaults: scene=faceoff format=reel seed=42 fps=30 duration=4 (120 frames).',
+    'Defaults: scene=faceoff format=reel seed=42 fps=30 duration=4 (faceoff) or 6 (attack-goal).',
   ].join('\n');
 }
 
@@ -61,6 +62,8 @@ async function main(): Promise<void> {
       seed: str('seed'),
       fps: str('fps'),
       duration: str('duration'),
+      attackTeam: str('attack-team') ?? str('attackTeam'),
+      attackStyle: str('attack-style') ?? str('attackStyle'),
     });
   } catch (error) {
     console.error(error instanceof SocialSpecError ? error.message : String(error));
