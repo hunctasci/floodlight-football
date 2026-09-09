@@ -29,7 +29,7 @@ export interface EngineSnapshot {
   state: MatchState; seed: number; tick: number;
   actions: [ControllerActionState, ControllerActionState];
   passNominee: [number | null, number | null]; passAim: [Vec, Vec];
-  switchIdx: [number, number]; shotBuf: [ShotBuf, ShotBuf];
+  manualSwitchUntil: [number, number]; shotBuf: [ShotBuf, ShotBuf];
   charge: number; chargingPlayer: number | null;
   receiver: number | null; receivePoint: Vec; receiveUntil: number;
   keeperHold: [number, number]; keeperReact: [number, number]; keeperCmd: [number, number];
@@ -72,9 +72,8 @@ export class MatchEngine {
   private shotBuf: [ShotBuf, ShotBuf] = [null, null];
   private passNominee: [number | null, number | null] = [null, null];
   private passAim: [Vec, Vec] = [{ x: 1, z: 0 }, { x: -1, z: 0 }];
-  /** Manual-switch cycle position per side: repeated SWITCH presses walk the
-   *  cost-ordered candidate list predictably instead of re-picking nearest. */
-  private switchIdx: [number, number] = [0, 0];
+  /** Tick until automatic selection yields to the latest manual pick. */
+  private manualSwitchUntil: [number, number] = [0, 0];
   private charge = 0;
   private chargingPlayer: number | null = null;
   private receiver: number | null = null;
@@ -194,7 +193,7 @@ export class MatchEngine {
       actions: [structuredClone(this.actions[0]), structuredClone(this.actions[1])],
       passNominee: [...this.passNominee] as [number | null, number | null],
       passAim: [{ ...this.passAim[0] }, { ...this.passAim[1] }] as [Vec, Vec],
-      switchIdx: [...this.switchIdx] as [number, number],
+      manualSwitchUntil: [...this.manualSwitchUntil] as [number, number],
       shotBuf: [this.shotBuf[0] ? { ...this.shotBuf[0] } : null, this.shotBuf[1] ? { ...this.shotBuf[1] } : null] as [ShotBuf, ShotBuf],
       charge: this.charge, chargingPlayer: this.chargingPlayer,
       receiver: this.receiver, receivePoint: { ...this.receivePoint }, receiveUntil: this.receiveUntil,
@@ -217,7 +216,7 @@ export class MatchEngine {
     this.actions = [structuredClone(snap.actions[0]), structuredClone(snap.actions[1])];
     this.passNominee = [...(snap.passNominee ?? [null, null])] as [number | null, number | null];
     this.passAim = [{ ...(snap.passAim?.[0] ?? { x: 1, z: 0 }) }, { ...(snap.passAim?.[1] ?? { x: -1, z: 0 }) }] as [Vec, Vec];
-    this.switchIdx = [...(snap.switchIdx ?? [0, 0])] as [number, number];
+    this.manualSwitchUntil = [...(snap.manualSwitchUntil ?? [0, 0])] as [number, number];
     const sb = snap.shotBuf ?? [null, null];
     this.shotBuf = [sb[0] ? { ...sb[0] } : null, sb[1] ? { ...sb[1] } : null];
     this.charge = snap.charge; this.chargingPlayer = snap.chargingPlayer;
@@ -295,7 +294,7 @@ export class MatchEngine {
       mix(q(a.capturedMoveX)); mix(q(a.capturedMoveZ)); mix(q(a.shotAimU)); mix(q(a.shotAimV));
     }
     mix(this.passNominee[0] ?? -1); mix(this.passNominee[1] ?? -1);
-    mix(this.switchIdx[0]); mix(this.switchIdx[1]);
+    mix(this.manualSwitchUntil[0]); mix(this.manualSwitchUntil[1]);
     mix(this.aiLevel);
     for (const sbScore of this.shotBuf) {
       if (sbScore) { mix(sbScore.actor); mix(sbScore.until); mix(q(sbScore.u)); mix(q(sbScore.v)); mix(q(sbScore.pow)); }
@@ -365,58 +364,37 @@ export class MatchEngine {
   private selectControlSide(input: InputFrame, team: TeamId) {
     const s = this.state, owner = this.owner();
     if (owner?.team === team && !owner.keeper) { this.setControlled(team, owner.id); return; }
-    if (s.players[this.getControlled(team)].keeper) this.setControlled(team, this.nearest(team, s.ball).id);
-    const cur = s.players[this.getControlled(team)];
-    // A knocked-down selection is incapable: hand control to the nearest
-    // outfielder immediately (independent of the margin rule below).
-    if ((cur.action === 'fallen') && owner?.team !== team) {
-      const auto = this.switchCandidates(team)[0];
-      if (auto !== undefined && auto !== cur.id) this.setControlled(team, auto);
-    }
-    // Arcade auto-switch: while defending (or the ball is loose), control
-    // follows the CLOSEST outfielder to the ball itself — shape costs
-    // (goalside, mark, tackle cooldown) must never lock out the nearest man:
-    // the engaged presser carrying cooldown is exactly who the human wants.
-    // A 1.2m margin stops flicker, committed tackle/slide/dive/fallen
-    // selections are never yanked, and actively steering the stick keeps the
-    // current pick (manual intent wins). SWITCH cycles the cost-ordered list
-    // below for deliberate picks.
-    if (owner?.team !== team && length(input.x, input.z) <= 0.3) {
-      const target = this.nearest(team, s.ball);
-      const mine = s.players[this.getControlled(team)];
-      if (target.id !== mine.id && target.action !== 'fallen'
-        && mine.action !== 'tackle' && mine.action !== 'slide' && mine.action !== 'fallen' && mine.action !== 'dive') {
-        if (distance(mine, s.ball) - distance(target, s.ball) > 1.2) this.setControlled(team, target.id);
-      }
-    }
+    const candidates = this.switchCandidates(team);
+    const current = this.getControlled(team);
+    // Explicit input wins before any automatic selection. Rank by actual
+    // distance, not AI role/cooldown: the nearest defender must be reachable.
     if (input.switchPlayer && owner?.team !== team) {
-      // Stable cost-ordered cycle: repeated presses walk the candidate list
-      // (interception time, danger side, recovery, cover). The current
-      // selection is skipped so every press visibly changes players.
-      const cands = this.switchCandidates(team);
-      if (cands.length > 0) {
-        let i = this.switchIdx[team] % cands.length;
-        if (cands[i] === cur.id) i = (i + 1) % cands.length;
-        if (cands[i] !== cur.id) this.setControlled(team, cands[i]);
-        this.switchIdx[team] = i + 1;
-      }
+      const target = candidates.find((id) => id !== current);
+      if (target !== undefined) this.setControlled(team, target);
+      this.manualSwitchUntil[team] = this.tick + 45;
+      return;
+    }
+    const mine = s.players[current];
+    const target = candidates[0];
+    if (target === undefined) return;
+    if (mine.keeper || mine.action === 'fallen') {
+      this.setControlled(team, target);
+      return;
+    }
+    // Give a manual pick 750ms to settle, including when the stick is idle.
+    if (owner?.team !== team && this.tick >= this.manualSwitchUntil[team]
+      && length(input.x, input.z) <= .3
+      && !['tackle', 'slide', 'dive'].includes(mine.action)
+      && distance(mine, s.ball) - distance(s.players[target], s.ball) > 1.2) {
+      this.setControlled(team, target);
     }
   }
-  /** Outfielders sorted by defensive usefulness (cheapest first). */
-  private switchCandidates(team: TeamId, exclude = -1): number[] {
-    const s = this.state, a = s.attack[team];
-    const meet = { x: s.ball.x + s.ball.vx * .18, z: s.ball.z + s.ball.vz * .18 };
+  /** Available outfielders, nearest to the ball first, with stable ties. */
+  private switchCandidates(team: TeamId): number[] {
     return this.team(team)
-      .filter((p) => !p.keeper && p.id !== exclude && p.action !== 'fallen')
-      .map((p) => {
-        const cost = distance(p, meet) / TUNING.sprint
-          + ((p.x - s.ball.x) * a > 0 ? 2 : 0)
-          + (p.cooldown > 0 ? 3 : 0)
-          + (p.aiState === 'MARK' ? 1.5 : 0);
-        return { id: p.id, cost };
-      })
-      .sort((u, v) => u.cost - v.cost || u.id - v.id)
-      .map((c) => c.id);
+      .filter((p) => !p.keeper && p.action !== 'fallen')
+      .sort((a, b) => distance(a, this.state.ball) - distance(b, this.state.ball) || a.id - b.id)
+      .map((p) => p.id);
   }
   /**
    * Responsive arcade movement. Callers pass a desired-velocity vector;
@@ -1631,6 +1609,8 @@ export class MatchEngine {
     } else if (phase === 'goalkick' && shoot && human) {
       this.kick(p, direction(a, aim.z * .6), 29, 7, 'cross');
       this.setControlled(r.team, this.nearest(r.team, { x: r.x + a * 24, z: 0 }).id);
+    } else if (phase === 'kickoff' && shoot && human) {
+      this.longPass(p, aim);
     } else this.pass(p, this.bestTarget(p, phase === 'kickoff' && !(human && (fx || fz)) ? direction(-a * .3, 1) : aim, false), false);
     p.x = clamp(p.x, -L + .6, L - .6); p.z = clamp(p.z, -W + .6, W - .6);
     s.phase = 'playing'; s.restart = null; s.message = ''; s.messageTime = 0;

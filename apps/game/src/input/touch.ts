@@ -24,7 +24,10 @@ export function createTouchState(): TouchState {
 }
 
 export function touchDown(t: TouchState, code: string) {
-  if (!t.down.has(code)) t.pressed.add(code);
+  if (!t.down.has(code)) {
+    t.pressed.add(code);
+    if (code === TOUCH_BUTTONS.shoot) { t.aimU = 0; t.aimV = 0; }
+  }
   t.down.add(code);
   t.usingTouch = true;
 }
@@ -33,8 +36,7 @@ export function touchUp(t: TouchState, code: string) {
   t.released.add(code);
   t.down.delete(code);
   t.usingTouch = true;
-  // Releasing SHOOT clears the drag aim with the gesture.
-  if (code === TOUCH_BUTTONS.shoot) { t.aimU = 0; t.aimV = 0; }
+  // Keep placement until the simulation consumes the release edge.
 }
 
 /** Drag offset on the SHOOT control, in px from the touch start. */
@@ -68,7 +70,12 @@ export function stickSprint(t: TouchState, wasSprint = false): boolean {
 }
 
 /** End-of-frame: edges are consumed, held buttons persist. Mirrors keyboard handling. */
-export function clearTouchEdges(t: TouchState) { t.pressed.clear(); t.released.clear(); }
+export function clearTouchEdges(t: TouchState) {
+  if (t.released.has(TOUCH_BUTTONS.shoot) && !t.down.has(TOUCH_BUTTONS.shoot)) {
+    t.aimU = 0; t.aimV = 0;
+  }
+  t.pressed.clear(); t.released.clear();
+}
 
 export function resetTouch(t: TouchState) {
   t.down.clear(); t.pressed.clear(); t.released.clear();

@@ -70,3 +70,44 @@
 .rules-link{display:inline-block;color:#b5def1;font:12px/1.5 system-ui,sans-serif;margin:8px;padding:8px;pointer-events:auto}.panel button.menu-item.lobby-play{background:#f7bf30;color:#101b31;border-color:#f7bf30}
 
 .share-studio{box-sizing:border-box;width:min(660px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:24px;border:1px solid #677286;border-radius:16px;background:#101b31;color:#f8efdb;box-shadow:0 30px 100px #0009;overflow:auto}.share-studio::backdrop{background:#07101fdd;backdrop-filter:blur(7px)}.share-studio-head{display:flex;justify-content:space-between;gap:16px;text-align:left}.share-studio-head h2{font:800 24px/1.15 system-ui,sans-serif;margin:8px 0 20px;letter-spacing:-.6px}.share-studio .eyebrow{font-size:10px;color:#ffce45}.share-close{align-self:start;border:0;background:#253348;color:#fff;width:36px;height:36px;border-radius:50%;font-size:26px;cursor:pointer}.share-formats{display:flex;gap:8px;justify-content:center;margin-bottom:16px}.share-formats button{padding:10px 24px;background:transparent;color:#bdc9d1;border:1px solid #45546b;border-radius:30px;font:700 12px system-ui;cursor:pointer}.share-formats button[aria-pressed=true]{background:#f7f1df;color:#111e30;border-color:#f7f1df}.share-formats small{margin-left:6px;opacity:.6}.share-card-preview{display:flex;align-items:center;justify-content:center;padding:12px;background:#080f1d;border-radius:8px}.share-card-preview canvas{display:block;width:auto;height:auto;max-width:100%;max-height:45dvh;box-shadow:0 8px 26px #0008}.share-studio-actions{display:flex;gap:10px;margin-top:18px}.share-studio-actions button{flex:1;border:1px solid #ffce45;border-radius:6px;padding:16px 8px;background:#ffce45;color:#111e30;font:800 12px system-ui;cursor:pointer}.share-studio-actions button+button{background:transparent;color:#ffce45}.share-studio button:focus-visible{outline:3px solid #84d7f2;outline-offset:3px}.share-studio button:disabled{opacity:.4;cursor:wait}.share-feedback{font:12px/1.5 system-ui;color:#bdc9d1;text-align:center;margin:12px 0 0}@media(max-width:420px){.share-studio{padding:16px}.share-studio-head h2{font-size:21px}.share-studio-actions{gap:8px}.share-studio-actions button{font-size:11px}}
+
+/* Touch match layout: thumb controls below play, HUD above them. */
+#app:has(.touch) .strip{display:none}
+#app:has(.touch) .match-pad{right:calc(16px + env(safe-area-inset-right,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));width:180px;height:192px}
+#app:has(.touch) .tswitch{right:4px;bottom:112px;width:76px;height:48px;border-radius:24px;font-size:10px}
+#app:has(.touch) .tlong{right:96px;bottom:80px}
+#app:has(.touch) .tshoot{bottom:0}
+#app:has(.touch) .tpass{bottom:0}
+#app:has(.touch) .tbtn{opacity:.9;background:#101b31e6}
+#app:has(.touch) .tbtn.held{opacity:1;background:#f7bf30;color:#101b31;transform:scale(.96)}
+#app:has(.touch) .match-pause{position:fixed;left:calc(12px + env(safe-area-inset-left,0px));top:calc(12px + env(safe-area-inset-top,0px));width:56px;height:44px;border-radius:12px;font-size:10px}
+#app:has(.touch) .stick-zone{width:43%;height:36%;max-height:220px}
+#app:has(.touch) .stick-base{left:calc(20px + env(safe-area-inset-left,0px));bottom:calc(34px + env(safe-area-inset-bottom,0px));opacity:.8}
+#app:has(.touch) .radar{top:76px;right:calc(12px + env(safe-area-inset-right,0px));bottom:auto;left:auto;transform:none;width:104px;height:62px}
+#app:has(.touch) .player-info{bottom:calc(176px + env(safe-area-inset-bottom,0px));left:12px;font-size:10px;max-width:42%}
+#app:has(.touch) .camchip{display:none}
+#app:has(.touch) .charge{bottom:230px}
+#app:has(.touch) .reticle{bottom:246px}
+#app:has(.touch) .scoreboard{top:calc(12px + env(safe-area-inset-top,0px))}
+#app:has(.touch) .rotate-hint{top:150px;font-size:9px;padding:5px 8px}
+.tbtn:focus-visible{outline:3px solid #f7bf30;outline-offset:4px}
+@media(max-width:480px){
+  #app:has(.touch) .scoreboard{left:auto;right:12px;transform:none}
+  #app:has(.touch) .club{min-width:30px;padding:9px 6px}
+  #app:has(.touch) .clock{min-width:58px;padding:10px 6px}
+  #app:has(.touch) .attack{top:76px;left:12px;font-size:9px}
+}
+@media(max-width:360px){
+  #app:has(.touch) .match-pad{right:8px;width:164px}
+  #app:has(.touch) .tshoot{width:76px;height:76px}
+  #app:has(.touch) .tpass,#app:has(.touch) .tlong{right:84px;width:64px;height:64px}
+  #app:has(.touch) .stick-base{left:12px;width:100px;height:100px}
+  #app:has(.touch) .stick-nub{left:26px;top:26px}
+}
+@media(max-height:520px){
+  #app:has(.touch) .match-pad{bottom:calc(12px + env(safe-area-inset-bottom,0px))}
+  #app:has(.touch) .stick-base{bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+  #app:has(.touch) .radar{top:70px;width:88px;height:53px}
+  #app:has(.touch) .reticle{bottom:24px}
+  #app:has(.touch) .charge{bottom:12px}
+}

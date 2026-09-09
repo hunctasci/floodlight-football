@@ -13,18 +13,34 @@ export interface TouchControls {
 }
 
 function bindHold(touch: TouchState, onEnable: () => void, el: Element, code: string) {
-  const start = (e: Event) => {
+  let pointer: number | null = null;
+  let ax = 0, ay = 0;
+  el.addEventListener('pointerdown', (event) => {
+    const e = event as PointerEvent;
+    if (pointer !== null || e.button !== 0) return;
     e.preventDefault();
+    pointer = e.pointerId; ax = e.clientX; ay = e.clientY;
+    el.setPointerCapture(pointer);
     touchDown(touch, code);
+    el.classList.add('held');
     onEnable();
-  };
-  const end = (e: Event) => {
-    e.preventDefault();
+  });
+  el.addEventListener('pointermove', (event) => {
+    const e = event as PointerEvent;
+    if (e.pointerId === pointer && code === TOUCH_BUTTONS.shoot) {
+      setShootAim(touch, e.clientX - ax, e.clientY - ay);
+    }
+  });
+  const end = (event: Event) => {
+    const e = event as PointerEvent;
+    if (e.pointerId !== pointer) return;
+    pointer = null;
     touchUp(touch, code);
+    el.classList.remove('held');
   };
-  el.addEventListener('touchstart', start, { passive: false });
-  el.addEventListener('touchend', end);
-  el.addEventListener('touchcancel', end);
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  el.addEventListener('lostpointercapture', end);
 }
 
 /**
@@ -45,7 +61,7 @@ export function touchButtonLabels(offense: boolean): {
         shoot: { main: 'SHOOT', sub: '○' },
       }
     : {
-        pass: { main: 'CONTAIN', sub: 'X' },
+        pass: { main: 'TACKLE', sub: 'X' },
         long: { main: 'SLIDE', sub: '□' },
         shoot: { main: 'TACKLE', sub: '○' },
       };
@@ -81,6 +97,7 @@ export function setupTouchControls(
     touchLayer.innerHTML = `
     <div class="stick-zone"><div class="stick-base"><div class="stick-nub"></div></div></div>
     <div class="match-pad">
+      <button class="tbtn match-pause" data-code="Escape" aria-label="Pause match">PAUSE</button>
       <button class="tbtn tswitch" data-code="KeyQ">SWITCH</button>
       <button class="tbtn tlong" data-code="KeyA">LONG<small>□</small></button>
       <button class="tbtn tpass" data-code="KeyS">PASS<small>X</small></button>
@@ -93,71 +110,34 @@ export function setupTouchControls(
     touchLayer
       .querySelectorAll('button[data-code]')
       .forEach((b) => bindHold(touch, onEnable, b, (b as HTMLElement).dataset.code!));
-    // SHOOT drag-aim: sliding the finger on SHOOT moves the reticle; the
-    // release fires with that placement (same sim semantics as mouse drag).
-    const shootBtn = touchLayer.querySelector(`button[data-code="${TOUCH_BUTTONS.shoot}"]`);
-    if (shootBtn) {
-      let aimId: number | null = null, ax = 0, ay = 0;
-      shootBtn.addEventListener('touchstart', (e: Event) => {
-        const t = (e as TouchEvent).changedTouches[0];
-        aimId = t.identifier; ax = t.clientX; ay = t.clientY;
-      }, { passive: true });
-      shootBtn.addEventListener('touchmove', (e: Event) => {
-        for (const t of Array.from((e as TouchEvent).changedTouches)) {
-          if (t.identifier === aimId) setShootAim(touch, t.clientX - ax, t.clientY - ay);
-        }
-      }, { passive: true });
-      const aimEnd = (e: Event) => {
-        for (const t of Array.from((e as TouchEvent).changedTouches)) {
-          if (t.identifier === aimId) aimId = null;
-        }
-      };
-      shootBtn.addEventListener('touchend', aimEnd);
-      shootBtn.addEventListener('touchcancel', aimEnd);
-    }
     let stickId: number | null = null;
     let anchorX = 0;
     let anchorY = 0;
-    stickZone.addEventListener(
-      'touchstart',
-      (e: Event) => {
-        e.preventDefault();
-        const t = (e as TouchEvent).changedTouches[0];
-        stickId = t.identifier;
-        anchorX = t.clientX;
-        anchorY = t.clientY;
-        onEnable();
-      },
-      { passive: false },
-    );
-    stickZone.addEventListener(
-      'touchmove',
-      (e: Event) => {
-        e.preventDefault();
-        for (const t of Array.from((e as TouchEvent).changedTouches)) {
-          if (t.identifier === stickId) {
-            const dx = (t.clientX - anchorX) / STICK_R;
-            const dz = (t.clientY - anchorY) / STICK_R;
-            setStick(touch, dx, dz);
-            const n = Math.hypot(dx, dz);
-            const cl = n > 1 ? 1 / n : 1;
-            stickNub!.style.transform = `translate(${(dx * cl * 34).toFixed(1)}px,${(dz * cl * 34).toFixed(1)}px)`;
-          }
-        }
-      },
-      { passive: false },
-    );
-    const zoneEnd = (e: Event) => {
-      for (const t of Array.from((e as TouchEvent).changedTouches)) {
-        if (t.identifier === stickId) {
-          stickId = null;
-          releaseStick(touch);
-          stickNub!.style.transform = '';
-        }
-      }
+    stickZone.addEventListener('pointerdown', (e: PointerEvent) => {
+      if (stickId !== null || e.button !== 0) return;
+      e.preventDefault();
+      stickId = e.pointerId;
+      stickZone!.setPointerCapture(stickId);
+      anchorX = e.clientX; anchorY = e.clientY;
+      onEnable();
+    });
+    stickZone.addEventListener('pointermove', (e: PointerEvent) => {
+      if (e.pointerId !== stickId) return;
+      const dx = (e.clientX - anchorX) / STICK_R;
+      const dz = (e.clientY - anchorY) / STICK_R;
+      setStick(touch, dx, dz);
+      const cl = 1 / Math.max(1, Math.hypot(dx, dz));
+      stickNub!.style.transform = `translate(${dx * cl * 34}px,${dz * cl * 34}px)`;
+    });
+    const zoneEnd = (e: PointerEvent) => {
+      if (e.pointerId !== stickId) return;
+      stickId = null;
+      releaseStick(touch);
+      stickNub!.style.transform = '';
     };
-    stickZone.addEventListener('touchend', zoneEnd);
-    stickZone.addEventListener('touchcancel', zoneEnd);
+    stickZone.addEventListener('pointerup', zoneEnd);
+    stickZone.addEventListener('pointercancel', zoneEnd);
+    stickZone.addEventListener('lostpointercapture', zoneEnd);
   }
 
   // Last applied phase: labels only touch the DOM on change, never per frame.

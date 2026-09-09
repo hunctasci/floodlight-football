@@ -20,22 +20,22 @@ The default match is two three-minute halves. Choose five- or ten-minute halves 
 | Key | Action |
 | --- | --- |
 | Arrow keys | Move; aim passes, shots, keeper distribution and restarts |
-| E or Shift | Sprint (hold with S for a driven/pinged pass) |
-| S | Short pass / standing tackle (defence: contained pressure) |
-| W | Through ball into space |
-| A | Cross / lob |
-| D | Shoot (hold briefly for power) / sliding tackle when defending |
-| Q or Space | Select a useful defender |
+| E or Shift | Sprint |
+| S / J | Pass: tap to feet, hold into space; standing tackle on defence |
+| W / A | Lofted long ball, cross in the final third; slide tackle on defence |
+| D / K | Shoot: hold for power; standing tackle on defence |
+| Q or Space | Switch to the nearest available teammate other than the current player |
 | C | Cycle camera: Broadcast → Tactical → Close-up |
 | Esc | Pause / resume |
 | M | Mute / unmute |
 | Enter | Confirm menus / continue at halftime |
 
-You automatically control your ball carrier. The bright ring and triangle identify your controlled footballer. Use the direction arrow beside the scoreboard to check which goal you are attacking. Short passes lock the receiver onto the ball FIFA-style: no need to steer until the first touch; through balls and crosses blend your steering with the runner. Passing uses lane-based selection with no forward bias, so an aimed backward or sideways pass goes backward or sideways; **E+S** hits a driven ping that is hard to intercept but harder to control.
+You automatically control your ball carrier. The bright ring and triangle identify your controlled footballer. Idle defensive selection follows the nearest available outfielder; steering keeps your selection. SWITCH selects the nearest other available outfielder and protects the choice from automatic switching for 750 ms. Keepers and fallen players are excluded. Cooldowns and AI roles never prevent selection.
 
+Passes nominate a receiver, who becomes controlled on first touch. Aim with the stick or arrows; tap PASS to feet or hold it to lead the same receiver into space. Mouse or touch SHOOT drag places the shot; release retains that placement.
 For throw-ins, aim into the pitch with the arrow keys and press **S**. For corners, **A** delivers a cross and **S** takes a short corner. For goal kicks, **S** distributes short and **D** (or **A**) kicks long. The computer takes its own restarts.
 
-Goalkeepers claim balls with their hands, cannot be tackled or crowded while holding (2 m protection bubble, opponents stand off), and sweep loose balls in the box. When your keeper holds the ball, aim with the arrows: **S** throws short to the aimed side, **W** launches a counter through ball, **D**/**A** kick long upfield. Idle the keeper and he releases short on his own.
+Goalkeepers claim balls with their hands, cannot be tackled or crowded while holding (2 m protection bubble, opponents stand off), and sweep loose balls in the box. When your keeper holds the ball, aim with the arrows: **S** throws short to the aimed side, **W** launches a lofted long ball, **D**/**A** kick long upfield. Idle the keeper and he releases short on his own.
 
 ## Camera & cinematics
 
@@ -67,7 +67,9 @@ This is deliberately arcade football: no offside, fouls, penalties, substitution
 
 ## Mobile & touch
 
-On touch devices the same simulation runs with on-screen controls: a **left virtual stick** (move/aim, analog) and buttons for **PASS, THRU, CROSS, SHOOT** (hold for power), **SPRINT** (hold; SPRINT+PASS = driven pass), **SWITCH**, **CAM** and **PAUSE**. Menus get a ▲▼◀▶ + OK/BACK pad. Play in landscape for the full broadcast view.
+On touch devices use the **left stick** to move and aim; pushing to its rim sprints. The right cluster contains **PASS**, **LONG**, **SHOOT**, and **SWITCH**. On defence, PASS and SHOOT become **TACKLE**, and LONG becomes **SLIDE**. Hold PASS for a lead pass; hold and drag SHOOT for power and placement. **PAUSE** is at the top left. Menus are directly tappable. Both portrait and landscape layouts respect safe areas, with the radar above the action controls.
+
+For desktop inspection of the mobile layout, the development server supports `?touch` (development only).
 
 ## Install as an app (PWA)
 

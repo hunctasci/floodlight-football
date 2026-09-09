@@ -69,7 +69,7 @@ test('arcade labels swap offense/defense (3 buttons + mini switch)', () => {
   assert.equal(off.long.main, 'LONG');
   assert.equal(off.shoot.main, 'SHOOT');
   const def = touchButtonLabels(false);
-  assert.equal(def.pass.main, 'CONTAIN');
+  assert.equal(def.pass.main, 'TACKLE');
   assert.equal(def.long.main, 'SLIDE');
   assert.equal(def.shoot.main, 'TACKLE');
   assert.equal(def.pass.sub, 'X');

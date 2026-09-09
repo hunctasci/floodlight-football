@@ -1,6 +1,6 @@
 import type { InputFrame } from '../types';
 import type { KeyboardState } from './keyboard';
-import { stickSprint, type TouchState } from './touch';
+import { clearTouchEdges, stickSprint, type TouchState } from './touch';
 
 /**
  * Unified input layer: raw browser device state -> simulation InputFrame.
@@ -13,11 +13,11 @@ import { stickSprint, type TouchState } from './touch';
  *   without mouse aim), Space switch, E/Shift sprint, Q switch alias.
  *   Mouse hold/drag/release aims + fires with placement;
  *   KeyK aliases shoot, KeyJ aliases pass.
- * Defense (same buttons): S (X) contain/pressure, D (Circle) standing
+ * Defense (same buttons): S (X) standing tackle, D (Circle) standing
  *   tackle, LONG slide tackle.
  *
  * Touch: left stick moves (rim = sprint), arcade buttons
- *   PASS/CONTAIN · LONG/SLIDE · SHOOT/TACKLE + mini SWITCH.
+ *   PASS/TACKLE · LONG/SLIDE · SHOOT/TACKLE + mini SWITCH.
  * Aim on touch comes from dragging on the SHOOT control (fed through the
  * same aimU/aimV fields by the DOM layer).
  *
@@ -73,22 +73,22 @@ export function buildInputFrame(
     sprint: held('ShiftLeft') || held('ShiftRight') || held('KeyE') || stickOn,
     pass: passHit,
     passHeld: passDown,
-    passReleased:
+    passReleased: !passDown && (
       kb.released.has('KeyS') ||
       kb.released.has('KeyJ') ||
       touch.released.has('KeyS') ||
       touch.released.has('KeyJ') ||
-      (!passDown && passWasDown),
+      passWasDown),
     // W or A = LONG (arcade single long-pass button; Triangle/Square aliases).
     long: hit('KeyW') || hit('KeyA'),
     shootPressed: hit('MouseL') || hit('KeyK') || hit('KeyD'),
     shootHeld: sh,
-    shootReleased:
+    shootReleased: !sh && (
       kb.released.has('MouseL') ||
       kb.released.has('KeyK') ||
       kb.released.has('KeyD') ||
       touch.released.has('KeyK') ||
-      (!sh && shootWasDown),
+      shootWasDown),
     switchPlayer: hit('Space') || hit('KeyQ'),
     aimU: Q1(aim?.aimU ?? 0),
     aimV: Q1(aim?.aimV ?? 0),
@@ -100,6 +100,5 @@ export function buildInputFrame(
 export function clearInputEdges(kb: KeyboardState, touch: TouchState): void {
   kb.pressed.clear();
   kb.released.clear();
-  touch.pressed.clear();
-  touch.released.clear();
+  clearTouchEdges(touch);
 }
