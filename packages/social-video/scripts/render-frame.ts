@@ -1,25 +1,27 @@
 #!/usr/bin/env tsx
 /**
- * `social:frame` CLI — the AI-agent interface to HNC social frames.
+ * `social:frame` CLI — render ONE deterministic timeline frame.
  *
  *   npm run social:frame -- --home TR --away GR --scene faceoff \
- *     --output social/output/tr-vs-gr-faceoff.png
+ *     --frame 75 --output social/output/frame-75.png
  *
- * Semantic args only (scene, country codes, seed). Three.js coordinates live
- * inside scene presets. Exits non-zero with a plain-English error on bad input.
+ * The frame index is a random-access timeline position (time = frame / fps):
+ * no sequence render is needed to inspect a single frame. Semantic args
+ * only; Three.js coordinates live inside scene presets.
  */
-import { resolveSpec, SocialSpecError } from '../src/schema';
+import { parseFrameIndex, resolveVideoSpec, SocialSpecError } from '../src/schema';
 import { renderFrameToPng } from '../src/render/frame';
 
 function usage(): string {
   return [
-    'Usage: social:frame --home <CODE> --away <CODE> [--scene faceoff] [--format reel] [--seed 42] --output <png>',
+    'Usage: social:frame --home <CODE> --away <CODE> [--scene faceoff] [--format reel] [--seed 42] [--fps 30] [--duration 4] [--frame 0] --output <png>',
     '',
     'Examples:',
     '  npm run social:frame -- --home TR --away GR --scene faceoff --output social/output/tr-vs-gr-faceoff.png',
-    '  npm run social:frame -- --home BR --away AR --seed 7 --output social/output/br-vs-ar-faceoff.png',
+    '  npm run social:frame -- --home TR --away GR --frame 75 --output social/output/frame-75.png',
     '',
     'Country codes come from the game\'s canonical country list (e.g. TR GR BR AR DE FR).',
+    'Defaults: scene=faceoff format=reel seed=42 fps=30 duration=4 frame=0.',
   ].join('\n');
 }
 
@@ -51,14 +53,16 @@ async function main(): Promise<void> {
     const v = args.get(name);
     return typeof v === 'string' ? v : undefined;
   };
-  let spec;
+  let video;
   try {
-    spec = resolveSpec({
+    video = resolveVideoSpec({
       scene: str('scene'),
       home: str('home'),
       away: str('away'),
       format: str('format'),
       seed: str('seed'),
+      fps: str('fps'),
+      duration: str('duration'),
     });
   } catch (error) {
     console.error(error instanceof SocialSpecError ? error.message : String(error));
@@ -66,20 +70,30 @@ async function main(): Promise<void> {
     process.exitCode = 1;
     return;
   }
+  let frame = 0;
+  try {
+    const raw = str('frame');
+    frame = raw === undefined ? 0 : parseFrameIndex(raw, video.totalFrames, video.fps, video.duration);
+  } catch (error) {
+    console.error(error instanceof SocialSpecError ? error.message : String(error));
+    console.error(usage());
+    process.exitCode = 1;
+    return;
+  }
   if (dryRun) {
-    console.log(JSON.stringify(spec));
+    console.log(JSON.stringify({ ...video, frame, time: frame / video.fps }));
     return;
   }
   const output = str('output') ?? str('out');
   if (!output) {
-    console.error('Missing required --output <path> (e.g. --output social/output/tr-vs-gr-faceoff.png)');
+    console.error('Missing required --output <path> (e.g. --output social/output/frame-75.png)');
     console.error(usage());
     process.exitCode = 1;
     return;
   }
   try {
-    const rendered = await renderFrameToPng(spec, output);
-    console.log(`Wrote ${rendered.output} (${rendered.width}x${rendered.height}) scene=${spec.scene} home=${spec.home} away=${spec.away} seed=${spec.seed}`);
+    const rendered = await renderFrameToPng(video, output, frame);
+    console.log(`Wrote ${rendered.output} (${rendered.width}x${rendered.height}) scene=${video.scene} home=${video.home} away=${video.away} seed=${video.seed} frame=${frame}/${video.totalFrames} t=${(frame / video.fps).toFixed(3)}s`);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

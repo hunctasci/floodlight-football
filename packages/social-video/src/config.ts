@@ -11,6 +11,16 @@ export type SocialFormatId = keyof typeof SOCIAL_FORMATS;
 export const DEFAULT_FORMAT: SocialFormatId = 'reel';
 export const DEFAULT_SCENE = 'faceoff';
 export const DEFAULT_SEED = 42;
+export const DEFAULT_FPS = 30;
+export const DEFAULT_DURATION = 4;
+
+/** Supported frame rates (integer FPS). */
+export const MIN_FPS = 24;
+export const MAX_FPS = 60;
+
+/** Supported clip lengths in seconds (upper bound keeps sequences sane). */
+export const MIN_DURATION = 0;
+export const MAX_DURATION = 30;
 
 export function formatSize(format: SocialFormatId): { width: number; height: number; pixelRatio: number } {
   return SOCIAL_FORMATS[format];

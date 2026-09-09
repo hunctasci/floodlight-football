@@ -7,6 +7,7 @@
     "build": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "render-frame": "tsx scripts/render-frame.ts",
+    "render-frames": "tsx scripts/render-frames.ts",
     "validate": "tsx scripts/render-frame.ts --dry-run --scene faceoff --home TR --away GR --seed 42"
   },
   "dependencies": {

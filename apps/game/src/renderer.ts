@@ -76,6 +76,20 @@ export interface SocialCameraPose {
   fov: number;
 }
 
+/**
+ * Micro-pose for one social avatar, evaluated by the timeline (breathing,
+ * lean, arm lift). All zeros = neutral idle, identical to stills without a
+ * pose. The renderer only applies final values — it knows no time or frames.
+ */
+export interface SocialActorPose {
+  /** Vertical root offset in metres. */
+  bob: number;
+  /** Forward lean in radians. */
+  lean: number;
+  /** Symmetric arm raise in radians (0 = relaxed at the sides). */
+  armLift: number;
+}
+
 type Cine = { type: 'goal' | 'intro'; t: number; dur: number; side: number; variant: GoalCineVariant; fromPos: THREE.Vector3; fromLook: THREE.Vector3 } | null;
 
 /** Classic pentagon ball skin painted once onto a shared canvas texture. */
@@ -471,9 +485,11 @@ export class GameRenderer {
   /**
    * Deterministic social still: stages the given state with a fixed lens, a
    * frozen animation clock, no HUD markers, no ball trail, no shake and no
-   * camera easing. The live-game `render()` path above is untouched.
+   * camera easing. The optional per-actor pose stages timeline micro-motion
+   * (breathing/lean/arms); omitted = neutral idle. The live-game `render()`
+   * path above is untouched.
    */
-  renderSocial(state: MatchState, cam: SocialCameraPose, clockFixed = 1.0): void {
+  renderSocial(state: MatchState, cam: SocialCameraPose, clockFixed = 1.0, pose?: SocialActorPose[]): void {
     this.clock = clockFixed;
     this.shake = 0; this.fovPunch = 0; this.cine = null;
     this.lastFlight = state.ball.flight;
@@ -485,10 +501,11 @@ export class GameRenderer {
     this.ballShadow.scale.setScalar(1 + Math.min(1, ball.y) * .45);
     state.players.forEach((p, i) => {
       const a = this.avatars[i];
-      a.root.position.set(p.x, 0, p.z);
-      a.root.rotation.set(0, Math.atan2(p.facingX, p.facingZ), 0);
+      const mp = pose?.[i] ?? { bob: 0, lean: 0, armLift: 0 };
+      a.root.position.set(p.x, mp.bob, p.z);
+      a.root.rotation.set(-mp.lean, Math.atan2(p.facingX, p.facingZ), 0);
       a.legL.rotation.x = 0; a.legR.rotation.x = 0;
-      a.armL.rotation.x = 0; a.armR.rotation.x = 0;
+      a.armL.rotation.x = -mp.armLift; a.armR.rotation.x = -mp.armLift;
       a.armL.rotation.z = 0; a.armR.rotation.z = 0;
       a.shadow.position.set(p.x, .015, p.z);
       a.shadow.scale.setScalar(1);
