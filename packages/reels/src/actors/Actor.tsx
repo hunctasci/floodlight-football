@@ -5,6 +5,14 @@ import { HumanActor } from './HumanActor';
 import { HncFootballer } from './HncFootballer';
 import type { ActorSpec } from '../reel/types';
 
+/** Stable per-actor HNC identity (skin palette id) from the actor id. */
+function hncPlayerIdFor(spec: ActorSpec): number {
+  let h = 0;
+  const s = `${spec.id}:${spec.country ?? ''}`;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h) % 4;
+}
+
 function GLBModel({ assetId }: { assetId: string }) {
   const entry = getAsset(assetId);
   // Drei caches GLTFs; the same URL never reloads per frame.
@@ -14,8 +22,9 @@ function GLBModel({ assetId }: { assetId: string }) {
 
 /**
  * Semantic actor: stories pass actor ids + anchors + animation ids.
- * Procedural fallback renders today; licensed GLBs slot in via the manifest
- * without touching story code.
+ * Both branches are thin adapters around the SAME canonical HNC character
+ * (football kit vs office wardrobe) — never independent mesh recreations.
+ * Licensed GLBs slot in via the manifest without touching story code.
  */
 export const Actor: React.FC<{
   spec: ActorSpec;
@@ -36,10 +45,30 @@ export const Actor: React.FC<{
         country={spec.country ?? 'TR'}
         keeper={spec.role === 'goalkeeper'}
         animation={anim}
+        playerId={hncPlayerIdFor(spec)}
       />
     );
   } else {
-    fallback = <HumanActor frame={frame} fps={fps} animation={anim} primary="#2b4a6f" />;
+    // Office workers are HNC characters in office wardrobes (same body/head/
+    // face/proportions as the footballer). Wardrobe comes from spec.wardrobe
+    // or spec.variant; model suffixes give cheap variety (01 = worker,
+    // 02 = formal, female = casual, boss/manager = manager).
+    const explicit = spec.wardrobe ?? spec.variant;
+    let wardrobe = explicit ?? 'office-worker';
+    if (!explicit) {
+      if (spec.model.includes('female')) wardrobe = 'office-worker-casual';
+      else if (spec.model.includes('02')) wardrobe = 'office-worker-formal';
+      else if (spec.role === 'boss') wardrobe = 'manager';
+    }
+    fallback = (
+      <HumanActor
+        frame={frame}
+        fps={fps}
+        animation={anim}
+        wardrobe={wardrobe}
+        playerId={hncPlayerIdFor(spec)}
+      />
+    );
   }
   return (
     <group position={position} rotation={[0, rotationY, 0]}>

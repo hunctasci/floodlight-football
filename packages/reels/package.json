@@ -15,6 +15,7 @@
     "asset:validate": "tsx scripts/validate-assets.ts"
   },
   "dependencies": {
+    "@floodlight/hnc-visuals": "1.0.0",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "@react-three/postprocessing": "^3.0.4",

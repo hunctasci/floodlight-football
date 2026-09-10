@@ -1,0 +1,22 @@
+{
+  "name": "@floodlight/hnc-visuals",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts"
+  },
+  "dependencies": {
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/three": "0.185.4",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2"
+  }
+}

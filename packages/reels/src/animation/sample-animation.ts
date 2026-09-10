@@ -1,5 +1,6 @@
 import { getAnimation } from './animation-registry';
 import { applyEasing, type EasingId } from './easing';
+import { hncProceduralPose } from '@floodlight/hnc-visuals';
 
 /**
  * ABSOLUTE animation sampling. Pose at a Remotion frame derives from
@@ -67,8 +68,9 @@ export function sampleCrossfade(
 }
 
 /**
- * Procedural pose channels for placeholder actors (deterministic sine-based
- * motion driven by absolute localTime, not accumulated state).
+ * Procedural pose channels — thin wrapper around the canonical HNC pose
+ * language (@floodlight/hnc-visuals). Kept for backwards compatibility;
+ * new code should use hncProceduralPose / applyHncProceduralPose directly.
  */
 export function proceduralPose(animationId: string, localTime: number): {
   bob: number;
@@ -76,30 +78,6 @@ export function proceduralPose(animationId: string, localTime: number): {
   armLift: number;
   headYaw: number;
 } {
-  const t = localTime;
-  switch (animationId) {
-    case 'typing':
-      return { bob: Math.sin(t * 9) * 0.015, lean: 0.12, armLift: 0.9 + Math.sin(t * 9) * 0.06, headYaw: 0 };
-    case 'celebrate':
-    case 'goal-celebration': {
-      const k = Math.min(1, t / 0.5);
-      return { bob: Math.abs(Math.sin(t * 8)) * 0.12 * k, lean: -0.08, armLift: 2.4 * k, headYaw: 0 };
-    }
-    case 'side-eye': {
-      const k = Math.min(1, t / 0.7);
-      return { bob: 0, lean: 0.06 * k, armLift: 0.1, headYaw: 0.65 * k };
-    }
-    case 'angry':
-      return { bob: Math.sin(t * 12) * 0.02, lean: 0.22, armLift: 0.5, headYaw: 0.15 };
-    case 'point':
-      return { bob: 0, lean: 0.1, armLift: 1.4, headYaw: 0.2 };
-    case 'facepalm':
-      return { bob: -0.03, lean: 0.18, armLift: 2.2, headYaw: -0.3 };
-    case 'kick': {
-      const k = Math.sin(Math.min(1, t / 0.6) * Math.PI);
-      return { bob: 0.05 * k, lean: 0.15 * k, armLift: 0.4, headYaw: 0 };
-    }
-    default:
-      return { bob: Math.sin(t * 2.2) * 0.02, lean: 0.02, armLift: 0.08, headYaw: 0 };
-  }
+  const p = hncProceduralPose(animationId, localTime);
+  return { bob: p.bob, lean: p.lean, armLift: p.armLift, headYaw: p.headYaw };
 }

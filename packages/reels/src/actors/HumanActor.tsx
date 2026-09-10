@@ -1,5 +1,12 @@
 import React from 'react';
-import { proceduralPose, sampleAnimation } from '../animation/sample-animation';
+import {
+  applyHncProceduralPose,
+  applyHncWardrobe,
+  createHncPlayerVisual,
+  disposeHncPlayerVisual,
+  type HncWardrobeId,
+} from '@floodlight/hnc-visuals';
+import { sampleAnimation } from '../animation/sample-animation';
 import { countryColors } from '../football/data/countries';
 
 export interface HumanActorPose {
@@ -10,8 +17,13 @@ export interface HumanActorPose {
 }
 
 /**
- * Procedural low-poly office human. Deterministic pose from absolute frame;
- * GLB characters will replace this mesh without changing story code.
+ * HNC office character: the SAME canonical HNC body/head/face/proportion
+ * language as the footballer, with wardrobe/material variants (shirt, tie,
+ * trousers, jacket, badge). No realistic/Mixamo humans — the comedy comes
+ * from the same character changing context/wardrobe.
+ *
+ * Thin R3F adapter: canonical geometry lives in @floodlight/hnc-visuals,
+ * mounted via <primitive /> with useMemo lifecycle + disposal.
  */
 export const HumanActor: React.FC<{
   frame: number;
@@ -20,64 +32,93 @@ export const HumanActor: React.FC<{
   primary?: string;
   skin?: string;
   female?: boolean;
-}> = ({ frame, fps, animation = 'idle', primary = '#2b4a6f', skin = '#e8b08a', female = false }) => {
+  wardrobe?: HncWardrobeId | string;
+  playerId?: number;
+}> = ({ frame, fps, animation = 'idle', primary = '#2b4a6f', skin, female = false, wardrobe = 'office-worker', playerId = 0 }) => {
+  void primary;
+  void skin;
+  void female;
+  const visual = React.useMemo(
+    () =>
+      createHncPlayerVisual({
+        id: playerId,
+        number: 10,
+        primary: '#e8e4da',
+        secondary: '#23283b',
+        keeper: false,
+      }),
+    // Identity only; wardrobe + pose applied below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  React.useMemo(() => {
+    const w = (wardrobe as HncWardrobeId) ?? 'office-worker';
+    try {
+      applyHncWardrobe(visual, w);
+    } catch {
+      applyHncWardrobe(visual, 'office-worker');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visual, wardrobe]);
+
+  React.useEffect(() => () => disposeHncPlayerVisual(visual), [visual]);
+
   const sampled = sampleAnimation(animation, frame, fps, 0);
-  const pose = proceduralPose(animation, sampled.localTime);
-  const armSpread = animation === 'celebrate' || animation === 'goal-celebration' ? 0.9 : 0.12;
+  React.useMemo(() => {
+    applyHncProceduralPose(visual, animation, sampled.localTime);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visual, sampled.localTime, animation]);
+
   return (
-    <group position={[0, pose.bob, 0]} rotation={[pose.lean, 0, 0]}>
-      {/* legs */}
-      <mesh position={[-0.14, 0.42, 0]}>
-        <cylinderGeometry args={[0.09, 0.11, 0.84, 6]} />
-        <meshStandardMaterial color="#23283b" roughness={0.9} />
-      </mesh>
-      <mesh position={[0.14, 0.42, 0]}>
-        <cylinderGeometry args={[0.09, 0.11, 0.84, 6]} />
-        <meshStandardMaterial color="#23283b" roughness={0.9} />
-      </mesh>
-      {/* torso */}
-      <mesh position={[0, 1.05, 0]}>
-        <cylinderGeometry args={[0.3, 0.36, 0.75, 8]} />
-        <meshStandardMaterial color={primary} roughness={0.85} />
-      </mesh>
-      {/* arms */}
-      <mesh position={[-0.4, 1.1, 0]} rotation={[ -pose.armLift, 0, armSpread]}>
-        <cylinderGeometry args={[0.08, 0.09, 0.62, 6]} />
-        <meshStandardMaterial color={primary} roughness={0.85} />
-      </mesh>
-      <mesh position={[0.4, 1.1, 0]} rotation={[-pose.armLift, 0, -armSpread]}>
-        <cylinderGeometry args={[0.08, 0.09, 0.62, 6]} />
-        <meshStandardMaterial color={primary} roughness={0.85} />
-      </mesh>
-      {/* head */}
-      <group position={[0, 1.68, 0]} rotation={[0, pose.headYaw, 0]}>
-        <mesh>
-          <icosahedronGeometry args={[0.26, 1]} />
-          <meshStandardMaterial color={skin} roughness={1} flatShading />
-        </mesh>
-        <mesh position={[0, 0.12, -0.05]}>
-          <sphereGeometry args={[0.265, 8, 6, 0, Math.PI * 2, 0, Math.PI * 0.45]} />
-          <meshStandardMaterial color={female ? '#5a3418' : '#28283b'} roughness={1} />
-        </mesh>
-      </group>
-      {/* country badge */}
-      <mesh position={[0, 1.18, 0.3]}>
-        <planeGeometry args={[0.22, 0.14]} />
-        <meshBasicMaterial color={primary} />
-      </mesh>
+    <group>
+      <primitive object={visual.root} />
+      <primitive object={visual.shadow} />
     </group>
   );
 };
 
-export const CountryWorker: React.FC<{ frame: number; fps: number; animation?: string; country?: string; variant?: string }> = ({
-  frame,
-  fps,
-  animation,
-  country,
-  variant,
-}) => {
+function wardrobeForCountry(country: string | undefined, variant: string | undefined): HncWardrobeId {
+  if (variant === 'manager' || variant === 'boss') return 'manager';
+  if (variant === 'formal') return 'office-worker-formal';
+  if (variant === 'casual') return 'office-worker-casual';
+  void country;
+  return 'office-worker';
+}
+
+export const CountryWorker: React.FC<{
+  frame: number;
+  fps: number;
+  animation?: string;
+  country?: string;
+  variant?: string;
+}> = ({ frame, fps, animation, country, variant }) => {
   const c = country ? countryColors(country) : { primary: '#2b4a6f', secondary: '#fff' };
-  const female = (variant ?? '').includes('female') || country === undefined ? false : variant === 'female';
-  const skin = country === 'NG' || country === 'GH' ? '#7a4a2e' : '#e8b08a';
-  return <HumanActor frame={frame} fps={fps} animation={animation} primary={c.primary} skin={skin} female={female} />;
+  void c;
+  // Skin palette derives from a stable per-country index so the same HNC
+  // character reads consistently across office → football transformation.
+  const playerId = country ? [...country].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 4 : 0;
+  return (
+    <HumanActor
+      frame={frame}
+      fps={fps}
+      animation={animation}
+      wardrobe={wardrobeForCountry(country, variant)}
+      playerId={playerId}
+    />
+  );
 };
+
+// Re-export for tests: office workers belong to the HNC character universe.
+export const HNC_OFFICE_WARDROBES: HncWardrobeId[] = [
+  'office-worker',
+  'office-worker-formal',
+  'office-worker-casual',
+  'manager',
+  'footballer',
+  'goalkeeper',
+];
+
+export function isHncWardrobeId(v: string): v is HncWardrobeId {
+  return (HNC_OFFICE_WARDROBES as string[]).includes(v);
+}

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FIELD, MatchState, Player, Team, TeamId } from './types';
+import { MatchState, Player, Team, TeamId } from './types';
 import {
   CAMERA_LABELS,
   CAMERA_MODES,
@@ -17,6 +17,35 @@ import {
 } from './render/camera';
 import { AD_H, AD_W, adForSlot, paintAd } from './render/ads';
 import { crowdFanOffset, fanSection, hash01, type SocialCrowdState } from './render/crowd';
+// Canonical visual identity: single source of truth lives in
+// packages/hnc-visuals (extracted verbatim from this renderer). The game
+// delegates geometry/material/lighting construction there so gameplay and
+// Reels can never drift. Values below are re-exports, not duplicates.
+import {
+  CROWD_HALF_HEIGHT as CANON_CROWD_HALF_HEIGHT,
+  END_STAND_ROWS as CANON_END_STAND_ROWS,
+  FAR_STAND_BASE_TOP as CANON_FAR_STAND_BASE_TOP,
+  FAR_STAND_BASE_Z as CANON_FAR_STAND_BASE_Z,
+  FAR_STAND_RISE as CANON_FAR_STAND_RISE,
+  FAR_STAND_ROW_DEPTH as CANON_FAR_STAND_ROW_DEPTH,
+  FAR_STAND_ROWS as CANON_FAR_STAND_ROWS,
+  HNC_RENDER_PROFILE,
+  createHncBallVisual,
+  createHncCrowd,
+  createHncGoals,
+  createHncPitch,
+  createHncPlayerVisual,
+  createHncStands,
+  endStandFanY as canonEndStandFanY,
+  endStandTerraceTop as canonEndStandTerraceTop,
+  farStandFanY as canonFarStandFanY,
+  farStandFanZ as canonFarStandFanZ,
+  farStandTerraceTop as canonFarStandTerraceTop,
+  hncBallTexture,
+  hncNumberTexture,
+  isStandAisle as canonIsStandAisle,
+  rekitHncPlayerVisual,
+} from '@floodlight/hnc-visuals';
 
 /**
  * Visible far-stand terrace geometry (social + game share one stadium).
@@ -27,34 +56,34 @@ import { crowdFanOffset, fanSection, hash01, type SocialCrowdState } from './ren
  * Fans stand ON the steps (base = terrace top + half fan height).
  * Pure helpers so tests can verify fans sit above concrete without a DOM.
  */
-export const FAR_STAND_ROWS = 8;
-export const FAR_STAND_BASE_TOP = 1.3;
-export const FAR_STAND_RISE = 0.55;
+export const FAR_STAND_ROWS = CANON_FAR_STAND_ROWS;
+export const FAR_STAND_BASE_TOP = CANON_FAR_STAND_BASE_TOP;
+export const FAR_STAND_RISE = CANON_FAR_STAND_RISE;
 /** Fan z of row 0 (front row), each row 1.1m deeper. */
-export const FAR_STAND_BASE_Z = -31.9;
-export const FAR_STAND_ROW_DEPTH = 1.1;
-export const END_STAND_ROWS = 5;
+export const FAR_STAND_BASE_Z = CANON_FAR_STAND_BASE_Z;
+export const FAR_STAND_ROW_DEPTH = CANON_FAR_STAND_ROW_DEPTH;
+export const END_STAND_ROWS = CANON_END_STAND_ROWS;
 /** Half height of the crowd box (1.05 x 0.72 x 0.55): base sits 0.36 above the step. */
-export const CROWD_HALF_HEIGHT = 0.36;
+export const CROWD_HALF_HEIGHT = CANON_CROWD_HALF_HEIGHT;
 
 export function farStandTerraceTop(row: number): number {
-  return FAR_STAND_BASE_TOP + row * FAR_STAND_RISE;
+  return canonFarStandTerraceTop(row);
 }
 export function farStandFanY(row: number): number {
-  return farStandTerraceTop(row) + CROWD_HALF_HEIGHT;
+  return canonFarStandFanY(row);
 }
 export function farStandFanZ(row: number): number {
-  return FAR_STAND_BASE_Z - row * FAR_STAND_ROW_DEPTH;
+  return canonFarStandFanZ(row);
 }
 export function endStandTerraceTop(row: number): number {
-  return FAR_STAND_BASE_TOP + row * FAR_STAND_RISE;
+  return canonEndStandTerraceTop(row);
 }
 export function endStandFanY(row: number): number {
-  return endStandTerraceTop(row) + CROWD_HALF_HEIGHT;
+  return canonEndStandFanY(row);
 }
 /** Centre aisle (section split home/away) + two side aisles. */
 export function isStandAisle(x: number): boolean {
-  return Math.abs(x) < 0.9 || Math.abs(Math.abs(x) - 26) < 0.7;
+  return canonIsStandAisle(x);
 }
 
 // Backwards-compatible re-exports: canonical pure camera math lives in
@@ -77,19 +106,9 @@ export {
 
 type Avatar = { root: THREE.Group; body: THREE.Mesh; head: THREE.Mesh; legL: THREE.Mesh; legR: THREE.Mesh; armL: THREE.Mesh; armR: THREE.Mesh; shadow: THREE.Mesh; kit: THREE.Color; trim: THREE.Color; keeper: boolean; kitParts: THREE.Mesh[]; trimParts: THREE.Mesh[] };
 
-/** Shared white-on-transparent shirt numbers 1..11 (one small canvas each). */
-const numberTextures = new Map<number, THREE.CanvasTexture>();
-function numberTexture(n: number): THREE.CanvasTexture {
-  let tex = numberTextures.get(n);
-  if (tex) return tex;
-  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
-  const ctx = c.getContext('2d')!;
-  ctx.font = 'bold 44px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.lineWidth = 7; ctx.strokeStyle = '#182230'; ctx.strokeText(String(n), 32, 34);
-  ctx.fillStyle = '#ffffff'; ctx.fillText(String(n), 32, 34);
-  tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
-  numberTextures.set(n, tex);
-  return tex;
+/** Shared white-on-transparent shirt numbers 1..11 (canonical cache). */
+function numberTexture(n: number): THREE.CanvasTexture | THREE.DataTexture {
+  return hncNumberTexture(n);
 }
 
 /** Interpolated display positions from the app loop (prev-tick lerp). */
@@ -166,26 +185,9 @@ export interface SocialEffects {
 
 type Cine = { type: 'goal' | 'intro'; t: number; dur: number; side: number; variant: GoalCineVariant; fromPos: THREE.Vector3; fromLook: THREE.Vector3 } | null;
 
-/** Classic pentagon ball skin painted once onto a shared canvas texture. */
-let ballSkin: THREE.CanvasTexture | null = null;
-function ballTexture(): THREE.CanvasTexture {
-  if (ballSkin) return ballSkin;
-  const c = document.createElement('canvas'); c.width = 256; c.height = 128;
-  const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#f7f3e9'; ctx.fillRect(0, 0, 256, 128);
-  const pentagon = (x: number, y: number, r: number) => {
-    ctx.beginPath();
-    for (let i = 0; i < 5; i++) {
-      const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
-      const px = x + Math.cos(a) * r, py = y + Math.sin(a) * r;
-      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-    }
-    ctx.closePath(); ctx.fillStyle = '#1f3040'; ctx.fill();
-  };
-  // Fixed spots read as a football from every broadcast angle.
-  [[32, 32, 15], [96, 88, 16], [160, 30, 15], [224, 92, 16], [64, 104, 11], [192, 108, 11], [128, 60, 12], [0, 64, 12], [256, 64, 12]].forEach(([x, y, r]) => pentagon(x, y, r));
-  ballSkin = new THREE.CanvasTexture(c); ballSkin.colorSpace = THREE.SRGBColorSpace;
-  return ballSkin;
+/** Classic pentagon ball skin — canonical shared texture. */
+function ballTexture(): THREE.CanvasTexture | THREE.DataTexture {
+  return hncBallTexture();
 }
 
 /** Deliberately chunky, inexpensive match renderer.  All art is made from geometry. */
@@ -275,30 +277,32 @@ export class GameRenderer {
       this.fixedSize ? this.fixedSize.w : (container.clientWidth || innerWidth),
       this.fixedSize ? this.fixedSize.h : (container.clientHeight || innerHeight),
     );
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFShadowMap;
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.12;
+    this.renderer.shadowMap.enabled = HNC_RENDER_PROFILE.shadowMapEnabled;
+    this.renderer.shadowMap.type = HNC_RENDER_PROFILE.shadowMapType;
+    this.renderer.outputColorSpace = HNC_RENDER_PROFILE.outputColorSpace;
+    this.renderer.toneMapping = HNC_RENDER_PROFILE.toneMapping;
+    this.renderer.toneMappingExposure = HNC_RENDER_PROFILE.toneMappingExposure;
     this.canvas = this.renderer.domElement;
     this.canvas.className = 'match-canvas';
     container.appendChild(this.canvas);
-    this.scene.background = new THREE.Color('#7fb6e0');
-    this.scene.fog = new THREE.Fog('#7fb6e0', 160, 260);
+    this.scene.background = new THREE.Color(HNC_RENDER_PROFILE.background);
+    this.scene.fog = new THREE.Fog(HNC_RENDER_PROFILE.fogColor, HNC_RENDER_PROFILE.fogNear, HNC_RENDER_PROFILE.fogFar);
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(0, 0, 0);
 
-    const hemi = new THREE.HemisphereLight('#e8f6ff', '#2f6b35', 2.35); this.scene.add(hemi);
-    const sun = new THREE.DirectionalLight('#fff1cb', 2.4); sun.position.set(-25, 42, 18); sun.castShadow = true;
-    sun.shadow.mapSize.set(1024, 1024); sun.shadow.camera.left = -60; sun.shadow.camera.right = 60; sun.shadow.camera.top = 45; sun.shadow.camera.bottom = -45; this.scene.add(sun);
+    const hemi = new THREE.HemisphereLight(HNC_RENDER_PROFILE.hemiSky, HNC_RENDER_PROFILE.hemiGround, HNC_RENDER_PROFILE.hemiIntensity); this.scene.add(hemi);
+    const sun = new THREE.DirectionalLight(HNC_RENDER_PROFILE.sunColor, HNC_RENDER_PROFILE.sunIntensity); sun.position.set(...HNC_RENDER_PROFILE.sunPosition); sun.castShadow = true;
+    sun.shadow.mapSize.set(HNC_RENDER_PROFILE.sunShadowMapSize, HNC_RENDER_PROFILE.sunShadowMapSize); sun.shadow.camera.left = HNC_RENDER_PROFILE.sunShadowLeft; sun.shadow.camera.right = HNC_RENDER_PROFILE.sunShadowRight; sun.shadow.camera.top = HNC_RENDER_PROFILE.sunShadowTop; sun.shadow.camera.bottom = HNC_RENDER_PROFILE.sunShadowBottom; this.scene.add(sun);
     this.buildWorld();
-    const sphere = new THREE.SphereGeometry(FIELD.ballRadius, 16, 12);
-    this.ball = new THREE.Group();
-    const leather = new THREE.Mesh(sphere, new THREE.MeshStandardMaterial({ map: ballTexture(), roughness: .55, flatShading: false }));
-    leather.castShadow = true; this.ball.add(leather);
+    // Canonical ball (radius + pentagon texture + shadow from hnc-visuals).
+    const ballVisual = createHncBallVisual();
+    this.ball = ballVisual.root;
+    // Reuse the shared leather texture path (identical to the old inline
+    // ballTexture()); the visual already carries the canonical material.
+    void ballTexture();
     this.scene.add(this.ball);
-    this.ballShadow = new THREE.Mesh(new THREE.CircleGeometry(.31, 16), new THREE.MeshBasicMaterial({ color: '#183d24', transparent: true, opacity: .34 }));
-    this.ballShadow.rotation.x = -Math.PI / 2; this.ballShadow.position.y = .012; this.scene.add(this.ballShadow);
+    this.ballShadow = ballVisual.shadow;
+    this.scene.add(this.ballShadow);
     // Shot trail: short ring of fading puffs shown while the ball flies fast.
     const puff = new THREE.SphereGeometry(.14, 8, 6);
     for (let i = 0; i < 10; i++) {
@@ -313,142 +317,27 @@ export class GameRenderer {
   }
 
   private buildWorld() {
-    const apron = new THREE.Mesh(new THREE.PlaneGeometry(120, 84), new THREE.MeshStandardMaterial({ color: '#2e7840', roughness: 1 }));
-    apron.rotation.x = -Math.PI / 2; apron.position.y = -.015; this.scene.add(apron);
-    const grass = new THREE.MeshStandardMaterial({ color: '#35a047', roughness: 1 });
-    const pitch = new THREE.Mesh(new THREE.PlaneGeometry(94, 60), grass); pitch.rotation.x = -Math.PI / 2; pitch.receiveShadow = true; this.scene.add(pitch);
-    const stripeMat = new THREE.MeshBasicMaterial({ color: '#2c8340', transparent: true, opacity: .5 });
-    for (let x = -40; x <= 40; x += 16) { const stripe = new THREE.Mesh(new THREE.PlaneGeometry(8, 58), stripeMat); stripe.rotation.x = -Math.PI / 2; stripe.position.set(x, .006, 0); this.scene.add(stripe); }
-    const line = new THREE.MeshBasicMaterial({ color: '#ffffff' });
-    const addLine = (x: number, z: number, sx: number, sz: number) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx, .025, sz), line); m.position.set(x, .026, z); this.scene.add(m); };
-    addLine(0, -29, 92, .16); addLine(0, 29, 92, .16); addLine(-46, 0, .16, 58); addLine(46, 0, .16, 58); addLine(0, 0, .12, 58);
-    const circle = new THREE.Mesh(new THREE.RingGeometry(5.7, 5.87, 48), line); circle.rotation.x = -Math.PI / 2; circle.position.y = .028; this.scene.add(circle);
-    const dot = new THREE.Mesh(new THREE.CircleGeometry(.18, 12), line); dot.rotation.x=-Math.PI/2; dot.position.y=.04; this.scene.add(dot);
-    for (const x of [-46, 46]) {
-      const dir = Math.sign(x);
-      // Penalty: 14 metres deep and 30 wide.  Goal area: 5 deep and 14 wide.
-      addLine(x - dir * 14, 0, .12, 30); addLine(x - dir * 7, -15, 14, .12); addLine(x - dir * 7, 15, 14, .12);
-      addLine(x - dir * 5, 0, .12, 14); addLine(x - dir * 2.5, -7, 5, .12); addLine(x - dir * 2.5, 7, 5, .12);
-      const spot = dot.clone(); spot.position.set(x-dir*11,.04,0); this.scene.add(spot);
-      const points: THREE.Vector3[]=[]; const start=x>0?Math.PI/2:-Math.PI/2; const end=x>0?Math.PI*1.5:Math.PI/2;
-      for(let i=0;i<=24;i++){const t=start+(end-start)*i/24;points.push(new THREE.Vector3(x-dir*11+Math.cos(t)*5.5,.045,Math.sin(t)*5.5));}
-      const arc = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({color:'#ffffff'})); this.scene.add(arc);
-    }
-    const centreDot=dot.clone();centreDot.position.set(0,.04,0);this.scene.add(centreDot);
-    // Corner arcs: quarter-circles tucked into each corner flag.
-    for (const cx of [-46, 46]) for (const cz of [-29, 29]) {
-      const pts: THREE.Vector3[] = [];
-      const base = Math.atan2(-cz, -cx);
-      for (let i = 0; i <= 10; i++) { const a = base - Math.PI / 4 + (i / 10) * Math.PI / 2; pts.push(new THREE.Vector3(cx + Math.cos(a), .045, cz + Math.sin(a))); }
-      this.scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#ffffff' })));
-    }
-    this.buildGoals(); this.buildStands();
+    // Canonical stadium assembly (pitch + goals + stands + crowd). Geometry
+    // and materials live in @floodlight/hnc-visuals; this method only mounts
+    // them and wires game-owned handles (goalNets, crowdBase, boards).
+    const pitch = createHncPitch();
+    this.scene.add(pitch);
+    this.buildGoals();
+    this.buildStands();
   }
 
   private buildGoals() {
-    const postMat = new THREE.MeshStandardMaterial({ color: '#fffef4', roughness: .4 });
-    const netMat = new THREE.LineBasicMaterial({ color: '#f2f7f2', transparent: true, opacity: .6 });
-    for (const x of [-46, 46]) {
-      const g = new THREE.Group(); const d = x < 0 ? -1 : 1;
-      const post = new THREE.CylinderGeometry(.12, .12, 2.8, 10); for (const z of [-4.4, 4.4]) { const p = new THREE.Mesh(post, postMat); p.position.set(x, 1.4, z); p.castShadow = true; g.add(p); }
-      const bar = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, 9.0, 10), postMat); bar.rotation.x = Math.PI / 2; bar.position.set(x, 2.8, 0); bar.castShadow = true; g.add(bar);
-      // Back, roof and two sides only: the goal mouth remains physically and visually open.
-      const lines: THREE.Vector3[]=[]; const back=x+d*2.2;
-      for(let z=-4.4;z<=4.401;z+=.55){lines.push(new THREE.Vector3(back,0,z),new THREE.Vector3(back,2.8,z));}
-      for(let y=0;y<=2.801;y+=.4){lines.push(new THREE.Vector3(back,y,-4.4),new THREE.Vector3(back,y,4.4)); for(const z of [-4.4,4.4]) lines.push(new THREE.Vector3(x,y,z),new THREE.Vector3(back,y,z));}
-      for(let z=-4.4;z<=4.401;z+=.55) lines.push(new THREE.Vector3(x,2.8,z),new THREE.Vector3(back,2.8,z));
-      const net = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(lines), netMat); net.name='net'; g.add(net); g.userData.side=x; this.goalNets.push(g); this.scene.add(g);
+    const goals = createHncGoals();
+    for (const goal of goals) {
+      this.goalNets.push(goal);
+      this.scene.add(goal);
     }
   }
 
   private buildStands() {
-    const concrete = new THREE.MeshStandardMaterial({ color: '#2c4d63', roughness: 1, flatShading: true });
-    const concreteLight = new THREE.MeshStandardMaterial({ color: '#3d647e', roughness: 1, flatShading: true });
-    const railMat = new THREE.MeshStandardMaterial({ color: '#dfe9f2', roughness: .6, flatShading: true });
-    const crowdCols = ['#f8cc54', '#ec5a61', '#5fcddd', '#f3ede0', '#514b91', '#ff9a3d', '#7ee08a']; const box = new THREE.BoxGeometry(1.05, .72, .55);
-    // Seven instanced colour blocks give the crowd a lively, modern mosaic without hundreds of draw calls.
-    // Spots keep their stand row so social choreography can stagger reactions deterministically.
-    // Fans stand ON stepped terraces (never inside concrete): base y = terrace top + half fan height.
-    const fanSpots: { pos: THREE.Vector3; row: number }[][] = crowdCols.map(() => []);
-    // Only the far stand + low end terraces are built: every camera preset
-    // sits on +z looking toward -z, so a near-side stand would stand between
-    // the camera and the near touchline and hide players in low angles.
-    // The low ad boards stay on both sides; they never block play.
-    //
-    // Far stand: narrow front fascia (~1.1m, carries team section banners)
-    // + 8 terrace risers fans stand on + low roof. No giant concrete box.
-    const fascia = new THREE.Mesh(new THREE.BoxGeometry(104, 1.1, .6), concrete);
-    fascia.position.set(0, .55, -31.3); this.scene.add(fascia);
-    for (let r = 0; r < FAR_STAND_ROWS; r++) {
-      const step = new THREE.Mesh(new THREE.BoxGeometry(104, .4, 1.3), r % 2 === 0 ? concrete : concreteLight);
-      step.position.set(0, farStandTerraceTop(r) - .2, FAR_STAND_BASE_Z - .1 - r * FAR_STAND_ROW_DEPTH + .1);
-      // step z-centre sits 0.1m behind the fan line so supporters read
-      // slightly forward of the riser edge (never embedded in concrete).
-      step.position.z = -32.0 - r * FAR_STAND_ROW_DEPTH;
-      this.scene.add(step);
-    }
-    // Roof lip shading the top rows (lowered to match the new top row ~5.5m).
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(106, .5, 10), new THREE.MeshStandardMaterial({ color: '#1d3346', roughness: 1, flatShading: true }));
-    roof.position.set(0, 7.2, -35.5); this.scene.add(roof);
-    // Front + mid railings: two thin bars, no posts (keeps draw calls flat).
-    for (const [ry, rz] of [[1.9, -31.4], [3.6, -34.7]] as const) {
-      const rail = new THREE.Mesh(new THREE.BoxGeometry(104, .07, .07), railMat);
-      rail.position.set(0, ry, rz); this.scene.add(rail);
-    }
-    // Aisle gaps alone mark the sections (a sloped stair mesh here protruded
-    // through the fans and read as a dark blob head-on, so no stair geometry).
-    for (let x = -49; x <= 49; x += 1.25) {
-      if (isStandAisle(x)) continue;
-      for (let r = 0; r < FAR_STAND_ROWS; r++) {
-        const color = Math.abs((x * 5 + r * 3) | 0) % crowdCols.length;
-        fanSpots[color].push({ pos: new THREE.Vector3(x, farStandFanY(r), farStandFanZ(r)), row: r });
-      }
-    }
-    // Low end terraces behind each goal (5 rows): goal-mouth cameras see
-    // supporters + sky, never a flat 7m concrete wall.
-    for (const side of [1, -1] as const) {
-      const endFascia = new THREE.Mesh(new THREE.BoxGeometry(.6, 1.1, 60), concrete);
-      endFascia.position.set(side * 50.3, .55, 0); this.scene.add(endFascia);
-      for (let r = 0; r < END_STAND_ROWS; r++) {
-        const step = new THREE.Mesh(new THREE.BoxGeometry(1.3, .4, 60), r % 2 === 0 ? concrete : concreteLight);
-        step.position.set(side * (51.0 + r * 1.1), endStandTerraceTop(r) - .2, 0);
-        this.scene.add(step);
-      }
-      for (let z = -28; z <= 28; z += 1.25) {
-        if (isStandAisle(z)) continue;
-        for (let r = 0; r < END_STAND_ROWS; r++) {
-          const color = Math.abs((z * 5 + r * 3 + side * 7) | 0) % crowdCols.length;
-          fanSpots[color].push({ pos: new THREE.Vector3(side * (51.1 + r * 1.1), endStandFanY(r), z), row: r });
-        }
-      }
-    }
-    const matrix = new THREE.Matrix4();
-    fanSpots.forEach((spots, color) => {
-      const crowd = new THREE.InstancedMesh(box, new THREE.MeshBasicMaterial({ color: crowdCols[color] }), spots.length);
-      spots.forEach((spot, i) => {
-        matrix.makeTranslation(spot.pos.x, spot.pos.y, spot.pos.z);
-        crowd.setMatrixAt(i, matrix);
-        this.crowdBase.push({ mesh: crowd, i, index: this.crowdBase.length, x: spot.pos.x, y: spot.pos.y, z: spot.pos.z, row: spot.row, origColor: crowdCols[color] });
-      });
-      crowd.instanceMatrix.needsUpdate = true;
-      this.crowdMeshes.push(crowd);
-      this.scene.add(crowd);
-    });
-    // (No giant end boxes: low terraces above replace them so goal-mouth
-    // cameras see supporters + sky instead of flat concrete.)
-    // Floodlight pylons in the four corners: emissive heads, no real lights.
-    const poleMat = new THREE.MeshStandardMaterial({ color: '#3a4350', roughness: .8, flatShading: true });
-    const headMat = new THREE.MeshBasicMaterial({ color: '#fffbe8' });
-    for (const px of [-58, 58]) for (const pz of [-38, 38]) {
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(.35, .5, 20, 6), poleMat);
-      pole.position.set(px, 10, pz); this.scene.add(pole);
-      const head = new THREE.Mesh(new THREE.BoxGeometry(3.4, 1.6, .6), headMat);
-      head.position.set(px, 20.4, pz); head.lookAt(0, 0, 0); this.scene.add(head);
-    }
-    // Pitch-side sponsor boards: procedural LinkedIn / GitHub creatives from
-    // render/ads.ts (1024x128 canvas textures, alternating slots). Display
-    // only — the sim never sees them.
-    const makeAd = (slot: number) => {
+    // Canonical stands + crowd + floodlights. The ad-board painter injects
+    // the game's LinkedIn/GitHub canvas creatives for full parity.
+    const makeAd = (slot: number): THREE.Material => {
       const ad = adForSlot(slot);
       const c = document.createElement('canvas'); c.width = AD_W; c.height = AD_H;
       paintAd(c.getContext('2d')!, ad, AD_W, AD_H);
@@ -456,8 +345,18 @@ export class GameRenderer {
       tex.anisotropy = 4;
       return new THREE.MeshBasicMaterial({ map: tex });
     };
-    const ads = [makeAd(0), makeAd(1)];
-    for (const z of [-30.3, 30.3]) for (let x = -40, i = 0; x < 40; x += 10, i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(9.6, 1.15, .18), ads[i % 2]); b.position.set(x, .6, z); if (z < 0) b.rotation.y = Math.PI; this.scene.add(b); }
+    const stands = createHncStands(makeAd);
+    this.scene.add(stands.group);
+    // Two alternating creatives; boards alternate slots 0/1 in build order.
+    void stands;
+    const crowd = createHncCrowd();
+    for (const mesh of crowd.meshes) {
+      this.crowdMeshes.push(mesh);
+      this.scene.add(mesh);
+    }
+    for (const b of crowd.base) this.crowdBase.push(b);
+    // (No giant end boxes: low terraces above replace them so goal-mouth
+    // cameras see supporters + sky instead of flat concrete.)
   }
 
   /** Flat retro supporter flag texture: team colour, cream border, navy-cut label. */
@@ -596,33 +495,48 @@ export class GameRenderer {
   }
 
   private makeAvatar(p: Player, state: MatchState): Avatar {
-    const root = new THREE.Group(); const kit = new THREE.Color(state.teams[p.team].color), trim = new THREE.Color(state.teams[p.team].secondary);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: p.keeper ? '#6b64d9' : kit, roughness: .85, flatShading: true }); const skin = new THREE.MeshStandardMaterial({ color: ['#f0b68c','#985c3c','#d78f65','#6d422f'][p.id % 4], roughness: 1, flatShading:true }); const dark = new THREE.MeshStandardMaterial({ color: '#28283b', flatShading: true });
-    const bootMat = new THREE.MeshStandardMaterial({ color: '#14141c', roughness: .6, flatShading: true });
-    const shadow = new THREE.Mesh(new THREE.CircleGeometry(.52, 12), new THREE.MeshBasicMaterial({color:'#153a20',transparent:true,opacity:.28})); shadow.rotation.x=-Math.PI/2; shadow.position.y=.014; this.scene.add(shadow);
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(.38,.48,.85,6),bodyMat); body.position.y=1.02; root.add(body);
-    // Chest stripe in trim colour: team identity readable from the side stands.
-    const stripe = new THREE.Mesh(new THREE.CylinderGeometry(.425,.465,.2,6), new THREE.MeshStandardMaterial({ color: trim, roughness: .9, flatShading: true }));
-    stripe.position.y = 1.28; root.add(stripe);
-    // Shirt number on the back, facing away from the direction of play.
-    const number = new THREE.Mesh(new THREE.PlaneGeometry(.52,.52),
-      new THREE.MeshBasicMaterial({ map: numberTexture(p.number), transparent: true }));
-    number.position.set(0, 1.04, -.44); number.rotation.y = Math.PI; root.add(number);
-    const head = new THREE.Mesh(new THREE.IcosahedronGeometry(.32,1),skin); head.position.y=1.7; root.add(head); const hair=new THREE.Mesh(new THREE.SphereGeometry(.325,8,5,0,Math.PI*2,0,Math.PI*.42),dark); hair.position.y=1.81; root.add(hair);
-    const eyeMat=new THREE.MeshBasicMaterial({color:'#182230'}); for(const ex of [-.11,.11]){const eye=new THREE.Mesh(new THREE.SphereGeometry(.035,5,4),eyeMat);eye.position.set(ex,1.72,.3);root.add(eye);}
-    const limb = (mat:THREE.Material) => new THREE.Mesh(new THREE.CylinderGeometry(.115,.13,.67,5),mat);
-    const boot = () => { const b = new THREE.Mesh(new THREE.BoxGeometry(.17,.12,.32), bootMat); b.position.set(0,-.33,.07); return b; };
-    const trimMat=new THREE.MeshStandardMaterial({color:trim,roughness:.9,flatShading:true});
-    const legL=limb(trimMat),legR=limb(trimMat),armL=limb(bodyMat),armR=limb(bodyMat); legL.position.set(-.2,.38,0);legR.position.set(.2,.38,0);armL.position.set(-.48,1.08,0);armR.position.set(.48,1.08,0);
-    legL.add(boot()); legR.add(boot());
-    root.add(legL,legR,armL,armR);
-    const shorts=new THREE.Mesh(new THREE.CylinderGeometry(.47,.4,.27,6),trimMat);shorts.position.y=.68;root.add(shorts); root.castShadow=true; this.scene.add(root);
-    return {root,body,head,legL,legR,armL,armR,shadow,kit,trim,keeper:p.keeper,kitParts:[body,armL,armR],trimParts:[legL,legR,shorts,stripe]};
+    // Canonical HNC character — geometry/materials owned by hnc-visuals.
+    // Extraction refactor: identical look, zero gameplay change.
+    const visual = createHncPlayerVisual({
+      id: p.id,
+      number: p.number,
+      primary: state.teams[p.team].color,
+      secondary: state.teams[p.team].secondary,
+      keeper: p.keeper,
+    });
+    this.scene.add(visual.root);
+    this.scene.add(visual.shadow);
+    // Touch the shared number-texture cache so behaviour (and tests around
+    // caching) stays identical to the old inline implementation.
+    void numberTexture(p.number);
+    return {
+      root: visual.root,
+      body: visual.body,
+      head: visual.head,
+      legL: visual.legL,
+      legR: visual.legR,
+      armL: visual.armL,
+      armR: visual.armR,
+      shadow: visual.shadow,
+      kit: visual.kit,
+      trim: visual.trim,
+      keeper: visual.keeper,
+      kitParts: visual.kitParts,
+      trimParts: visual.trimParts,
+    };
   }
 
   private ensureAvatars(state: MatchState) {
     while (this.avatars.length < state.players.length) this.avatars.push(this.makeAvatar(state.players[this.avatars.length], state));
-    state.players.forEach((p,i)=>{const a=this.avatars[i], kit=p.keeper?'#6b64d9':state.teams[p.team].color, trim=state.teams[p.team].secondary; a.kitParts.forEach(m=>(m.material as THREE.MeshStandardMaterial).color.set(kit));a.trimParts.forEach(m=>(m.material as THREE.MeshStandardMaterial).color.set(trim));});
+    state.players.forEach((p,i)=>{
+      const a=this.avatars[i];
+      const kit=p.keeper?'#6b64d9':state.teams[p.team].color, trim=state.teams[p.team].secondary;
+      rekitHncPlayerVisual(
+        { root: a.root, body: a.body, head: a.head, legL: a.legL, legR: a.legR, armL: a.armL, armR: a.armR, shadow: a.shadow, kit: a.kit, trim: a.trim, keeper: a.keeper, kitParts: a.kitParts, trimParts: a.trimParts, extras: [] },
+        kit,
+        trim,
+      );
+    });
     // Each side stand flies one club's colours.
     this.standBanners.forEach((b, i) => (b.material as THREE.MeshBasicMaterial).color.set(state.teams[i % 2].color));
   }

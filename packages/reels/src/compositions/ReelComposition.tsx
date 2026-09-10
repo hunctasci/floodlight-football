@@ -4,6 +4,7 @@ import { ThreeCanvas } from '@remotion/three';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { evaluateCamera } from '../cameras/registry';
+import { HNC_REEL_TO_SOCIAL, hncPresetLens } from '@floodlight/hnc-visuals';
 import { resolveAnchor } from '../stages/registry';
 import { Stage3D } from '../stages/Stage';
 import { Actor } from '../actors/Actor';
@@ -29,22 +30,29 @@ const CameraUpdater: React.FC<{
   preset?: string;
   shotStart: number;
   duration: number;
-  follow?: { x: number; z: number };
+  follow?: { x: number; y: number; z: number };
   globalFrame: number;
 }> = ({ preset, shotStart, duration, follow, globalFrame }) => {
   const { camera } = useThree();
   const frame = globalFrame;
   const local = frame - shotStart;
-  const base = evaluateCamera(preset ?? 'graphics-static', Math.max(0, local), Math.max(1, duration));
-  // Ball-following information shots: keep the ball framed in portrait 9:16.
-  // Pure function of the evaluated ball position — no per-frame state.
-  const pose = follow && preset !== 'football-faceoff'
-    ? {
-        pos: [follow.x * 0.55, base.pos[1], base.pos[2]] as [number, number, number],
-        look: [follow.x * 0.8, 1, follow.z * 0.4] as [number, number, number],
-        fov: base.fov,
-      }
-    : base;
+  const id = preset ?? 'graphics-static';
+  // Football-family presets use the proven HNC social lens evaluated AT the
+  // live ball anchor (ball-anchored tracking is automatic — the ball drives).
+  // football-faceoff keeps its Catmull-Rom dolly (handled in the registry).
+  let pose: { pos: [number, number, number]; look: [number, number, number]; fov: number };
+  if (follow && id !== 'football-faceoff' && HNC_REEL_TO_SOCIAL[id]) {
+    const lens = hncPresetLens(HNC_REEL_TO_SOCIAL[id], {
+      ball: { x: follow.x, y: follow.y, z: follow.z },
+    });
+    pose = {
+      pos: [lens.pos.x, lens.pos.y, lens.pos.z],
+      look: [lens.look.x, lens.look.y, lens.look.z],
+      fov: lens.fov,
+    };
+  } else {
+    pose = evaluateCamera(id, Math.max(0, local), Math.max(1, duration));
+  }
   const shakeShot = { x: 0, y: 0 };
   void shakeShot;
   React.useMemo(() => {
@@ -126,8 +134,10 @@ const ShotView: React.FC<{ shot: ShotSpec; spec: ReelSpec; fps: number; width: n
   const showVignette = (shot.effects ?? []).some((e) => e.type === 'vignette');
 
   // Football information shots track the evaluated ball (deterministic).
-  let follow: { x: number; z: number } | undefined;
-  if (shot.footballMoment && (shot.camera ?? '').startsWith('football')) {
+  // Any football-family camera (football-*, ball-*, keeper-*, celebration-*,
+  // reaction-*) follows the ball; the canonical lens is ball-anchored.
+  let follow: { x: number; y: number; z: number } | undefined;
+  if (shot.footballMoment && (shot.camera === undefined || shot.camera.includes('football') || shot.camera.includes('ball') || shot.camera.includes('keeper') || shot.camera.includes('celebration') || shot.camera.includes('reaction'))) {
     const t = Math.min(
       shot.durationInFrames / fps,
       Math.max(0, (frame - shot.startFrame) / fps),
@@ -139,7 +149,7 @@ const ShotView: React.FC<{ shot: ShotSpec; spec: ReelSpec; fps: number; width: n
         shot.durationInFrames / fps,
         shot.attackingTeam !== 'away',
       );
-      follow = { x: choreo.ball.x, z: choreo.ball.z };
+      follow = { x: choreo.ball.x, y: choreo.ball.y, z: choreo.ball.z };
     } catch {
       follow = undefined;
     }
@@ -165,10 +175,33 @@ const ShotView: React.FC<{ shot: ShotSpec; spec: ReelSpec; fps: number; width: n
 
   return (
     <AbsoluteFill>
-      <ThreeCanvas width={width} height={height} linear flat dpr={1} gl={{ antialias: true }}>
-        <ambientLight intensity={0.9} />
-        <hemisphereLight args={['#e8f6ff', '#2f6b35', 1.1]} />
-        <directionalLight position={[-25, 42, 18]} intensity={1.6} castShadow shadow-mapSize={[1024, 1024]} />
+      <ThreeCanvas
+        width={width}
+        height={height}
+        dpr={1}
+        shadows
+        gl={{
+          antialias: true,
+          outputColorSpace: THREE.SRGBColorSpace,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.12,
+        }}
+        camera={{ fov: 50, near: 0.1, far: 280, position: [0, 16, 30] }}
+      >
+        {/* Canonical HNC daylight (matches GameRenderer exactly). The old
+            `linear flat` + ambient 0.9 / hemi 1.1 / dir 1.6 setup disabled
+            sRGB + tone mapping and washed out the Reel vs the game. */}
+        <hemisphereLight args={['#e8f6ff', '#2f6b35', 2.35]} />
+        <directionalLight
+          position={[-25, 42, 18]}
+          intensity={2.4}
+          castShadow
+          shadow-mapSize={[1024, 1024]}
+          shadow-camera-left={-60}
+          shadow-camera-right={60}
+          shadow-camera-top={45}
+          shadow-camera-bottom={-45}
+        />
         <CameraUpdater preset={shot.camera} shotStart={shot.startFrame} duration={shot.durationInFrames} follow={follow} globalFrame={frame} />
         <group position={[shake.x * 4, shake.y * 4, 0]}>
           <Stage3D

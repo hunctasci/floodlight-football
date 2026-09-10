@@ -16,6 +16,7 @@
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote"
   },
   "dependencies": {
+    "@floodlight/hnc-visuals": "1.0.0",
     "three": "0.185.1"
   },
   "devDependencies": {
