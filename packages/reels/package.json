@@ -1,0 +1,43 @@
+{
+  "name": "@floodlight/reels",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "studio": "remotion studio",
+    "render": "tsx scripts/render.ts",
+    "still": "tsx scripts/still.ts",
+    "preview": "tsx scripts/preview.ts",
+    "validate": "tsx scripts/validate.ts",
+    "asset:import": "tsx scripts/import-glb.ts",
+    "asset:validate": "tsx scripts/validate-assets.ts"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
+    "@react-three/postprocessing": "^3.0.4",
+    "@remotion/cli": "4.0.523",
+    "@remotion/renderer": "4.0.523",
+    "@remotion/three": "4.0.523",
+    "mediabunny": "^1.56.1",
+    "meshoptimizer": "^0.25.0",
+    "postprocessing": "^6.36.0",
+    "react": "~19.2.0",
+    "react-dom": "~19.2.0",
+    "remotion": "4.0.523",
+    "three": "0.185.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@types/three": "0.185.4",
+    "@gltf-transform/core": "^4.5.0",
+    "@gltf-transform/extensions": "^4.5.0",
+    "@gltf-transform/functions": "^4.5.0",
+    "tsx": "4.23.13",
+    "typescript": "7.0.2"
+  }
+}

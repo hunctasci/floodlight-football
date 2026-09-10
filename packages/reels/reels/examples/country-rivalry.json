@@ -1,0 +1,10 @@
+{
+  "template": "country-rivalry",
+  "home": "TR",
+  "away": "GR",
+  "seed": 42,
+  "fps": 30,
+  "footballMoment": "attack-goal",
+  "headline": "EVERY WIN COUNTS",
+  "cta": "PLAY FOR YOUR COUNTRY"
+}

@@ -20,6 +20,12 @@
     "social:render": "tsx packages/social-video/scripts/render-video.ts",
     "social:trailer-board": "tsx packages/social-video/scripts/render-trailer-storyboard.ts",
     "social:validate": "npm run validate --workspace=@floodlight/social-video",
+    "reels:studio": "npm run studio --workspace=@floodlight/reels",
+    "reels:render": "tsx packages/reels/scripts/render.ts",
+    "reels:still": "tsx packages/reels/scripts/still.ts",
+    "reels:validate": "npm run validate --workspace=@floodlight/reels",
+    "reels:test": "npm run test --workspace=@floodlight/reels",
+    "reels:asset:import": "npm run asset:import --workspace=@floodlight/reels",
     "deploy": "npm run deploy --workspace=floodlight-football"
   },
   "engines": {
