@@ -12,9 +12,13 @@ import {
   attackGoalFrameToRenderInput, compileAttackGoalTimeline, evaluateAttackGoalFrame,
   type AttackGoalFrameDescription, type AttackGoalTimelineData,
 } from './scenes/attack-goal';
+import { compileOverlayPlan } from './overlays/compile';
+import { evaluateOverlayFrame } from './overlays/evaluate';
+import type { OverlayFrameDescription, OverlayPlanEntry } from './overlays/types';
 
 export type { SocialFrameDescription } from './scenes/faceoff';
 export type { AttackGoalFrameDescription } from './scenes/attack-goal';
+export type { EvaluatedOverlay, OverlayFrameDescription, OverlayKind, OverlayPlanEntry } from './overlays/types';
 
 /** Any scene's evaluated frame: narrowed by the `scene` discriminant. */
 export type SceneFrameDescription = SocialFrameDescription | AttackGoalFrameDescription;
@@ -23,7 +27,8 @@ export type SceneFrameDescription = SocialFrameDescription | AttackGoalFrameDesc
  * Compiled deterministic timeline: plain data, no THREE objects, no browser.
  * Pipeline: SocialVideoSpec → compileVideo() → CompiledSocialVideo →
  * evaluateFrame(frame) → SceneFrameDescription → sceneFrameToRenderInput()
- * → GameRenderer.renderSocial() → PNG.
+ * → GameRenderer.renderSocial() → PNG, plus evaluateOverlays(frame) →
+ * OverlayFrameDescription → renderOverlays(...) → HTML/CSS layers.
  */
 export interface CompiledSocialVideo {
   readonly scene: SocialSceneId;
@@ -39,14 +44,23 @@ export interface CompiledSocialVideo {
   readonly totalFrames: number;
   readonly attackTeam: ResolvedVideoSpec['attackTeam'];
   readonly attackStyle: ResolvedVideoSpec['attackStyle'];
+  readonly overlaysMode: ResolvedVideoSpec['overlays'];
+  readonly headline: ResolvedVideoSpec['headline'];
+  readonly secondary: ResolvedVideoSpec['secondary'];
+  readonly cta: ResolvedVideoSpec['cta'];
   readonly faceoff: FaceoffTimelineData;
   /** Staging payload for the attack-goal scene (null for other scenes). */
   readonly attackGoal: AttackGoalTimelineData | null;
+  /** Semantic overlay plan: WHEN overlays appear (HOW lives in CSS/DOM). */
+  readonly overlayPlan: OverlayPlanEntry[];
 }
 
 /** Compile raw agent/CLI input into a deterministic timeline. Pure. */
 export function compileVideo(input: RawVideoInput): CompiledSocialVideo {
   const resolved: ResolvedVideoSpec = resolveVideoSpec(input);
+  if (resolved.template !== undefined) {
+    throw new Error('Use compileTemplate for template specs, not compileVideo.');
+  }
   if (resolved.scene !== 'faceoff' && resolved.scene !== 'attack-goal') {
     throw new Error(`Unsupported scene: ${resolved.scene}`);
   }
@@ -64,8 +78,13 @@ export function compileVideo(input: RawVideoInput): CompiledSocialVideo {
     totalFrames: resolved.totalFrames,
     attackTeam: resolved.attackTeam,
     attackStyle: resolved.attackStyle,
+    overlaysMode: resolved.overlays,
+    headline: resolved.headline,
+    secondary: resolved.secondary,
+    cta: resolved.cta,
     faceoff: compileFaceoffTimeline(resolved),
     attackGoal: resolved.scene === 'attack-goal' ? compileAttackGoalTimeline(resolved) : null,
+    overlayPlan: compileOverlayPlan(resolved),
   });
 }
 
@@ -99,6 +118,15 @@ export function evaluateFrame(compiled: CompiledSocialVideo, frame: number): Sce
     fps: compiled.fps,
     duration: compiled.duration,
   });
+}
+
+/**
+ * Evaluate the overlay layer for one frame. Pure random-access function of
+ * (compiled, frame): absolute DOM state, no CSS animations, no wall clocks.
+ */
+export function evaluateOverlays(compiled: CompiledSocialVideo, frame: number): OverlayFrameDescription {
+  parseFrameIndex(frame, compiled.totalFrames, compiled.fps, compiled.duration);
+  return evaluateOverlayFrame(compiled.overlayPlan, frame, compiled.fps);
 }
 
 /** Final dumb-renderer input for any scene (no timeline left in it). */

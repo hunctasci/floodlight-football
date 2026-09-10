@@ -1,6 +1,7 @@
 import { mkdir, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { compileVideo, frameFilename } from '../timeline';
+import type { CompiledTemplate } from '../templates/types';
 import type { ResolvedVideoSpec } from '../schema';
 import { SocialRenderSession } from './session';
 
@@ -86,4 +87,45 @@ export async function renderFramesToDir(
     await session.close();
   }
   return { dir, totalFrames: compiled.totalFrames, width: compiled.width, height: compiled.height };
+}
+
+/**
+ * Render one deterministic template frame (global timeline position) with
+ * the real HNC renderer. Same random-access contract as renderFrameToPng.
+ */
+export async function renderTemplateFrameToPng(
+  tpl: CompiledTemplate,
+  output: string,
+  frame = 0,
+): Promise<RenderedFrame> {
+  const session = await SocialRenderSession.openTemplate(tpl);
+  try {
+    return await session.screenshotFrame(frame, output);
+  } finally {
+    await session.close();
+  }
+}
+
+/**
+ * Render a full template PNG sequence through ONE reused browser session.
+ * Frames are named 000000.png ... NNNNNN.png (global template frames).
+ */
+export async function renderTemplateFramesToDir(
+  tpl: CompiledTemplate,
+  dir: string,
+  onProgress?: (p: SequenceProgress) => void,
+): Promise<RenderedSequence> {
+  await mkdir(dir, { recursive: true });
+  await clearFramePngs(dir);
+  const session = await SocialRenderSession.openTemplate(tpl);
+  try {
+    for (let frame = 0; frame < tpl.totalFrames; frame++) {
+      const out = path.join(dir, frameFilename(frame));
+      await session.screenshotFrame(frame, out);
+      onProgress?.({ frame, totalFrames: tpl.totalFrames, path: out });
+    }
+  } finally {
+    await session.close();
+  }
+  return { dir, totalFrames: tpl.totalFrames, width: tpl.width, height: tpl.height };
 }

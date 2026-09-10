@@ -17,6 +17,7 @@
     "test:e2e": "npm run test:e2e --workspace=floodlight-football",
     "social:frame": "tsx packages/social-video/scripts/render-frame.ts",
     "social:frames": "tsx packages/social-video/scripts/render-frames.ts",
+    "social:render": "tsx packages/social-video/scripts/render-video.ts",
     "social:validate": "npm run validate --workspace=@floodlight/social-video",
     "deploy": "npm run deploy --workspace=floodlight-football"
   },

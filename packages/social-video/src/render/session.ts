@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Browser, chromium, Page } from '@playwright/test';
 import type { CompiledSocialVideo } from '../timeline';
+import type { CompiledTemplate } from '../templates/types';
 import { pngDimensions } from './png';
 
 const PACKAGE_ROOT = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
@@ -71,13 +72,45 @@ async function startHarnessServer(port: number): Promise<ChildProcess> {
  */
 export class SocialRenderSession {
   private constructor(
-    private readonly compiled: CompiledSocialVideo,
+    private readonly dims: { width: number; height: number },
     private readonly server: ChildProcess,
     private readonly browser: Browser,
     private readonly page: Page,
   ) {}
 
   static async open(compiled: CompiledSocialVideo): Promise<SocialRenderSession> {
+    const params = new URLSearchParams({
+      scene: compiled.scene, home: compiled.home, away: compiled.away,
+      format: compiled.format, seed: String(compiled.seed),
+      fps: String(compiled.fps), duration: String(compiled.duration),
+      attackTeam: compiled.attackTeam, attackStyle: compiled.attackStyle,
+      overlays: compiled.overlaysMode,
+    });
+    // Semantic copy travels URL-encoded (spaces/Unicode/emoji safe).
+    if (compiled.headline !== undefined) params.set('headline', compiled.headline);
+    if (compiled.secondary !== undefined) params.set('secondary', compiled.secondary);
+    if (compiled.cta !== undefined) params.set('cta', compiled.cta);
+    return SocialRenderSession.openWithParams({ width: compiled.width, height: compiled.height }, params);
+  }
+
+  static async openTemplate(tpl: CompiledTemplate): Promise<SocialRenderSession> {
+    const params = new URLSearchParams({
+      template: tpl.template, home: tpl.home, away: tpl.away,
+      format: tpl.format, seed: String(tpl.seed),
+      fps: String(tpl.fps),
+      attackTeam: tpl.attackTeam, attackStyle: tpl.attackStyle,
+      overlays: tpl.overlaysMode,
+    });
+    if (tpl.headline !== undefined) params.set('headline', tpl.headline);
+    if (tpl.secondary !== undefined) params.set('secondary', tpl.secondary);
+    if (tpl.cta !== undefined) params.set('cta', tpl.cta);
+    return SocialRenderSession.openWithParams({ width: tpl.width, height: tpl.height }, params);
+  }
+
+  private static async openWithParams(
+    dims: { width: number; height: number },
+    params: URLSearchParams,
+  ): Promise<SocialRenderSession> {
     const port = await freePort();
     const server = await startHarnessServer(port);
     try {
@@ -93,14 +126,8 @@ export class SocialRenderSession {
       });
       try {
         const page = await browser.newPage({
-          viewport: { width: compiled.width, height: compiled.height },
+          viewport: { width: dims.width, height: dims.height },
           deviceScaleFactor: 1,
-        });
-        const params = new URLSearchParams({
-          scene: compiled.scene, home: compiled.home, away: compiled.away,
-          format: compiled.format, seed: String(compiled.seed),
-          fps: String(compiled.fps), duration: String(compiled.duration),
-          attackTeam: compiled.attackTeam, attackStyle: compiled.attackStyle,
         });
         await page.goto(`http://127.0.0.1:${port}/render.html?${params.toString()}`, { waitUntil: 'load' });
         await page.waitForFunction(
@@ -110,7 +137,7 @@ export class SocialRenderSession {
         );
         const harnessError = await page.evaluate(() => window.__HNC_SOCIAL_ERROR__);
         if (typeof harnessError === 'string') throw new Error(`Social harness failed: ${harnessError}`);
-        return new SocialRenderSession(compiled, server, browser, page);
+        return new SocialRenderSession(dims, server, browser, page);
       } catch (error) {
         await browser.close();
         throw error;
@@ -136,8 +163,8 @@ export class SocialRenderSession {
     await this.renderFrame(frame);
     await this.page.screenshot({ path: output });
     const dims = pngDimensions(await readFile(output));
-    if (dims.width !== this.compiled.width || dims.height !== this.compiled.height) {
-      throw new Error(`Screenshot is ${dims.width}x${dims.height}, expected ${this.compiled.width}x${this.compiled.height}`);
+    if (dims.width !== this.dims.width || dims.height !== this.dims.height) {
+      throw new Error(`Screenshot is ${dims.width}x${dims.height}, expected ${this.dims.width}x${this.dims.height}`);
     }
     return { output, ...dims };
   }

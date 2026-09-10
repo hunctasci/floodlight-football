@@ -56,7 +56,7 @@ npm run social:validate
 # Validate any spec without rendering
 npm run render-frame --workspace=@floodlight/social-video -- --dry-run --home BR --away AR
 
-# Unit tests (schema + timeline + presets + CLI errors + browser frames)
+# Unit tests (schema + timeline + presets + overlays + CLI errors + browser frames)
 npm run test --workspace=@floodlight/social-video
 ```
 
@@ -104,6 +104,166 @@ npm run social:frame -- --scene attack-goal --home TR --away GR --frame 105 --ou
 `frame` is a deterministic random-access timeline position — no sequence
 render is needed to preview it.
 
+## Overlay concepts
+
+Finished social creative ships as deterministic HTML/CSS layers over the
+Three.js canvas (`render(spec, frame) = Three.js frame + overlay frame`).
+Overlay state is evaluated purely from (spec, frame) — no CSS animations,
+no wall clocks — so any frame renders standalone.
+
+Semantic overlay kinds (styling is owned by the system, never the spec):
+
+```text
+versus    country rivalry title (stacked card on faceoff, strip on attack-goal)
+headline  marketing line (PICK A SIDE / EVERY WIN COUNTS by default)
+goal      country-specific goal punch (TÜRKIYE SCORES!)
+cta       end-card call to action (PLAY FOR YOUR COUNTRY by default)
+brand     HNC lockup + hncleague.com (logo file when valid, styled text otherwise)
+```
+
+Spec fields are copy-only, never CSS:
+
+```bash
+# Custom copy (plain text, max 48/80/48 chars for headline/secondary/cta)
+npm run social:frame -- \
+  --scene attack-goal \
+  --home TR \
+  --away GR \
+  --headline "ONE WIN FROM #1" \
+  --cta "PLAY FOR TÜRKİYE" \
+  --frame 170 \
+  --output social/output/preview.png
+```
+
+```bash
+# Clean 3D without marketing layers (reproduces the pre-overlay output)
+npm run social:frame -- --scene faceoff --home TR --away GR --no-overlays --output social/output/clean.png
+```
+
+## Render final video
+
+Full deterministic pipeline (frames + SFX/ambience + H.264/AAC encode):
+
+```bash
+npm run social:render -- \
+  --scene attack-goal \
+  --home TR \
+  --away GR \
+  --seed 42 \
+  --output social/output/tr-vs-gr.mp4
+```
+
+Produces `1080x1920`, spec FPS, H.264 + AAC with faststart. Temp PNGs are
+deleted unless `--keep-frames` (kept at `<output>.frames/`); refuses to
+overwrite without `--force`. Audio is synthesized offline from semantic
+scene beats (kick/pass/shot/goal/crowd + ambience) — no browser recording.
+
+## Add music
+
+```bash
+npm run social:render -- \
+  --scene attack-goal \
+  --home TR \
+  --away GR \
+  --music ./my-track.mp3 \
+  --output social/output/tr-vs-gr.mp4
+```
+
+Music is mixed underneath the SFX (`--music-volume 0.25` default, 0–1),
+trimmed/faded to the clip. Never commit supplied music. No music bundled.
+
+## Recommended workflow
+
+```text
+1. render individual preview frames
+2. inspect overlays/action
+3. render full MP4
+4. inspect audio sync
+```
+
+Do not render the whole video repeatedly while tuning one frame.
+
+## Production Reel template
+
+One command renders the finished 11s country-rivalry Reel (faceoff intro →
+attack-goal → branded CTA outro, 330 frames at 30fps):
+
+```bash
+npm run social:render -- \
+  --template country-rivalry-reel \
+  --home TR \
+  --away GR \
+  --seed 42 \
+  --output social/output/tr-vs-gr-reel.mp4
+```
+
+Preview template frames first (same frame indices as the MP4 timeline):
+
+```bash
+npm run social:frame -- --template country-rivalry-reel --home TR --away GR --frame 10 --output social/output/preview.png
+```
+
+Useful template frames: `10` rivalry title, `71` faceoff final, `100`
+attack, `192` goal, `230` celebration, `300` final CTA. Only
+`country-rivalry-reel` exists — do not invent other template names.
+`--scene` and `--template` are mutually exclusive; the template fixes its
+own duration (11s). Custom `--headline` reaches the celebration (not the
+intro title); custom `--cta` reaches the outro end card.
+
+## Agent prompt example
+
+```text
+Create a Turkey vs Greece country-rivalry-reel.
+
+Turkey should attack using a counter.
+
+Use seed 42.
+
+Headline:
+EVERY WIN COUNTS
+
+CTA:
+PLAY FOR YOUR COUNTRY
+```
+
+maps to:
+
+```bash
+npm run social:render -- \
+  --template country-rivalry-reel \
+  --home TR \
+  --away GR \
+  --attack-style counter \
+  --seed 42 \
+  --headline "EVERY WIN COUNTS" \
+  --cta "PLAY FOR YOUR COUNTRY" \
+  --output social/output/tr-vs-gr-reel.mp4
+```
+
+Recommended workflow:
+
+```text
+1. Pick matchup
+2. Render key preview frames
+3. Adjust headline/CTA/attack style/seed
+4. Render full Reel
+5. Watch MP4
+6. If good, publish
+```
+
+Recommended overlay inspection frames (check copy + safe zones first):
+
+```text
+faceoff (4s/30fps):      15  45  90  119
+attack-goal (6s/30fps):  30  110  120  150  170  179
+```
+
+Country names/flags in `versus`/`goal` copy derive from the canonical game
+country data (`apps/game/src/city-league/countries.ts`); uppercase uses the
+default locale, so canonical "Türkiye" renders "TÜRKIYE". The brand logo
+resolves to `apps/game/public/icons/hnc-retro-v2.png` and is pixel-validated
+at harness boot — see `src/overlays/render-dom.ts`.
+
 ## Supported formats
 
 ```text
@@ -149,6 +309,12 @@ Unknown country code: XX
 - New presets belong in `src/scenes/<name>.ts` + `src/cameras/social-camera.ts`
   as pure functions of (compiled spec, frame); register the name in
   `src/schema.ts` and dispatch it in `src/timeline.ts`.
+- New overlay Kinds are out of scope (the set is versus/headline/goal/cta/
+  brand); scene code owns overlay TIMING via `src/overlays/presets.ts`,
+  the DOM renderer owns styling via `src/overlays/render-dom.ts` +
+  `src/overlays/styles.css`. Never expose CSS/HTML in the spec, never use
+  `innerHTML` for copy (use `textContent`), never add CSS animations or
+  transitions as a timeline source.
 - Preserve deterministic rendering: no `Math.random()` / `Date.now()` /
   `performance.now()` in scene code — derive all variation from `seed`, all
   motion from `time = frame / fps` via `src/timeline/math.ts` helpers.
