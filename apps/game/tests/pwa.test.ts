@@ -44,7 +44,7 @@ test('service worker caches the app shell and versions itself', () => {
 test('index.html wires manifest, icons and mobile viewport', () => {
   const html = read('index.html');
   for (const token of [
-    'rel="manifest"', 'manifest.webmanifest', 'apple-touch-icon', 'icon-192.png',
+    'rel="manifest"', 'manifest.webmanifest', 'apple-touch-icon', 'hnc-retro-v2.png',
     'viewport-fit=cover', 'user-scalable=no', 'mobile-web-app-capable',
     'apple-mobile-web-app-capable', 'theme-color',
   ]) {
