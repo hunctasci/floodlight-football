@@ -30,3 +30,15 @@ export function segmentProgress(time: number, start: number, end: number): numbe
   if (!(end > start)) return time >= end ? 1 : 0;
   return smoothstep((time - start) / (end - start));
 }
+
+/**
+ * Shortest-path angle interpolation (radians): never spins almost 360°
+ * across the -π ↔ +π seam. `t` is clamped to 0..1. Pure.
+ */
+export function lerpAngleShortest(a: number, b: number, t: number): number {
+  const c = clamp01(t);
+  let d = (b - a) % (Math.PI * 2);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return a + d * c;
+}

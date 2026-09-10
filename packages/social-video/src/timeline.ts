@@ -13,16 +13,36 @@ import {
   attackGoalFrameToRenderInput, compileAttackGoalTimeline, evaluateAttackGoalFrame,
   type AttackGoalFrameDescription, type AttackGoalTimelineData,
 } from './scenes/attack-goal';
+import {
+  compileCrossHeaderTimeline, crossHeaderFrameToRenderInput, evaluateCrossHeaderFrame,
+  type CrossHeaderFrameDescription, type CrossHeaderTimelineData,
+} from './scenes/cross-header-goal';
+import {
+  compileCrossbarTimeline, crossbarFrameToRenderInput, evaluateCrossbarFrame,
+  type CrossbarFrameDescription, type CrossbarTimelineData,
+} from './scenes/crossbar-chaos';
+import {
+  compileKeeperTimeline, evaluateKeeperFrame, keeperFrameToRenderInput,
+  type KeeperFrameDescription, type KeeperTimelineData,
+} from './scenes/keeper-disaster';
 import { compileOverlayPlan } from './overlays/compile';
 import { evaluateOverlayFrame } from './overlays/evaluate';
 import type { OverlayFrameDescription, OverlayPlanEntry } from './overlays/types';
 
 export type { SocialFrameDescription } from './scenes/faceoff';
 export type { AttackGoalFrameDescription } from './scenes/attack-goal';
+export type { CrossHeaderFrameDescription } from './scenes/cross-header-goal';
+export type { CrossbarFrameDescription } from './scenes/crossbar-chaos';
+export type { KeeperFrameDescription } from './scenes/keeper-disaster';
 export type { EvaluatedOverlay, OverlayFrameDescription, OverlayKind, OverlayPlanEntry } from './overlays/types';
 
 /** Any scene's evaluated frame: narrowed by the `scene` discriminant. */
-export type SceneFrameDescription = SocialFrameDescription | AttackGoalFrameDescription;
+export type SceneFrameDescription =
+  | SocialFrameDescription
+  | AttackGoalFrameDescription
+  | CrossHeaderFrameDescription
+  | CrossbarFrameDescription
+  | KeeperFrameDescription;
 
 /**
  * Compiled deterministic timeline: plain data, no THREE objects, no browser.
@@ -52,6 +72,10 @@ export interface CompiledSocialVideo {
   readonly faceoff: FaceoffTimelineData;
   /** Staging payload for the attack-goal scene (null for other scenes). */
   readonly attackGoal: AttackGoalTimelineData | null;
+  /** Staging payloads for the arcade scenes (null for other scenes). */
+  readonly crossHeader: CrossHeaderTimelineData | null;
+  readonly crossbar: CrossbarTimelineData | null;
+  readonly keeper: KeeperTimelineData | null;
   /** Semantic overlay plan: WHEN overlays appear (HOW lives in CSS/DOM). */
   readonly overlayPlan: OverlayPlanEntry[];
 }
@@ -62,7 +86,9 @@ export function compileVideo(input: RawVideoInput): CompiledSocialVideo {
   if (resolved.template !== undefined) {
     throw new Error('Use compileTemplate for template specs, not compileVideo.');
   }
-  if (resolved.scene !== 'faceoff' && resolved.scene !== 'attack-goal') {
+  if (resolved.scene !== 'faceoff' && resolved.scene !== 'attack-goal'
+    && resolved.scene !== 'cross-header-goal' && resolved.scene !== 'crossbar-chaos'
+    && resolved.scene !== 'keeper-disaster') {
     throw new Error(`Unsupported scene: ${resolved.scene}`);
   }
   return Object.freeze({
@@ -85,6 +111,9 @@ export function compileVideo(input: RawVideoInput): CompiledSocialVideo {
     cta: resolved.cta,
     faceoff: compileFaceoffTimeline(resolved),
     attackGoal: resolved.scene === 'attack-goal' ? compileAttackGoalTimeline(resolved) : null,
+    crossHeader: resolved.scene === 'cross-header-goal' ? compileCrossHeaderTimeline(resolved) : null,
+    crossbar: resolved.scene === 'crossbar-chaos' ? compileCrossbarTimeline(resolved) : null,
+    keeper: resolved.scene === 'keeper-disaster' ? compileKeeperTimeline(resolved) : null,
     overlayPlan: compileOverlayPlan(resolved),
   });
 }
@@ -100,6 +129,42 @@ export function evaluateFrame(compiled: CompiledSocialVideo, frame: number): Sce
     if (!compiled.attackGoal) throw new Error('Missing attack-goal staging');
     return evaluateAttackGoalFrame({
       data: compiled.attackGoal,
+      home: compiled.home,
+      away: compiled.away,
+      seed: compiled.seed,
+      frame,
+      fps: compiled.fps,
+      duration: compiled.duration,
+    });
+  }
+  if (compiled.scene === 'cross-header-goal') {
+    if (!compiled.crossHeader) throw new Error('Missing cross-header-goal staging');
+    return evaluateCrossHeaderFrame({
+      data: compiled.crossHeader,
+      home: compiled.home,
+      away: compiled.away,
+      seed: compiled.seed,
+      frame,
+      fps: compiled.fps,
+      duration: compiled.duration,
+    });
+  }
+  if (compiled.scene === 'crossbar-chaos') {
+    if (!compiled.crossbar) throw new Error('Missing crossbar-chaos staging');
+    return evaluateCrossbarFrame({
+      data: compiled.crossbar,
+      home: compiled.home,
+      away: compiled.away,
+      seed: compiled.seed,
+      frame,
+      fps: compiled.fps,
+      duration: compiled.duration,
+    });
+  }
+  if (compiled.scene === 'keeper-disaster') {
+    if (!compiled.keeper) throw new Error('Missing keeper-disaster staging');
+    return evaluateKeeperFrame({
+      data: compiled.keeper,
       home: compiled.home,
       away: compiled.away,
       seed: compiled.seed,
@@ -151,6 +216,15 @@ export function sceneFrameToRenderInput(
 ): SocialRenderInput {
   if (desc.scene === 'attack-goal') {
     return attackGoalFrameToRenderInput(desc, compiled.home, compiled.away);
+  }
+  if (desc.scene === 'cross-header-goal') {
+    return crossHeaderFrameToRenderInput(desc, compiled.home, compiled.away);
+  }
+  if (desc.scene === 'crossbar-chaos') {
+    return crossbarFrameToRenderInput(desc, compiled.home, compiled.away);
+  }
+  if (desc.scene === 'keeper-disaster') {
+    return keeperFrameToRenderInput(desc, compiled.home, compiled.away);
   }
   return { ...faceoffFrameToRenderInput(desc, compiled.home, compiled.away), effects: undefined };
 }

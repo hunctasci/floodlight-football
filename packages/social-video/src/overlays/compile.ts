@@ -1,5 +1,7 @@
 import type { ResolvedVideoSpec } from '../schema';
-import { attackGoalOverlayPlan, faceoffOverlayPlan } from './presets';
+import {
+  attackGoalOverlayPlan, crossbarOverlayPlan, crossHeaderOverlayPlan, faceoffOverlayPlan, keeperOverlayPlan,
+} from './presets';
 import type { OverlayPlanEntry } from './types';
 
 /**
@@ -19,6 +21,21 @@ export function compileOverlayPlan(
     secondary: spec.secondary,
     cta: spec.cta,
   };
-  const plan = spec.scene === 'attack-goal' ? attackGoalOverlayPlan(args) : faceoffOverlayPlan(args);
+  switch (spec.scene) {
+    case 'attack-goal':
+      return frozen(attackGoalOverlayPlan(args));
+    case 'cross-header-goal':
+      return frozen(crossHeaderOverlayPlan(args));
+    case 'crossbar-chaos':
+      return frozen(crossbarOverlayPlan(args));
+    case 'keeper-disaster':
+      return frozen(keeperOverlayPlan(args));
+    case 'faceoff':
+    default:
+      return frozen(faceoffOverlayPlan(args));
+  }
+}
+
+function frozen(plan: OverlayPlanEntry[]): OverlayPlanEntry[] {
   return Object.freeze(plan.map((entry) => Object.freeze(entry))) as OverlayPlanEntry[];
 }

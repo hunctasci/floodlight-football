@@ -13,6 +13,11 @@ export const DEFAULT_ATTACK_HEADLINE = 'EVERY WIN COUNTS';
 export const DEFAULT_CTA = 'PLAY FOR YOUR COUNTRY';
 export const BRAND_DOMAIN = 'hncleague.com';
 
+/** Entertainment-scene hooks (semantic, customizable via --headline). */
+export const DEFAULT_CROSS_HEADER_HOOK = '3 SECONDS LEFT.';
+export const DEFAULT_CROSSBAR_HOOK = 'HOW DID THIS END IN A GOAL?';
+export const DEFAULT_KEEPER_HOOK = 'BRO...';
+
 function versusPayload(home: string, away: string, layout: VersusPayload['layout']): VersusPayload {
   const h = getCountry(home);
   const a = getCountry(away);
@@ -84,4 +89,51 @@ export function attackGoalOverlayPlan(args: PresetArgs): OverlayPlanEntry[] {
     { kind: 'cta', start: 5.35, end: 99, text: args.cta ?? DEFAULT_CTA },
     { kind: 'brand', start: 5.35, end: 99 },
   ];
+}
+
+/**
+ * Entertainment scenes share one philosophy: HOOK → FOOTBALL → HNC BRANDING
+ * AT END. The hook (customizable marketing line) opens the clip, then the
+ * pitch stays clean through the action beats — no versus strip, no
+ * mid-clip ads — then goal punch, CTA and brand close it out.
+ */
+function entertainmentOverlayPlan(args: {
+  home: string;
+  away: string;
+  attackTeam: AttackTeam;
+  hook: string;
+  goalAt: number;
+  brandAt: number;
+  headline?: string;
+  secondary?: string;
+  cta?: string;
+}): OverlayPlanEntry[] {
+  const scorer = args.attackTeam === 'home' ? args.home : args.away;
+  return [
+    {
+      kind: 'headline',
+      start: 0.15,
+      end: 1.45,
+      text: args.headline ?? args.hook,
+      ...(args.secondary !== undefined ? { secondary: args.secondary } : {}),
+    },
+    { kind: 'goal', start: args.goalAt, end: args.goalAt + 0.7, text: goalText(scorer) },
+    { kind: 'cta', start: args.brandAt, end: 99, text: args.cta ?? DEFAULT_CTA },
+    { kind: 'brand', start: args.brandAt, end: 99 },
+  ];
+}
+
+/** Cross-header-goal (6s): hook, header goal punch, branded outro. */
+export function crossHeaderOverlayPlan(args: PresetArgs): OverlayPlanEntry[] {
+  return entertainmentOverlayPlan({ ...args, hook: DEFAULT_CROSS_HEADER_HOOK, goalAt: 3.05, brandAt: 4.8 });
+}
+
+/** Crossbar-chaos (6s): hook, rebound goal punch, branded outro. */
+export function crossbarOverlayPlan(args: PresetArgs): OverlayPlanEntry[] {
+  return entertainmentOverlayPlan({ ...args, hook: DEFAULT_CROSSBAR_HOOK, goalAt: 3.8, brandAt: 5.0 });
+}
+
+/** Keeper-disaster (5.5s): hook, robbery goal punch, branded outro. */
+export function keeperOverlayPlan(args: PresetArgs): OverlayPlanEntry[] {
+  return entertainmentOverlayPlan({ ...args, hook: DEFAULT_KEEPER_HOOK, goalAt: 2.9, brandAt: 4.5 });
 }

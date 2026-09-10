@@ -44,6 +44,9 @@ export const CROWD_WAVE_AMPLITUDE = 1.45;
 export const CROWD_WAVE_STRETCH = 0.32;
 /** Wave traversals per second (a full stand crossing takes ~2.7s). */
 export const CROWD_WAVE_SPEED = 0.45;
+/** Per-row wave delay in seconds (front row fires first): richer movement
+ * from one cheap deterministic offset, no animation state. */
+export const CROWD_WAVE_ROW_DELAY = 0.02;
 
 /** Idle motion stays tiny: drift + jitter never exceed this. */
 export const CROWD_IDLE_MAX = 0.08;
@@ -79,13 +82,16 @@ export function waveDirection(seed: number): 1 | -1 {
 }
 
 /**
- * Horizontal centre of the Mexican wave in stadium metres. Travels across
- * (and slightly beyond) the stand as a pure function of mood time, wrapping
- * so long wave holds loop seamlessly.
+ * Horizontal centre of the Mexican wave in stadium metres for one fan row.
+ * Each row reacts slightly later (front row first), so the hump rolls
+ * diagonally through the stand instead of rising as a flat wall. Travels
+ * across (and slightly beyond) the stand as a pure function of mood time,
+ * wrapping so long wave holds loop seamlessly.
  */
-export function waveCenterX(moodTime: number, seed: number): number {
+export function waveCenterX(moodTime: number, seed: number, row = 0): number {
+  const t = moodTime - row * CROWD_WAVE_ROW_DELAY;
   const span = CROWD_MAX_X - CROWD_MIN_X + 20; // 10m run-in/out each side
-  const p = (((moodTime * CROWD_WAVE_SPEED) % 1.2) + 1.2) % 1.2 / 1.2;
+  const p = (((t * CROWD_WAVE_SPEED) % 1.2) + 1.2) % 1.2 / 1.2;
   const dir = waveDirection(seed);
   const from = dir === 1 ? CROWD_MIN_X - 10 : CROWD_MAX_X + 10;
   const to = dir === 1 ? CROWD_MAX_X + 10 : CROWD_MIN_X - 10;
@@ -142,7 +148,7 @@ export function crowdFanOffset(fan: CrowdFanSpot, state: SocialCrowdState): Crow
       };
     }
     case 'wave': {
-      const r = waveResponse(fan.x, waveCenterX(state.moodTime, state.seed));
+      const r = waveResponse(fan.x, waveCenterX(state.moodTime, state.seed, fan.row));
       return {
         dy: r * CROWD_WAVE_AMPLITUDE * intensity + Math.sin(t * 1.4 + phase) * 0.03,
         dz: r * 0.1 * intensity,

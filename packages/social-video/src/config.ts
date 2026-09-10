@@ -18,6 +18,23 @@ export const DEFAULT_DURATION = 4;
 export const SCENE_DEFAULT_DURATION = {
   faceoff: 4,
   'attack-goal': 6,
+  'cross-header-goal': 6,
+  'crossbar-chaos': 6,
+  'keeper-disaster': 5.5,
+} as const;
+
+/**
+ * Recommended production frame rates. High-action scenes (driven shots,
+ * 1:1 ball-follow cameras, keeper dives) strobe at 30fps — the ball covers
+ * 1m+ per frame with no motion blur — and read clearly smoother at 60fps.
+ * Quiet intros (faceoff) are fine at 30.
+ */
+export const SCENE_RECOMMENDED_FPS = {
+  faceoff: 30,
+  'attack-goal': 60,
+  'cross-header-goal': 60,
+  'crossbar-chaos': 60,
+  'keeper-disaster': 60,
 } as const;
 
 /** Supported frame rates (integer FPS). */

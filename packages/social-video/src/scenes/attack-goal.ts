@@ -5,8 +5,9 @@ import { goalCineShot, goalCineVariant } from '../../../../apps/game/src/render/
 import { countryTeams } from '../../../../apps/game/src/city-league/kits';
 import type { AttackStyle, ResolvedVideoSpec } from '../schema';
 import type { SocialLens } from '../cameras/social-camera';
-import { lerp, segmentProgress } from '../timeline/math';
-import { evaluateTrack, facingBetween, groundPass, shotArc, type ActorKeyframe, type Vec2, type Vec3 } from '../timeline/tracks';
+import { lerp, segmentProgress, smoothstep } from '../timeline/math';
+import { evaluateTrack, evaluateTrackCR, facingBetween, groundPass, shotArc, type ActorKeyframe, type Vec2, type Vec3 } from '../timeline/tracks';
+import { angleBlendFocus } from '../timeline/arcade';
 import { seededRandom } from './faceoff';
 
 /**
@@ -173,6 +174,13 @@ export function compileAttackGoalTimeline(spec: Pick<ResolvedVideoSpec, 'seed' |
   // catch point and the carry start coincide exactly (no teleport).
   const recv = { x: spots.recv.x + carrierDir.x * 0.7, z: spots.recv.z + carrierDir.z * 0.7 };
   const recvMark = { ...spots.recv };
+  // Shortened carry (~55% of the lane): the winger reaches it in the 0.6s
+  // window at an arcade-sprint ~7m/s instead of a 17m/s stop-and-dash that
+  // reads as a fast-forward glitch at 30fps.
+  const carry = {
+    x: recv.x + (spots.carry.x - spots.recv.x) * 0.55,
+    z: recv.z + (spots.carry.z - spots.recv.z) * 0.55,
+  };
   const settleSpot = { x: spots.shootSpot.x + 0.6, z: spots.shootSpot.z };
   const shotStart: Vec3 = { x: settleSpot.x, y: 0.25, z: settleSpot.z };
   // Far corner away from the keeper's starting side, safely inside the
@@ -205,7 +213,7 @@ export function compileAttackGoalTimeline(spec: Pick<ResolvedVideoSpec, 'seed' |
     mid: spots.mid,
     recvMark,
     recv,
-    carry: spots.carry,
+    carry,
     shooterStart: spots.shooterStart,
     shootSpot: spots.shootSpot,
     settleSpot,
@@ -312,14 +320,14 @@ function keeperKeys(d: AttackGoalTimelineData): ActorKeyframe[] {
 
 /** Ball glued ahead of the carrier during the dribble. */
 function carryBallAt(data: AttackGoalTimelineData, t: number): Vec3 {
-  const w = evaluateTrack(wingKeys(data), Math.min(t, B.carryEnd));
+  const w = evaluateTrackCR(wingKeys(data), Math.min(t, B.carryEnd));
   return { x: w.x + data.carrierDir.x * 0.7, y: 0.25, z: w.z + data.carrierDir.z * 0.7 };
 }
 
 function evaluateBall(ctx: EvalCtx): Vec3 {
   const { data: d, time: t } = ctx;
   const midFeet = (tt: number): Vec3 => {
-    const m = evaluateTrack(midKeys(d), tt);
+    const m = evaluateTrackCR(midKeys(d), tt);
     return { x: m.x + 0.7, y: 0.25, z: m.z };
   };
   if (t < B.pass1Start) return midFeet(t);
@@ -327,7 +335,7 @@ function evaluateBall(ctx: EvalCtx): Vec3 {
     return groundPass(midFeet(B.pass1Start), { ...d.recv, y: 0.25 }, (t - B.pass1Start) / (B.pass1End - B.pass1Start));
   }
   if (t < B.carryEnd) {
-    const w = evaluateTrack(wingKeys(d), t);
+    const w = evaluateTrackCR(wingKeys(d), t);
     return { x: w.x + d.carrierDir.x * 0.7, y: 0.25, z: w.z + d.carrierDir.z * 0.7 };
   }
   if (t < B.pass2End) {
@@ -414,7 +422,7 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: TeamId, defendIdx: TeamId): Att
   // Teammates celebrate in place / with a short jog: arms up, small hop.
   const teamCeleb = segmentProgress(t, B.celebStart, B.celebStart + 0.3);
   const hop = t >= B.celebStart ? Math.abs(Math.sin((t - B.celebStart) * 6)) * 0.25 * teamCeleb : 0;
-  const midPos = evaluateTrack(midKeys(d), t);
+  const midPos = evaluateTrackCR(midKeys(d), t);
   const midBase = baseActor(0, attackIdx, 8, 'Midfielder', false, midPos, ball, phases[0], t);
   const mateLift = 1.5 * segmentProgress(t, 5.0, 5.4);
   const mid: AttackGoalActorFrame = {
@@ -424,8 +432,19 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: TeamId, defendIdx: TeamId): Att
     armSpread: 0.5 * segmentProgress(t, 5.0, 5.4),
     bob: midBase.bob + hop,
   };
-  const wingPos = evaluateTrack(wingKeys(d), t);
-  const wingBase = baseActor(1, attackIdx, 7, 'Winger', false, wingPos, ball, phases[1], t);
+  const wingPos = evaluateTrackCR(wingKeys(d), t);
+  // Catch gaze in angle space (see cross-header-goal): the touch happens at
+  // his own feet, where point tracking whips the facing.
+  const wingLookAhead = { x: d.recv.x + d.carrierDir.x * 8, z: d.recv.z + d.carrierDir.z * 8 };
+  const ballAtCatch0 = evaluateBall({ ...ctx, time: 1.0 });
+  const wingCatchRef = evaluateTrackCR(wingKeys(d), 1.0);
+  let wingFocus: Vec2 = ball;
+  let wingAngle: { facingX: number; facingZ: number } | null = null;
+  if (t >= 1.0 && t < 1.6) {
+    wingAngle = angleBlendFocus(wingCatchRef, ballAtCatch0, wingLookAhead, t, 1.0, 1.6);
+  }
+  const wingBase0 = baseActor(1, attackIdx, 7, 'Winger', false, wingPos, wingFocus, phases[1], t);
+  const wingBase = wingAngle ? { ...wingBase0, facingX: wingAngle.facingX, facingZ: wingAngle.facingZ } : wingBase0;
   const wing: AttackGoalActorFrame = {
     ...wingBase,
     legSwing: stride(t, 2.1) * moveWindow(t, 0.7, 2.8),
@@ -434,12 +453,39 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: TeamId, defendIdx: TeamId): Att
     bob: wingBase.bob + hop,
   };
 
-  const shPos = evaluateTrack(shooterKeys(d), t);
+  const shPos = evaluateTrackCR(shooterKeys(d), t);
   const goalMouth = { x: GOAL_X, z: 0 };
   // Three-quarter turn to the crowd: celebration reads from the side-on
   // celebration camera instead of foreshortening into the torso.
   const crowd = { x: shPos.x + 7, z: shPos.z + 16 };
-  const shooterFocus = t < B.pass2End ? ball : t < B.cineEnd ? goalMouth : crowd;
+  // Focus switches (ball → goal → crowd) blend through the focus POINT (not
+  // the angle): the facing vector then rotates along the shortest path
+  // instead of snapping 140° in one frame at every beat boundary. The
+  // ball→goal blend starts 0.45s BEFORE the catch from a frozen sample of
+  // the ball: tracking the live ball any closer whips the facing (1/r
+  // sensitivity within a metre reads as a rotational snap, not attention).
+  // The frozen sample is metres off the striker's lane, so the whole
+  // run-up turn spreads smoothly over the 0.9s window.
+  const FOCUS_PRE = 0.6;
+  const FOCUS_BLEND = 0.3;
+  let shooterFocus: Vec2;
+  if (t < B.pass2End - FOCUS_PRE) {
+    shooterFocus = ball;
+  } else if (t < B.pass2End + FOCUS_BLEND) {
+    const p = smoothstep((t - (B.pass2End - FOCUS_PRE)) / (FOCUS_PRE + FOCUS_BLEND));
+    const ballAtPre = evaluateBall({ ...ctx, time: B.pass2End - FOCUS_PRE });
+    shooterFocus = {
+      x: lerp(ballAtPre.x, goalMouth.x, p),
+      z: lerp(ballAtPre.z, goalMouth.z, p),
+    };
+  } else if (t < B.cineEnd) {
+    shooterFocus = goalMouth;
+  } else if (t < B.cineEnd + FOCUS_BLEND) {
+    const p = smoothstep((t - B.cineEnd) / FOCUS_BLEND);
+    shooterFocus = { x: lerp(goalMouth.x, crowd.x, p), z: lerp(goalMouth.z, crowd.z, p) };
+  } else {
+    shooterFocus = crowd;
+  }
   const f = facingBetween(shPos, shooterFocus);
   const setupP = segmentProgress(t, B.pass2End, B.shotStart);
   const kickP = segmentProgress(t, B.shotStart, B.shotStart + 0.15);
@@ -459,10 +505,29 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: TeamId, defendIdx: TeamId): Att
     { x: d.mid.x + 4, z: d.mid.z + 9 },
   ];
   const defs = ([4, 5, 2] as const).map((num, k) => {
-    const pos = evaluateTrack(defKeys(d, k as 0 | 1 | 2, defFrom[k]), t);
+    const pos = evaluateTrackCR(defKeys(d, k as 0 | 1 | 2, defFrom[k]), t);
     const slump = segmentProgress(t, B.shotEnd, B.cineEnd);
+    // Defenders follow the shot's general direction, never the supersonic
+    // ball point itself: tracking a 34m/s ball from 2m away whips the head
+    // 40° in a frame. The blend runs from the (slow, distant) ball at the
+    // final-ball beat all the way into the flight, so by the time the shot
+    // is supersonic the gaze is already resting near the goal mouth.
+    // Defender1 stands IN the shooting lane, so any ball→goal path crosses
+    // within a metre of him and whips him anyway: he marks the shooter
+    // instead (identical point at the window start, so no snap) and keeps
+    // staring at the celebrating scorer through the end of the clip — the
+    // beaten defender watching the scorer is the better story anyway.
+    const DEF_BLEND_END = B.shotEnd + 0.25;
+    let defFocus: Vec2 = ball;
+    if (k === 0) {
+      if (t >= B.pass2End) defFocus = shPos;
+    } else if (t >= B.pass2End && t < DEF_BLEND_END) {
+      const p = smoothstep((t - B.pass2End) / (DEF_BLEND_END - B.pass2End));
+      const ballAtFinal = evaluateBall({ ...ctx, time: B.pass2End });
+      defFocus = { x: lerp(ballAtFinal.x, GOAL_X, p), z: lerp(ballAtFinal.z, 0, p) };
+    }
     return {
-      ...baseActor(3 + k, defendIdx, num, `Defender${k + 1}`, false, pos, ball, phases[3] + k, t),
+      ...baseActor(3 + k, defendIdx, num, `Defender${k + 1}`, false, pos, defFocus, phases[3] + k, t),
       legSwing: stride(t, 1.1 + k * 0.9) * moveWindow(t, 0, 2.8),
       lean: 0.2 * slump,
     };
@@ -536,21 +601,23 @@ function evaluateAttackCamera(ctx: EvalCtx, ball: Vec3): SocialLens {
 }
 
 function evaluateAttackEffects(ctx: EvalCtx): AttackGoalEffects {
-  const { data: d, seed, frame, time: t } = ctx;
+  const { data: d, seed, time: t } = ctx;
   const shotP = segmentProgress(t, B.shotStart, B.shotEnd);
   const trailFade = 1 - segmentProgress(t, B.shotEnd, B.netSettleEnd);
   const intensity = shotP > 0 && trailFade > 0 ? Math.min(shotP * 3, 1) * trailFade : 0;
   const fovPunch = shotP > 0 ? 3 * Math.sin(Math.PI * Math.min(1, Math.max(0, shotP))) : 0;
-  // Deterministic impact shake: decaying aftermath of the strike, derived
-  // from frame + seed only — no accumulation, no RNG state.
+  // Deterministic impact shake: decaying aftermath of the strike. Derived
+  // from scene TIME (seconds) + seed — never the frame index — so the same
+  // moment renders identically at 30fps and 60fps. Low smooth frequencies
+  // (≈1.6/1.3Hz rumble): impact emphasis, not per-frame jitter.
   const shakeAmp = 0.1 * Math.sin(Math.PI * Math.min(1, Math.max(0, shotP)))
     + (t >= B.shotEnd && t <= B.shotEnd + 0.4 ? 0.08 * (1 - (t - B.shotEnd) / 0.4) : 0);
   return {
     trailFrom: intensity > 0.01 ? { ...d.shotStart } : null,
     trailIntensity: intensity,
     fovPunch,
-    shakeX: Math.sin(frame * 12.9 + seed) * shakeAmp,
-    shakeY: Math.cos(frame * 7.7 + seed * 1.3) * shakeAmp * 0.6,
+    shakeX: Math.sin(t * 10.1 + seed) * shakeAmp,
+    shakeY: Math.cos(t * 8.3 + seed * 1.3) * shakeAmp * 0.6,
   };
 }
 

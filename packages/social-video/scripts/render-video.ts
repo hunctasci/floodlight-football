@@ -21,6 +21,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { compileAudioPlan } from '../src/audio/compile';
 import { renderAudioToWav } from '../src/audio/render';
+import { renderStereoMix, encodeStereoWav } from '../src/audio/mix';
 import type { CompiledAudio } from '../src/audio/types';
 import { EncoderNotFoundError, resolveFfmpeg, resolveFfprobe } from '../src/encode/ffmpeg';
 import { buildEncodeArgs, runFfmpeg } from '../src/encode/video';
@@ -198,6 +199,8 @@ async function main(): Promise<void> {
   }
 
   const keepFrames = args.get('keep-frames') === true || args.get('keepFrames') === true;
+  const stems = args.get('stems') === true;
+  const monoLegacy = args.get('mono') === true || args.get('mono-legacy') === true;
   const framesDir = keepFrames
     ? path.resolve(`${output}.frames`)
     : await mkdtemp(path.join(os.tmpdir(), 'hnc-social-'));
@@ -255,7 +258,26 @@ async function main(): Promise<void> {
     console.log('');
     console.log('Rendering audio...');
     console.log(`Audio events: ${audioPlan.events.length}`);
-    writeFileSync(sfxPath, renderAudioToWav(audioPlan, seed));
+    if (monoLegacy) {
+      writeFileSync(sfxPath, renderAudioToWav(audioPlan, seed));
+    } else {
+      const mix = renderStereoMix(audioPlan, seed, { stems });
+      writeFileSync(sfxPath, encodeStereoWav(mix));
+      if (stems) {
+        const { writeFileSync: writeStem } = await import('node:fs');
+        void writeStem;
+        const stemsOut = mix.stems;
+        if (stemsOut) {
+          const { encodeStereoWav: enc } = await import('../src/audio/mix');
+          writeFileSync(path.join(framesDir, 'stem-ambience.wav'), enc({ sampleRate: mix.sampleRate, ...stemsOut.ambience }));
+          writeFileSync(path.join(framesDir, 'stem-crowd.wav'), enc({ sampleRate: mix.sampleRate, ...stemsOut.crowd }));
+          writeFileSync(path.join(framesDir, 'stem-sfx.wav'), enc({ sampleRate: mix.sampleRate, ...stemsOut.sfx }));
+          writeFileSync(path.join(framesDir, 'stem-music.wav'), enc({ sampleRate: mix.sampleRate, ...stemsOut.music }));
+          writeFileSync(path.join(framesDir, 'stem-master.wav'), encodeStereoWav(mix));
+          console.log('Stems: stem-ambience.wav stem-crowd.wav stem-sfx.wav stem-music.wav stem-master.wav');
+        }
+      }
+    }
     console.log('');
 
     console.log('Encoding H.264/AAC...');

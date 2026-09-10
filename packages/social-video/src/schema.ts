@@ -9,7 +9,7 @@ import { templateDuration } from './templates/presets';
  * Minimal semantic spec for a social frame. Agents think in scene + country
  * codes + seed; Three.js coordinates live inside scene presets, never here.
  */
-export const SOCIAL_SCENES = ['faceoff', 'attack-goal'] as const;
+export const SOCIAL_SCENES = ['faceoff', 'attack-goal', 'cross-header-goal', 'crossbar-chaos', 'keeper-disaster'] as const;
 export type SocialSceneId = (typeof SOCIAL_SCENES)[number];
 
 /** Production templates composing scenes into finished Reels (one for now). */
@@ -198,7 +198,7 @@ export function resolveSpec(input: RawFrameInput): ResolvedFrameSpec {
  * presets, never here. Exactly one of `scene` / `template` may be given.
  */
 export type SocialVideoSpec = {
-  scene: 'faceoff' | 'attack-goal';
+  scene: 'faceoff' | 'attack-goal' | 'cross-header-goal' | 'crossbar-chaos' | 'keeper-disaster';
 
   /** Production template composing scenes (alternative to `scene`). */
   template?: 'country-rivalry-reel';

@@ -1,6 +1,6 @@
 import { AUDIO_SAMPLE_RATE, compileAudioPlan } from '../audio/compile';
 import type { AttackTeam, AttackStyle } from '../schema';
-import type { AudioEvent, CompiledAudio } from '../audio/types';
+import type { AudioEvent, CompiledAudio, MixDuck } from '../audio/types';
 import type { TemplateSegmentDef } from './presets';
 
 /**
@@ -27,10 +27,18 @@ function shiftEvents(events: readonly AudioEvent[], dt: number, totalDuration: n
     .filter((e) => e.time < totalDuration);
 }
 
+function shiftDucks(ducks: readonly MixDuck[] | undefined, dt: number, totalDuration: number): MixDuck[] {
+  if (!ducks) return [];
+  return ducks
+    .map((d) => ({ ...d, start: d.start + dt, end: d.end + dt }))
+    .filter((d) => d.start < totalDuration && d.end > 0);
+}
+
 export function compileTemplateAudio(input: TemplateAudioInput): CompiledAudio {
   const events: AudioEvent[] = [
     { type: 'ambience', time: 0, duration: input.totalDuration, intensity: 0.5 },
   ];
+  const ducks: MixDuck[] = [];
   for (const seg of input.segments) {
     if (seg.kind === 'outro') continue;
     const plan = compileAudioPlan({
@@ -43,6 +51,7 @@ export function compileTemplateAudio(input: TemplateAudioInput): CompiledAudio {
       away: input.away,
     });
     events.push(...shiftEvents(plan.events, seg.start, input.totalDuration));
+    ducks.push(...shiftDucks(plan.ducks, seg.start, input.totalDuration));
   }
   const outro = input.segments.find((s) => s.kind === 'outro');
   if (outro) {
@@ -54,9 +63,11 @@ export function compileTemplateAudio(input: TemplateAudioInput): CompiledAudio {
     });
   }
   events.sort((a, b) => a.time - b.time);
+  ducks.sort((a, b) => a.start - b.start);
   return Object.freeze({
     sampleRate: AUDIO_SAMPLE_RATE,
     duration: input.totalDuration,
     events: Object.freeze(events),
+    ducks: Object.freeze(ducks),
   });
 }

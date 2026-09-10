@@ -256,6 +256,9 @@ Recommended overlay inspection frames (check copy + safe zones first):
 ```text
 faceoff (4s/30fps):      15  45  90  119
 attack-goal (6s/30fps):  30  110  120  150  170  179
+cross-header-goal (6s/60fps):   102  156  188  250  330
+crossbar-chaos (6s/60fps):      96  150  204  231  300
+keeper-disaster (5.5s/60fps):   69  132  175  220  300
 ```
 
 Country names/flags in `versus`/`goal` copy derive from the canonical game
@@ -283,7 +286,34 @@ attack-goal   Scripted 6-second football action (default): attack → pass →
           --attack-team home|away (default home),
           --attack-style central|wing|counter (default central).
           No coordinates in the spec — never invent positions.
+
+cross-header-goal   6-second arcade header: winger sprint → whipped cross →
+          ball-follow with a ball-near-lens insert → striker/defender leap →
+          power header → keeper flies → goal → eruption. Production: 60fps.
+
+crossbar-chaos   6-second comedy: long shot → CLANG off the bar (false-dawn
+          eruption) → ball hangs → scramble → rebound volley → GOAL (double
+          eruption). Production: 60fps.
+
+keeper-disaster   5.5-second comedy: power shot → INCREDIBLE SAVE (brief
+          glory) → bad clearance straight to the poacher → instant shot →
+          GOAL → keeper despair. Production: 60fps.
 ```
+
+## Frame rates
+
+```text
+faceoff:              30 FPS is fine (slow dolly, breathing only)
+high-action scenes:   60 FPS recommended (attack-goal, cross-header-goal,
+                      crossbar-chaos, keeper-disaster)
+```
+
+30fps strobes on driven shots and 1:1 ball-follow cameras (the ball covers
+1m+ per frame with no motion blur); 60fps halves every step and reads
+clearly smoother on mobile. Camera shake and all motion are time-based, so
+the same moment renders identically at either rate — only the sampling
+density changes. Previews/tests may still use 30fps for speed; production
+MP4s for the four action scenes should pass `--fps 60`.
 
 ## Country codes
 

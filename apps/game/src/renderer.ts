@@ -16,7 +16,46 @@ import {
   type GoalCineVariant,
 } from './render/camera';
 import { AD_H, AD_W, adForSlot, paintAd } from './render/ads';
-import { crowdFanOffset, type SocialCrowdState } from './render/crowd';
+import { crowdFanOffset, fanSection, hash01, type SocialCrowdState } from './render/crowd';
+
+/**
+ * Visible far-stand terrace geometry (social + game share one stadium).
+ *
+ * The old stand was a single 9m concrete box with fans embedded inside it,
+ * so low social cameras saw a giant blue wall with one strip of heads.
+ * The new stand is a stepped terrace: a low fascia (~1.1m) plus 8 risers.
+ * Fans stand ON the steps (base = terrace top + half fan height).
+ * Pure helpers so tests can verify fans sit above concrete without a DOM.
+ */
+export const FAR_STAND_ROWS = 8;
+export const FAR_STAND_BASE_TOP = 1.3;
+export const FAR_STAND_RISE = 0.55;
+/** Fan z of row 0 (front row), each row 1.1m deeper. */
+export const FAR_STAND_BASE_Z = -31.9;
+export const FAR_STAND_ROW_DEPTH = 1.1;
+export const END_STAND_ROWS = 5;
+/** Half height of the crowd box (1.05 x 0.72 x 0.55): base sits 0.36 above the step. */
+export const CROWD_HALF_HEIGHT = 0.36;
+
+export function farStandTerraceTop(row: number): number {
+  return FAR_STAND_BASE_TOP + row * FAR_STAND_RISE;
+}
+export function farStandFanY(row: number): number {
+  return farStandTerraceTop(row) + CROWD_HALF_HEIGHT;
+}
+export function farStandFanZ(row: number): number {
+  return FAR_STAND_BASE_Z - row * FAR_STAND_ROW_DEPTH;
+}
+export function endStandTerraceTop(row: number): number {
+  return FAR_STAND_BASE_TOP + row * FAR_STAND_RISE;
+}
+export function endStandFanY(row: number): number {
+  return endStandTerraceTop(row) + CROWD_HALF_HEIGHT;
+}
+/** Centre aisle (section split home/away) + two side aisles. */
+export function isStandAisle(x: number): boolean {
+  return Math.abs(x) < 0.9 || Math.abs(Math.abs(x) - 26) < 0.7;
+}
 
 // Backwards-compatible re-exports: canonical pure camera math lives in
 // render/camera.ts; existing tests import from here.
@@ -187,7 +226,7 @@ export class GameRenderer {
   private socialMode = false;
   /** All crowd instances with their deterministic build-time base transforms. */
   private crowdMeshes: THREE.InstancedMesh[] = [];
-  private crowdBase: { mesh: THREE.InstancedMesh; i: number; index: number; x: number; y: number; z: number; row: number }[] = [];
+  private crowdBase: { mesh: THREE.InstancedMesh; i: number; index: number; x: number; y: number; z: number; row: number; origColor: string }[] = [];
   /** Social-only stand dressing (team section banners + flags), built lazily. */
   private crowdDressing: {
     key: string;
@@ -324,30 +363,64 @@ export class GameRenderer {
 
   private buildStands() {
     const concrete = new THREE.MeshStandardMaterial({ color: '#2c4d63', roughness: 1, flatShading: true });
+    const concreteLight = new THREE.MeshStandardMaterial({ color: '#3d647e', roughness: 1, flatShading: true });
+    const railMat = new THREE.MeshStandardMaterial({ color: '#dfe9f2', roughness: .6, flatShading: true });
     const crowdCols = ['#f8cc54', '#ec5a61', '#5fcddd', '#f3ede0', '#514b91', '#ff9a3d', '#7ee08a']; const box = new THREE.BoxGeometry(1.05, .72, .55);
     // Seven instanced colour blocks give the crowd a lively, modern mosaic without hundreds of draw calls.
     // Spots keep their stand row so social choreography can stagger reactions deterministically.
+    // Fans stand ON stepped terraces (never inside concrete): base y = terrace top + half fan height.
     const fanSpots: { pos: THREE.Vector3; row: number }[][] = crowdCols.map(() => []);
-    // Only the far stand is built: every camera preset sits on +z looking
-    // toward -z, so a near-side stand would stand between the camera and
-    // the near touchline and hide players in low angles (close-up).
+    // Only the far stand + low end terraces are built: every camera preset
+    // sits on +z looking toward -z, so a near-side stand would stand between
+    // the camera and the near touchline and hide players in low angles.
     // The low ad boards stay on both sides; they never block play.
-    for (const z of [-36]) {
-      const stand = new THREE.Mesh(new THREE.BoxGeometry(104, 9, 11), concrete); stand.position.set(0, 4.2, z); this.scene.add(stand);
-      // Roof lip shading the top rows.
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(106, .5, 13), new THREE.MeshStandardMaterial({ color: '#1d3346', roughness: 1, flatShading: true }));
-      roof.position.set(0, 10.6, z + (z > 0 ? 1 : -1)); this.scene.add(roof);
-      for (let x = -49; x <= 49; x += 1.25) for (let r = 0; r < 8; r++) {
+    //
+    // Far stand: narrow front fascia (~1.1m, carries team section banners)
+    // + 8 terrace risers fans stand on + low roof. No giant concrete box.
+    const fascia = new THREE.Mesh(new THREE.BoxGeometry(104, 1.1, .6), concrete);
+    fascia.position.set(0, .55, -31.3); this.scene.add(fascia);
+    for (let r = 0; r < FAR_STAND_ROWS; r++) {
+      const step = new THREE.Mesh(new THREE.BoxGeometry(104, .4, 1.3), r % 2 === 0 ? concrete : concreteLight);
+      step.position.set(0, farStandTerraceTop(r) - .2, FAR_STAND_BASE_Z - .1 - r * FAR_STAND_ROW_DEPTH + .1);
+      // step z-centre sits 0.1m behind the fan line so supporters read
+      // slightly forward of the riser edge (never embedded in concrete).
+      step.position.z = -32.0 - r * FAR_STAND_ROW_DEPTH;
+      this.scene.add(step);
+    }
+    // Roof lip shading the top rows (lowered to match the new top row ~5.5m).
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(106, .5, 10), new THREE.MeshStandardMaterial({ color: '#1d3346', roughness: 1, flatShading: true }));
+    roof.position.set(0, 7.2, -35.5); this.scene.add(roof);
+    // Front + mid railings: two thin bars, no posts (keeps draw calls flat).
+    for (const [ry, rz] of [[1.9, -31.4], [3.6, -34.7]] as const) {
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(104, .07, .07), railMat);
+      rail.position.set(0, ry, rz); this.scene.add(rail);
+    }
+    // Aisle gaps alone mark the sections (a sloped stair mesh here protruded
+    // through the fans and read as a dark blob head-on, so no stair geometry).
+    for (let x = -49; x <= 49; x += 1.25) {
+      if (isStandAisle(x)) continue;
+      for (let r = 0; r < FAR_STAND_ROWS; r++) {
         const color = Math.abs((x * 5 + r * 3) | 0) % crowdCols.length;
-        fanSpots[color].push({ pos: new THREE.Vector3(x, 6.4 + r * .58, z + (z > 0 ? -4.2 + r * .5 : 4.2 - r * .5)), row: r });
+        fanSpots[color].push({ pos: new THREE.Vector3(x, farStandFanY(r), farStandFanZ(r)), row: r });
       }
-      // Giant team-colour banner across the stand front, recoloured per match.
-      const banner = new THREE.Mesh(new THREE.PlaneGeometry(46, 2.2),
-        new THREE.MeshBasicMaterial({ color: '#ffffff' }));
-      banner.position.set(0, 2.6, z + (z > 0 ? -5.56 : 5.56));
-      if (z < 0) banner.rotation.y = Math.PI;
-      this.scene.add(banner);
-      this.standBanners.push(banner);
+    }
+    // Low end terraces behind each goal (5 rows): goal-mouth cameras see
+    // supporters + sky, never a flat 7m concrete wall.
+    for (const side of [1, -1] as const) {
+      const endFascia = new THREE.Mesh(new THREE.BoxGeometry(.6, 1.1, 60), concrete);
+      endFascia.position.set(side * 50.3, .55, 0); this.scene.add(endFascia);
+      for (let r = 0; r < END_STAND_ROWS; r++) {
+        const step = new THREE.Mesh(new THREE.BoxGeometry(1.3, .4, 60), r % 2 === 0 ? concrete : concreteLight);
+        step.position.set(side * (51.0 + r * 1.1), endStandTerraceTop(r) - .2, 0);
+        this.scene.add(step);
+      }
+      for (let z = -28; z <= 28; z += 1.25) {
+        if (isStandAisle(z)) continue;
+        for (let r = 0; r < END_STAND_ROWS; r++) {
+          const color = Math.abs((z * 5 + r * 3 + side * 7) | 0) % crowdCols.length;
+          fanSpots[color].push({ pos: new THREE.Vector3(side * (51.1 + r * 1.1), endStandFanY(r), z), row: r });
+        }
+      }
     }
     const matrix = new THREE.Matrix4();
     fanSpots.forEach((spots, color) => {
@@ -355,13 +428,14 @@ export class GameRenderer {
       spots.forEach((spot, i) => {
         matrix.makeTranslation(spot.pos.x, spot.pos.y, spot.pos.z);
         crowd.setMatrixAt(i, matrix);
-        this.crowdBase.push({ mesh: crowd, i, index: this.crowdBase.length, x: spot.pos.x, y: spot.pos.y, z: spot.pos.z, row: spot.row });
+        this.crowdBase.push({ mesh: crowd, i, index: this.crowdBase.length, x: spot.pos.x, y: spot.pos.y, z: spot.pos.z, row: spot.row, origColor: crowdCols[color] });
       });
       crowd.instanceMatrix.needsUpdate = true;
       this.crowdMeshes.push(crowd);
       this.scene.add(crowd);
     });
-    for (const x of [-55,55]) { const e = new THREE.Mesh(new THREE.BoxGeometry(10, 7, 68), concrete); e.position.set(x, 3.2, 0); this.scene.add(e); }
+    // (No giant end boxes: low terraces above replace them so goal-mouth
+    // cameras see supporters + sky instead of flat concrete.)
     // Floodlight pylons in the four corners: emissive heads, no real lights.
     const poleMat = new THREE.MeshStandardMaterial({ color: '#3a4350', roughness: .8, flatShading: true });
     const headMat = new THREE.MeshBasicMaterial({ color: '#fffbe8' });
@@ -405,9 +479,12 @@ export class GameRenderer {
 
   /**
    * Social-only stand dressing: two team-colour section banners splitting
-   * the far stand into home (left) / away (right) supporter regions, plus
-   * three flat supporter flags. Built once per matchup; never in game mode,
-   * so live gameplay renders exactly as before.
+   * the far-stand fascia into home (left) / away (right) supporter regions,
+   * three flat supporter flags, plus per-instance supporter section tinting
+   * (left fans wear home-biased colours, right fans away-biased). Built once
+   * per matchup; never in game mode, so live gameplay renders exactly as
+   * before. Tinting is a pure function of (index, matchup) — random-access
+   * safe, no per-frame state.
    */
   private ensureSocialDressing(home: Team, away: Team): void {
     if (!this.socialMode) return;
@@ -416,18 +493,20 @@ export class GameRenderer {
       if (this.crowdDressing.key === key) return;
       (this.crowdDressing.sectionL.material as THREE.MeshBasicMaterial).color.set(home.color);
       (this.crowdDressing.sectionR.material as THREE.MeshBasicMaterial).color.set(away.color);
+      this.applySectionTint(home, away);
       this.crowdDressing.key = key;
       return;
     }
-    // Section banners face the pitch (+z); the legacy single banner faces
-    // the stand, so these sit 8cm toward the pitch to avoid z-fighting it.
-    const sectionGeo = new THREE.PlaneGeometry(52, 2.2);
+    // Section banners mount on the first-riser face (riser 0 spans y 1.1..1.5,
+    // front face z=-31.35): a team-colour strip just above the ad boards,
+    // never hiding supporters. The fascia itself stays plain concrete.
+    const sectionGeo = new THREE.PlaneGeometry(52, 0.36);
     const sectionL = new THREE.Mesh(sectionGeo, new THREE.MeshBasicMaterial({ color: home.color }));
-    sectionL.position.set(-26, 2.6, -30.36);
+    sectionL.position.set(-26, 1.32, -31.33);
     const sectionR = new THREE.Mesh(sectionGeo, new THREE.MeshBasicMaterial({ color: away.color }));
-    sectionR.position.set(26, 2.6, -30.36);
+    sectionR.position.set(26, 1.32, -31.33);
     this.scene.add(sectionL, sectionR);
-    const flagGeo = new THREE.PlaneGeometry(6, 3);
+    const flagGeo = new THREE.PlaneGeometry(4, 1.8);
     const defs = [
       { label: home.name.toUpperCase(), bg: home.color, x: -30 },
       { label: 'HNC LEAGUE', bg: '#101b31', x: 0 },
@@ -435,15 +514,50 @@ export class GameRenderer {
     ];
     const flags = defs.map((d, i) => {
       const f = new THREE.Mesh(flagGeo, new THREE.MeshBasicMaterial({ map: this.flagTexture(d.label, d.bg), side: THREE.DoubleSide }));
-      // Tucked into the upper rows below the roof lip (roof sits at y≈10.6):
-      // supporter-held banners among the fans, never sky billboards.
-      f.position.set(d.x, 9.3, -34.6);
-      f.userData.baseY = 9.3;
+      // Supporter-held banners tucked among the mid rows (fans reach y≈5.9,
+      // roof underside is y≈6.95): visible above the crowd, never floating.
+      // The centre HNC flag fills the middle aisle gap.
+      f.position.set(d.x, 4.9, -37.0);
+      f.userData.baseY = 4.9;
       f.userData.phase = i * 2.1;
       this.scene.add(f);
       return f;
     });
     this.crowdDressing = { key, sectionL, sectionR, flags };
+    this.applySectionTint(home, away);
+  }
+
+  /**
+   * Tint crowd instances into home/away sections: ~62% wear their side's
+   * team colour (with deterministic lightness variation), ~18% neutrals,
+   * the rest keep the mosaic pop. Game mode never calls this (mosaic kept).
+   */
+  private applySectionTint(home: Team, away: Team): void {
+    const c = new THREE.Color();
+    for (const b of this.crowdBase) {
+      // End-stand fans keep the neutral mosaic (sections read on the far stand).
+      const isFar = Math.abs(b.x) < 50;
+      if (!isFar) {
+        c.set(b.origColor);
+        b.mesh.setColorAt(b.i, c);
+        continue;
+      }
+      const side = fanSection(b.x);
+      const teamHex = side === 0 ? home.color : away.color;
+      const h = hash01(b.index * 3 + 7, 11);
+      if (h < 0.62) {
+        c.set(teamHex);
+        c.offsetHSL(0, (hash01(b.index, 5) - 0.5) * 0.1, (hash01(b.index, 9) - 0.5) * 0.12);
+      } else if (h < 0.8) {
+        c.set(hash01(b.index, 13) < 0.5 ? '#f3ede0' : '#1d3346');
+      } else {
+        c.set(b.origColor);
+      }
+      b.mesh.setColorAt(b.i, c);
+    }
+    for (const mesh of this.crowdMeshes) {
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    }
   }
 
   /**
@@ -457,9 +571,15 @@ export class GameRenderer {
     this.ensureSocialDressing(teams[0], teams[1]);
     for (const b of this.crowdBase) {
       const o = crowdFanOffset({ x: b.x, row: b.row, index: b.index }, crowd);
-      this.crowdTmpP.set(b.x, b.y + o.dy, b.z + o.dz);
+      // End-stand perceptual scale: goal-mouth closeups sit metres from the
+      // end terraces, so full-size boxes read oversized. End fans render at
+      // 0.85 scale, pushed 0.6m deeper with an extra row-friendly offset —
+      // structural (all cameras), never a per-camera special case.
+      const isEnd = Math.abs(b.x) > 50;
+      const s = isEnd ? 0.85 : 1;
+      this.crowdTmpP.set(b.x + (isEnd ? Math.sign(b.x) * 0.6 : 0), b.y + o.dy, b.z + o.dz);
       this.crowdTmpQ.identity();
-      this.crowdTmpS.set(1, o.sy, 1);
+      this.crowdTmpS.set(s, o.sy * s, s);
       this.crowdTmpM.compose(this.crowdTmpP, this.crowdTmpQ, this.crowdTmpS);
       b.mesh.setMatrixAt(b.i, this.crowdTmpM);
     }

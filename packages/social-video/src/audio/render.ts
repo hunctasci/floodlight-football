@@ -108,6 +108,48 @@ function renderEvent(
     case 'crowd': // celebration swell: slow-attack noise wash.
       renderNoise(out, sampleRate, start, ev.duration, 0.1 * k, rand, Math.min(0.4, ev.duration / 3));
       break;
+    case 'cross': // whipped cross: brighter, longer kick with air noise.
+      renderTone(out, sampleRate, start, 200, 0.09, 'square', 0.05 * k, 0.5);
+      renderNoise(out, sampleRate, start, 0.09, 0.03 * k, rand);
+      break;
+    case 'header': // forehead thump: low sine burst + short noise.
+      renderTone(out, sampleRate, start, 120, 0.12, 'sine', 0.09 * k, 0.4);
+      renderNoise(out, sampleRate, start, 0.05, 0.04 * k, rand);
+      break;
+    case 'crossbar': { // deterministic metallic clang: detuned triangle partials + click.
+      renderNoise(out, sampleRate, start, 0.02, 0.06 * k, rand);
+      renderTone(out, sampleRate, start, 620, 0.6, 'triangle', 0.075 * k, 0.985);
+      renderTone(out, sampleRate, start, 930, 0.45, 'triangle', 0.045 * k, 0.98);
+      break;
+    }
+    case 'save': // glove thud: low sine + soft noise burst.
+      renderTone(out, sampleRate, start, 90, 0.14, 'sine', 0.1 * k, 0.45);
+      renderNoise(out, sampleRate, start, 0.1, 0.05 * k, rand);
+      break;
+    case 'clearance': // rushed punt: lower, duller kick.
+      renderTone(out, sampleRate, start, 140, 0.08, 'square', 0.05 * k, 0.5);
+      break;
+    case 'anticipation': { // rising OOOH swell peaking at duration end.
+      const n = Math.max(1, Math.round(ev.duration * sampleRate));
+      for (let i = 0; i < n; i++) {
+        const p = i / n;
+        const at = start + i;
+        if (at >= 0 && at < out.length) out[at] += (rand() * 2 - 1) * (0.02 + 0.06 * p * p) * k;
+      }
+      break;
+    }
+    case 'whoosh': // air rush for ball-near-lens / hard cuts.
+      renderNoise(out, sampleRate, start, Math.max(0.08, ev.duration), 0.045 * k, rand);
+      break;
+    case 'impact': // low cinematic sweetener under major contacts.
+      renderTone(out, sampleRate, start, 55, 0.25, 'sine', 0.08 * k, 0.5);
+      renderNoise(out, sampleRate, start, 0.06, 0.025 * k, rand);
+      break;
+    case 'sting': // procedural HNC sonic logo (~0.6s arcade motif).
+      renderTone(out, sampleRate, start, 523, 0.12, 'square', 0.04 * k, 1.0);
+      renderTone(out, sampleRate, start + Math.round(0.1 * sampleRate), 659, 0.12, 'square', 0.04 * k, 1.0);
+      renderTone(out, sampleRate, start + Math.round(0.2 * sampleRate), 784, 0.28, 'square', 0.045 * k, 0.99);
+      break;
     default:
       throw new Error(`Unknown audio event: ${(ev as AudioEvent).type}`);
   }

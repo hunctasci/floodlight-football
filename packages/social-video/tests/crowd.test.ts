@@ -185,9 +185,21 @@ test('template outro crowd keeps celebrating behind the end card', () => {
 
 test('wave amplitude is exaggerated enough to read on mobile', () => {
   const peak = crowdFanOffset(
-    { x: waveCenterX(0.8, 42), row: 4, index: 200 },
+    { x: waveCenterX(0.8, 42, 4), row: 4, index: 200 },
     { mood: 'wave', intensity: 1, time: 1.6, seed: 42, moodTime: 0.8 },
   );
   assert.ok(peak.dy > CROWD_WAVE_AMPLITUDE * 0.9, `wave hump is large (${peak.dy})`);
   assert.ok(peak.dy > 10 * CROWD_IDLE_MAX, 'wave dwarfs idle motion');
+});
+
+test('wave rows cascade: front row fires first, back rows lag', () => {
+  const state = (moodTime: number): SocialCrowdState => ({ mood: 'wave', intensity: 1, time: 1.6, seed: 42, moodTime });
+  // Row 0 peaks at the undelayed centre; row 7 peaks ~140ms later.
+  assert.equal(waveCenterX(0.8, 42, 0), waveCenterX(0.8, 42), 'row 0 keeps the legacy centre');
+  assert.notEqual(waveCenterX(0.8, 42, 7).toFixed(3), waveCenterX(0.8, 42, 0).toFixed(3), 'back rows lag');
+  const front = crowdFanOffset({ x: waveCenterX(0.8, 42, 0), row: 0, index: 200 }, state(0.8));
+  const back = crowdFanOffset({ x: waveCenterX(0.8, 42, 0), row: 7, index: 201 }, state(0.8));
+  assert.ok(front.dy > back.dy + 0.2, `front row leads (${front.dy.toFixed(2)} vs ${back.dy.toFixed(2)})`);
+  assert.equal(crowdFanOffset({ x: 5, row: 3, index: 100 }, state(0.8)).dy,
+    crowdFanOffset({ x: 5, row: 3, index: 100 }, state(0.8)).dy, 'random-access stable');
 });
