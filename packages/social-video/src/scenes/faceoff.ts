@@ -1,5 +1,6 @@
 import type { MatchState, Player, Team, TeamId } from '../../../../apps/game/src/types';
 import type { SocialActorPose } from '../../../../apps/game/src/renderer';
+import type { SocialCrowdState } from '../../../../apps/game/src/render/crowd';
 import { countryTeams } from '../../../../apps/game/src/city-league/kits';
 import type { ResolvedFrameSpec, ResolvedVideoSpec } from '../schema';
 import { faceoffCamera, faceoffCameraAt, type SocialLens } from '../cameras/social-camera';
@@ -73,6 +74,8 @@ export function compileFaceoff(spec: ResolvedFrameSpec): CompiledFaceoff {
 export interface FaceoffTimelineData {
   homeBase: { x: number; z: number };
   awayBase: { x: number; z: number };
+  /** Spec seed (crowd wave direction + per-fan phases derive from it). */
+  seed: number;
   /** Seed-derived sideways camera offset (metres, small). */
   cameraLateral: number;
   /** Seed-derived breathing phase offsets (radians). */
@@ -105,6 +108,8 @@ export interface SocialFrameDescription {
   camera: SocialLens;
   /** Frozen social clock value for the renderer (always == time). */
   clock: number;
+  /** Supporter choreography for this instant (WHEN/WHY owned by the scene). */
+  crowd: SocialCrowdState;
 }
 
 /** Final renderer input derived from a frame description (no timeline left). */
@@ -113,6 +118,7 @@ export interface FaceoffRenderInput {
   camera: SocialLens;
   clock: number;
   pose: [SocialActorPose, SocialActorPose];
+  crowd: SocialCrowdState;
 }
 
 /**
@@ -128,6 +134,7 @@ export function compileFaceoffTimeline(spec: Pick<ResolvedVideoSpec, 'seed'>): F
   return {
     homeBase,
     awayBase,
+    seed: spec.seed,
     cameraLateral: (rand() - 0.5) * 0.7,
     breathPhaseHome: rand() * Math.PI * 2,
     breathPhaseAway: rand() * Math.PI * 2,
@@ -173,6 +180,16 @@ function assembleActor(
 }
 
 /**
+ * Supporter choreography for the faceoff intro: the stand establishes
+ * quietly, then a Mexican wave gives the intro visual life without
+ * distracting from the players. Pure function of local time + seed.
+ */
+export function evaluateFaceoffCrowd(time: number, seed: number): SocialCrowdState {
+  if (time < 0.8) return { mood: 'idle', intensity: 0.18, time, seed, moodTime: time };
+  return { mood: 'wave', intensity: 1, time, seed, moodTime: time - 0.8 };
+}
+
+/**
  * Evaluate one timeline frame. Pure function of (staging, frame, fps,
  * duration, countries): random-access safe, no prior-frame state.
  */
@@ -201,6 +218,7 @@ export function evaluateFaceoffFrame(args: {
     ball: { x: 0, y: 0.25, z: 0 },
     camera: faceoffCameraAt(time, duration, data.cameraLateral),
     clock: time,
+    crowd: evaluateFaceoffCrowd(time, data.seed),
   };
 }
 
@@ -230,5 +248,5 @@ export function faceoffFrameToRenderInput(
     stats: { shots: [0, 0], saves: [0, 0], passes: [0, 0], tackles: [0, 0], possession: [0, 0] },
   };
   const toPose = (a: SocialActorFrame): SocialActorPose => ({ bob: a.bob, lean: a.lean, armLift: a.armLift });
-  return { state, camera: desc.camera, clock: desc.clock, pose: [toPose(desc.home), toPose(desc.away)] };
+  return { state, camera: desc.camera, clock: desc.clock, pose: [toPose(desc.home), toPose(desc.away)], crowd: desc.crowd };
 }

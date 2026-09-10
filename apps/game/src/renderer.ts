@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { FIELD, MatchState, Player, TeamId } from './types';
+import { FIELD, MatchState, Player, Team, TeamId } from './types';
 import {
   CAMERA_LABELS,
   CAMERA_MODES,
@@ -16,6 +16,7 @@ import {
   type GoalCineVariant,
 } from './render/camera';
 import { AD_H, AD_W, adForSlot, paintAd } from './render/ads';
+import { crowdFanOffset, type SocialCrowdState } from './render/crowd';
 
 // Backwards-compatible re-exports: canonical pure camera math lives in
 // render/camera.ts; existing tests import from here.
@@ -182,6 +183,23 @@ export class GameRenderer {
   private fovPunch = 0;
   /** Exact export buffer for social stills; null = legacy game sizing. */
   private fixedSize: { w: number; h: number; pr: number } | null = null;
+  /** True for social-export renderers (exact buffer + social-only dressing). */
+  private socialMode = false;
+  /** All crowd instances with their deterministic build-time base transforms. */
+  private crowdMeshes: THREE.InstancedMesh[] = [];
+  private crowdBase: { mesh: THREE.InstancedMesh; i: number; index: number; x: number; y: number; z: number; row: number }[] = [];
+  /** Social-only stand dressing (team section banners + flags), built lazily. */
+  private crowdDressing: {
+    key: string;
+    sectionL: THREE.Mesh;
+    sectionR: THREE.Mesh;
+    flags: THREE.Mesh[];
+  } | null = null;
+  /** Reused temps so per-frame crowd updates never allocate. */
+  private crowdTmpM = new THREE.Matrix4();
+  private crowdTmpP = new THREE.Vector3();
+  private crowdTmpQ = new THREE.Quaternion();
+  private crowdTmpS = new THREE.Vector3();
 
   /** Shot impact juice: power-scaled camera shake + quick fov punch. */
   impact(power: number) {
@@ -209,6 +227,7 @@ export class GameRenderer {
 
   constructor(container: HTMLElement, opts: RendererOptions = {}) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    this.socialMode = opts.mode === 'social';
     if (opts.width !== undefined && opts.height !== undefined) {
       this.fixedSize = { w: opts.width, h: opts.height, pr: opts.pixelRatio ?? 1 };
     }
@@ -307,7 +326,8 @@ export class GameRenderer {
     const concrete = new THREE.MeshStandardMaterial({ color: '#2c4d63', roughness: 1, flatShading: true });
     const crowdCols = ['#f8cc54', '#ec5a61', '#5fcddd', '#f3ede0', '#514b91', '#ff9a3d', '#7ee08a']; const box = new THREE.BoxGeometry(1.05, .72, .55);
     // Seven instanced colour blocks give the crowd a lively, modern mosaic without hundreds of draw calls.
-    const fanPositions: THREE.Vector3[][] = crowdCols.map(() => []);
+    // Spots keep their stand row so social choreography can stagger reactions deterministically.
+    const fanSpots: { pos: THREE.Vector3; row: number }[][] = crowdCols.map(() => []);
     // Only the far stand is built: every camera preset sits on +z looking
     // toward -z, so a near-side stand would stand between the camera and
     // the near touchline and hide players in low angles (close-up).
@@ -319,7 +339,7 @@ export class GameRenderer {
       roof.position.set(0, 10.6, z + (z > 0 ? 1 : -1)); this.scene.add(roof);
       for (let x = -49; x <= 49; x += 1.25) for (let r = 0; r < 8; r++) {
         const color = Math.abs((x * 5 + r * 3) | 0) % crowdCols.length;
-        fanPositions[color].push(new THREE.Vector3(x, 6.4 + r * .58, z + (z > 0 ? -4.2 + r * .5 : 4.2 - r * .5)));
+        fanSpots[color].push({ pos: new THREE.Vector3(x, 6.4 + r * .58, z + (z > 0 ? -4.2 + r * .5 : 4.2 - r * .5)), row: r });
       }
       // Giant team-colour banner across the stand front, recoloured per match.
       const banner = new THREE.Mesh(new THREE.PlaneGeometry(46, 2.2),
@@ -330,10 +350,16 @@ export class GameRenderer {
       this.standBanners.push(banner);
     }
     const matrix = new THREE.Matrix4();
-    fanPositions.forEach((positions, color) => {
-      const crowd = new THREE.InstancedMesh(box, new THREE.MeshBasicMaterial({ color: crowdCols[color] }), positions.length);
-      positions.forEach((pos, i) => { matrix.makeTranslation(pos.x, pos.y, pos.z); crowd.setMatrixAt(i, matrix); });
-      crowd.instanceMatrix.needsUpdate = true; this.scene.add(crowd);
+    fanSpots.forEach((spots, color) => {
+      const crowd = new THREE.InstancedMesh(box, new THREE.MeshBasicMaterial({ color: crowdCols[color] }), spots.length);
+      spots.forEach((spot, i) => {
+        matrix.makeTranslation(spot.pos.x, spot.pos.y, spot.pos.z);
+        crowd.setMatrixAt(i, matrix);
+        this.crowdBase.push({ mesh: crowd, i, index: this.crowdBase.length, x: spot.pos.x, y: spot.pos.y, z: spot.pos.z, row: spot.row });
+      });
+      crowd.instanceMatrix.needsUpdate = true;
+      this.crowdMeshes.push(crowd);
+      this.scene.add(crowd);
     });
     for (const x of [-55,55]) { const e = new THREE.Mesh(new THREE.BoxGeometry(10, 7, 68), concrete); e.position.set(x, 3.2, 0); this.scene.add(e); }
     // Floodlight pylons in the four corners: emissive heads, no real lights.
@@ -358,6 +384,95 @@ export class GameRenderer {
     };
     const ads = [makeAd(0), makeAd(1)];
     for (const z of [-30.3, 30.3]) for (let x = -40, i = 0; x < 40; x += 10, i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(9.6, 1.15, .18), ads[i % 2]); b.position.set(x, .6, z); if (z < 0) b.rotation.y = Math.PI; this.scene.add(b); }
+  }
+
+  /** Flat retro supporter flag texture: team colour, cream border, navy-cut label. */
+  private flagTexture(label: string, bg: string): THREE.CanvasTexture {
+    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
+    const ctx = c.getContext('2d')!;
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, 256, 128);
+    ctx.strokeStyle = '#f8efdb'; ctx.lineWidth = 10; ctx.strokeRect(6, 6, 244, 116);
+    let size = 44;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const font = (s: number) => `bold ${s}px Impact, 'Arial Black', sans-serif`;
+    ctx.font = font(size);
+    while (ctx.measureText(label).width > 200 && size > 18) { size -= 4; ctx.font = font(size); }
+    ctx.lineWidth = 7; ctx.strokeStyle = '#101b31'; ctx.strokeText(label, 128, 66);
+    ctx.fillStyle = '#f8efdb'; ctx.fillText(label, 128, 66);
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  /**
+   * Social-only stand dressing: two team-colour section banners splitting
+   * the far stand into home (left) / away (right) supporter regions, plus
+   * three flat supporter flags. Built once per matchup; never in game mode,
+   * so live gameplay renders exactly as before.
+   */
+  private ensureSocialDressing(home: Team, away: Team): void {
+    if (!this.socialMode) return;
+    const key = `${home.color}|${away.color}|${home.name}|${away.name}`;
+    if (this.crowdDressing) {
+      if (this.crowdDressing.key === key) return;
+      (this.crowdDressing.sectionL.material as THREE.MeshBasicMaterial).color.set(home.color);
+      (this.crowdDressing.sectionR.material as THREE.MeshBasicMaterial).color.set(away.color);
+      this.crowdDressing.key = key;
+      return;
+    }
+    // Section banners face the pitch (+z); the legacy single banner faces
+    // the stand, so these sit 8cm toward the pitch to avoid z-fighting it.
+    const sectionGeo = new THREE.PlaneGeometry(52, 2.2);
+    const sectionL = new THREE.Mesh(sectionGeo, new THREE.MeshBasicMaterial({ color: home.color }));
+    sectionL.position.set(-26, 2.6, -30.36);
+    const sectionR = new THREE.Mesh(sectionGeo, new THREE.MeshBasicMaterial({ color: away.color }));
+    sectionR.position.set(26, 2.6, -30.36);
+    this.scene.add(sectionL, sectionR);
+    const flagGeo = new THREE.PlaneGeometry(6, 3);
+    const defs = [
+      { label: home.name.toUpperCase(), bg: home.color, x: -30 },
+      { label: 'HNC LEAGUE', bg: '#101b31', x: 0 },
+      { label: away.name.toUpperCase(), bg: away.color, x: 30 },
+    ];
+    const flags = defs.map((d, i) => {
+      const f = new THREE.Mesh(flagGeo, new THREE.MeshBasicMaterial({ map: this.flagTexture(d.label, d.bg), side: THREE.DoubleSide }));
+      // Tucked into the upper rows below the roof lip (roof sits at y≈10.6):
+      // supporter-held banners among the fans, never sky billboards.
+      f.position.set(d.x, 9.3, -34.6);
+      f.userData.baseY = 9.3;
+      f.userData.phase = i * 2.1;
+      this.scene.add(f);
+      return f;
+    });
+    this.crowdDressing = { key, sectionL, sectionR, flags };
+  }
+
+  /**
+   * Social-only crowd choreography: rewrites crowd instance matrices from
+   * the final evaluated crowd state (mood/intensity chosen by scene code).
+   * Pure per-frame function of the state — no accumulation, no randomness —
+   * so any frame renders identically standalone. The game `render()` path
+   * never calls this; live crowds stay exactly as built.
+   */
+  private applySocialCrowd(crowd: SocialCrowdState, teams: [Team, Team]): void {
+    this.ensureSocialDressing(teams[0], teams[1]);
+    for (const b of this.crowdBase) {
+      const o = crowdFanOffset({ x: b.x, row: b.row, index: b.index }, crowd);
+      this.crowdTmpP.set(b.x, b.y + o.dy, b.z + o.dz);
+      this.crowdTmpQ.identity();
+      this.crowdTmpS.set(1, o.sy, 1);
+      this.crowdTmpM.compose(this.crowdTmpP, this.crowdTmpQ, this.crowdTmpS);
+      b.mesh.setMatrixAt(b.i, this.crowdTmpM);
+    }
+    for (const mesh of this.crowdMeshes) mesh.instanceMatrix.needsUpdate = true;
+    if (this.crowdDressing) {
+      // Deterministic flag bob: slightly livelier during eruptions.
+      const k = 0.4 + 0.6 * Math.min(1, Math.max(0, crowd.intensity));
+      for (const f of this.crowdDressing.flags) {
+        const ph = f.userData.phase as number;
+        f.position.y = (f.userData.baseY as number) + Math.sin(crowd.time * 2.4 + ph) * 0.14 * k;
+        f.rotation.z = Math.sin(crowd.time * 2.0 + ph * 0.8) * 0.05 * k;
+      }
+    }
   }
 
   private makeAvatar(p: Player, state: MatchState): Avatar {
@@ -520,10 +635,12 @@ export class GameRenderer {
    * Deterministic social still: stages the given state with a fixed lens, a
    * frozen animation clock, no HUD markers, no ball trail, no shake and no
    * camera easing. The optional per-actor pose stages timeline micro-motion
-   * (breathing/lean/arms); omitted = neutral idle. The live-game `render()`
-   * path above is untouched.
+   * (breathing/lean/arms); omitted = neutral idle. The optional crowd state
+   * stages social-only supporter choreography (idle/wave/anticipation/goal);
+   * omitted = the static built crowd, identical to the game. The live-game
+   * `render()` path above is untouched.
    */
-  renderSocial(state: MatchState, cam: SocialCameraPose, clockFixed = 1.0, pose?: SocialActorPose[], effects?: SocialEffects): void {
+  renderSocial(state: MatchState, cam: SocialCameraPose, clockFixed = 1.0, pose?: SocialActorPose[], effects?: SocialEffects, crowd?: SocialCrowdState): void {
     this.clock = clockFixed;
     this.shake = 0; this.fovPunch = 0; this.cine = null;
     this.lastFlight = state.ball.flight;
@@ -575,6 +692,7 @@ export class GameRenderer {
       const net = g.getObjectByName('net');
       if (net) net.position.x = 0;
     }
+    if (crowd) this.applySocialCrowd(crowd, state.teams);
     this.renderer.render(this.scene, this.camera);
   }
   resize(){

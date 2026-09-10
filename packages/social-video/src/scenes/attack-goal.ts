@@ -1,5 +1,6 @@
 import { FIELD, type MatchState, type Player, type Team, type TeamId } from '../../../../apps/game/src/types';
 import type { SocialActorPose, SocialEffects } from '../../../../apps/game/src/renderer';
+import type { SocialCrowdState } from '../../../../apps/game/src/render/crowd';
 import { goalCineShot, goalCineVariant } from '../../../../apps/game/src/render/camera';
 import { countryTeams } from '../../../../apps/game/src/city-league/kits';
 import type { AttackStyle, ResolvedVideoSpec } from '../schema';
@@ -71,6 +72,8 @@ export interface AttackGoalFrameDescription {
   camera: SocialLens;
   clock: number;
   effects: AttackGoalEffects;
+  /** Supporter choreography for this instant (WHEN/WHY owned by the scene). */
+  crowd: SocialCrowdState;
 }
 
 /** Final renderer input derived from a frame description (no timeline left). */
@@ -80,6 +83,7 @@ export interface AttackGoalRenderInput {
   clock: number;
   pose: SocialActorPose[];
   effects: SocialEffects;
+  crowd: SocialCrowdState;
 }
 
 /** Plain staging parameters for the attack-goal timeline (no THREE objects). */
@@ -555,6 +559,29 @@ function mirrorVec2<T extends Vec2>(v: T): T {
 }
 
 /**
+ * Supporter choreography for the attack: the stand watches quietly, rises
+ * as the ball reaches dangerous territory (early enough to read in the
+ * pre-cut wide shots), peaks as the shot flies, then the scoring section
+ * erupts while the conceding section drops. Past the 6s end (outro
+ * continuation) the celebration slowly settles. Pure function of local
+ * time + seed + attacking side.
+ */
+export function evaluateAttackCrowd(time: number, seed: number, attackIdx: TeamId): SocialCrowdState {
+  if (time < 2.2) return { mood: 'idle', intensity: 0.2, time, seed, moodTime: time };
+  if (time < 3.15) {
+    const p = (time - 2.2) / 0.95;
+    return { mood: 'anticipation', intensity: 0.25 + 0.45 * p, time, seed, moodTime: time - 2.2 };
+  }
+  if (time < B.shotEnd) {
+    const p = (time - 3.15) / (B.shotEnd - 3.15);
+    return { mood: 'anticipation', intensity: 0.7 + 0.3 * p, time, seed, moodTime: time - 3.15 };
+  }
+  const moodTime = time - B.shotEnd;
+  const intensity = time < 6 ? 1 - 0.4 * (moodTime / (6 - B.shotEnd)) : Math.max(0.4, 0.6 - 0.15 * ((time - 6) / 2.6));
+  return { mood: 'goal', intensity, time, seed, scoringTeam: attackIdx, moodTime };
+}
+
+/**
  * Evaluate one timeline frame. Pure function of (staging, frame, fps,
  * duration, countries): random-access safe, no prior-frame state. Away
  * attacks are compiled in attack-+x space and mirrored here.
@@ -581,9 +608,10 @@ export function evaluateAttackGoalFrame(args: {
   const background = evaluateBackground(ctx, attackIdx, defendIdx, ball);
   const camera = evaluateAttackCamera(ctx, ball);
   const effects = evaluateAttackEffects(ctx);
+  const crowd = evaluateAttackCrowd(time, seed, attackIdx);
 
   if (data.attackSign === 1) {
-    return { scene: 'attack-goal', frame, time, actors: [...heroes, ...background], ball, camera, clock: time, effects };
+    return { scene: 'attack-goal', frame, time, actors: [...heroes, ...background], ball, camera, clock: time, effects, crowd };
   }
   // Mirror the whole staged world across the halfway line for away attacks.
   const mirrorActor = (a: AttackGoalActorFrame): AttackGoalActorFrame => ({
@@ -606,6 +634,7 @@ export function evaluateAttackGoalFrame(args: {
       trailFrom: effects.trailFrom ? { x: -effects.trailFrom.x, y: effects.trailFrom.y, z: effects.trailFrom.z } : null,
       shakeX: -effects.shakeX,
     },
+    crowd,
   };
 }
 
@@ -643,6 +672,6 @@ export function attackGoalFrameToRenderInput(
     shakeX: fx.shakeX,
     shakeY: fx.shakeY,
   };
-  return { state, camera: desc.camera, clock: desc.clock, pose: desc.actors.map(toPose), effects };
+  return { state, camera: desc.camera, clock: desc.clock, pose: desc.actors.map(toPose), effects, crowd: desc.crowd };
 }
 

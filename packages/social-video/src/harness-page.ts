@@ -77,13 +77,13 @@ function boot(): void {
       if (tpl !== null) {
         const result = evaluateTemplateFrame(tpl, frame);
         renderer.renderSocial(
-          result.input.state, result.input.camera, result.input.clock, result.input.pose, result.input.effects,
+          result.input.state, result.input.camera, result.input.clock, result.input.pose, result.input.effects, result.input.crowd,
         );
         renderOverlays(result.overlays, overlayHost);
       } else {
         const desc = evaluateFrame(compiled!, frame);
         const input = sceneFrameToRenderInput(compiled!, desc);
-        renderer.renderSocial(input.state, input.camera, input.clock, input.pose, input.effects);
+        renderer.renderSocial(input.state, input.camera, input.clock, input.pose, input.effects, input.crowd);
         renderOverlays(evaluateOverlays(compiled!, frame), overlayHost);
       }
       // Resolve once the frame has been presented — no arbitrary sleeps on

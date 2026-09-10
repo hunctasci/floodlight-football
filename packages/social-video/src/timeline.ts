@@ -4,6 +4,7 @@ import {
 import type { SocialFormatId } from './config';
 import type { MatchState } from '../../../apps/game/src/types';
 import type { SocialActorPose, SocialCameraPose, SocialEffects } from '../../../apps/game/src/renderer';
+import type { SocialCrowdState } from '../../../apps/game/src/render/crowd';
 import {
   compileFaceoffTimeline, evaluateFaceoffFrame, faceoffFrameToRenderInput,
   type FaceoffTimelineData, type SocialFrameDescription,
@@ -136,6 +137,8 @@ export interface SocialRenderInput {
   clock: number;
   pose: SocialActorPose[];
   effects?: SocialEffects;
+  /** Supporter choreography staged by the scene; omitted = static crowd. */
+  crowd?: SocialCrowdState;
 }
 
 /**
