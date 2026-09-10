@@ -48,7 +48,7 @@ function compileSegmentVideo(
  * content-only (goal + headline, scene CTA/brand filtered); template owns
  * the outro CTA + brand hold. Outro choreography: CTA settles from
  * outro+0.2 while the celebration is still visible; the badge punches in
- * from outro+0.4 (8.8s in production) so it never covers the player
+ * from outro+0.4 (12.9s in production) so it never covers the player
  * immediately, then holds prominently to the end.
  */
 function templateOverlayPlan(

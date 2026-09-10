@@ -33,18 +33,21 @@ import { clearFramePngs } from '../src/render/frame';
 import { compileVideo, frameFilename } from '../src/timeline';
 import { compileTemplate } from '../src/templates/compile';
 import type { CompiledTemplate } from '../src/templates/types';
-import { resolveVideoSpec, SocialSpecError } from '../src/schema';
-import { argStr, outputFromArgs, readArgs, specInputFromArgs } from './cli-args';
+import { compileTrailer } from '../src/trailers/compile';
+import type { CompiledTrailer } from '../src/trailers/types';
+import { resolveVideoSpec, resolveTrailerSpec, SocialSpecError } from '../src/schema';
+import { argStr, outputFromArgs, readArgs, specInputFromArgs, trailerInputFromArgs } from './cli-args';
 
 const execFileAsync = promisify(execFile);
 
 function usage(): string {
   return [
-    'Usage: social:render --home <CODE> --away <CODE> --output <video.mp4> [--scene faceoff|attack-goal] [--template country-rivalry-reel] [--format reel] [--seed 42] [--fps 30] [--duration <sec>] [--attack-team home|away] [--attack-style central|wing|counter] [--headline <text>] [--secondary <text>] [--cta <text>] [--no-overlays] [--music <file.mp3>] [--music-volume 0.25] [--keep-frames] [--force]',
+    'Usage: social:render --home <CODE> --away <CODE> --output <video.mp4> [--scene faceoff|attack-goal] [--template country-rivalry-reel] [--trailer world-league-hero --countries TR,GR,BR,AR,DE,FR] [--format reel] [--seed 42] [--fps 30] [--duration <sec>] [--attack-team home|away] [--attack-style central|wing|counter] [--headline <text>] [--secondary <text>] [--cta <text>] [--no-overlays] [--music <file.mp3>] [--music-volume 0.25] [--crowd-mode real|procedural] [--audio-plan] [--keep-frames] [--force]',
     '',
     'Examples:',
     '  npm run social:render -- --scene attack-goal --home TR --away GR --seed 42 --output social/output/tr-vs-gr.mp4',
     '  npm run social:render -- --template country-rivalry-reel --home TR --away GR --seed 42 --output social/output/tr-vs-gr-reel.mp4',
+    '  npm run social:render -- --trailer world-league-hero --countries TR,GR,BR,AR,DE,FR --seed 42 --output social/output/world-league-hero.mp4',
     '',
     'Examples:',
     '  npm run social:render -- --scene attack-goal --home TR --away GR --seed 42 --output social/output/tr-vs-gr.mp4',
@@ -52,7 +55,8 @@ function usage(): string {
     '  npm run social:render -- --scene attack-goal --home TR --away GR --music ./my-track.mp3 --output social/output/tr-vs-gr.mp4',
     '',
     'Country codes come from the game\'s canonical country list (e.g. TR GR BR AR DE FR).',
-    'Defaults: scene=faceoff format=reel seed=42 fps=30 duration=4 (faceoff) or 6 (attack-goal) overlays=default music-volume=0.25.',
+    'Defaults: scene=faceoff format=reel seed=42 fps=30 duration=4 (faceoff), 9.5 (attack-goal), 8 (cross-header-goal), 9.5 (crossbar-chaos), 10.5 (keeper-disaster) overlays=default music-volume=0.25.',
+    'Trailer defaults: fps=60 duration=17.6 (world-league-hero); pass --countries TR,GR,BR,AR,DE,FR instead of --home/--away.',
     'Refuses to overwrite an existing MP4 unless --force is given. Temp frames are deleted unless --keep-frames.',
   ].join('\n');
 }
@@ -153,29 +157,42 @@ async function main(): Promise<void> {
     return;
   }
   let video;
+  let trailerResolved = null as null | ReturnType<typeof resolveTrailerSpec>;
   try {
-    video = resolveVideoSpec(specInputFromArgs(args));
+    if (argStr(args, 'trailer') !== undefined) {
+      trailerResolved = resolveTrailerSpec(trailerInputFromArgs(args));
+      video = null;
+    } else {
+      video = resolveVideoSpec(specInputFromArgs(args));
+    }
   } catch (error) {
     console.error(error instanceof SocialSpecError ? error.message : String(error));
     console.error(usage());
     process.exitCode = 1;
     return;
   }
-  // Exactly one of scene / template renders: a template compiles to global
-  // segments + audio, a scene to a single timeline. Downstream code only
-  // sees shared counters (frames/fps/duration/dims) plus an audio plan.
-  const tpl: CompiledTemplate | null = video.template !== undefined
+  // Exactly one of scene / template / trailer renders: a trailer compiles to
+  // global montage segments + audio, a template to global segments + audio, a
+  // scene to a single timeline. Downstream code only sees shared counters
+  // (frames/fps/duration/dims) plus an audio plan.
+  const trl: CompiledTrailer | null = trailerResolved !== null
+    ? compileTrailer(trailerInputFromArgs(args))
+    : null;
+  const tpl: CompiledTemplate | null = trl === null && video !== null && video.template !== undefined
     ? compileTemplate(specInputFromArgs(args))
     : null;
-  const compiled = tpl === null ? compileVideo(video) : null;
-  const audioPlan: CompiledAudio = tpl !== null ? tpl.audio : compileAudioPlan(compiled!);
-  const totalFrames = tpl?.totalFrames ?? compiled!.totalFrames;
-  const fps = tpl?.fps ?? compiled!.fps;
-  const duration = tpl?.duration ?? compiled!.duration;
-  const width = tpl?.width ?? compiled!.width;
-  const height = tpl?.height ?? compiled!.height;
-  const seed = tpl?.seed ?? compiled!.seed;
-  const whatLine = tpl !== null ? `Template: ${tpl.template}` : `Scene: ${compiled!.scene}`;
+  const compiled = trl === null && tpl === null ? compileVideo(video!) : null;
+  const audioPlan: CompiledAudio = trl !== null ? trl.audio : tpl !== null ? tpl.audio : compileAudioPlan(compiled!);
+  const totalFrames = trl?.totalFrames ?? tpl?.totalFrames ?? compiled!.totalFrames;
+  const fps = trl?.fps ?? tpl?.fps ?? compiled!.fps;
+  const duration = trl?.duration ?? tpl?.duration ?? compiled!.duration;
+  const width = trl?.width ?? tpl?.width ?? compiled!.width;
+  const height = trl?.height ?? tpl?.height ?? compiled!.height;
+  const seed = trl?.seed ?? tpl?.seed ?? compiled!.seed;
+  const whatLine = trl !== null ? `Trailer: ${trl.trailer}` : tpl !== null ? `Template: ${tpl.template}` : `Scene: ${compiled!.scene}`;
+  const matchupLine = trl !== null
+    ? `Matchups: ${trl.countries.slice(0, 2).join(' vs ')} · ${trl.countries.slice(2, 4).join(' vs ')} · ${trl.countries.slice(4, 6).join(' vs ')}`
+    : `Matchup: ${video!.home} vs ${video!.away}`;
   // Fail fast when the encoder is missing — before opening a browser.
   let ffmpeg: string;
   try {
@@ -188,7 +205,7 @@ async function main(): Promise<void> {
   const dryRun = args.get('dry-run') === true || args.get('dryRun') === true;
   if (dryRun) {
     console.log(JSON.stringify({
-      ...video,
+      ...(trl ?? video),
       audioEvents: audioPlan.events,
       sampleRate: audioPlan.sampleRate,
       music: musicPath ?? null,
@@ -201,6 +218,14 @@ async function main(): Promise<void> {
   const keepFrames = args.get('keep-frames') === true || args.get('keepFrames') === true;
   const stems = args.get('stems') === true;
   const monoLegacy = args.get('mono') === true || args.get('mono-legacy') === true;
+  const crowdModeRaw = argStr(args, 'crowd-mode') ?? argStr(args, 'crowdMode') ?? 'real';
+  if (crowdModeRaw !== 'real' && crowdModeRaw !== 'procedural') {
+    console.error(`Invalid crowd mode: ${crowdModeRaw}. Supported: real|procedural.`);
+    process.exitCode = 1;
+    return;
+  }
+  const crowdMode = crowdModeRaw as 'real' | 'procedural';
+  const audioPlanDebug = args.get('audio-plan') === true || args.get('audioPlan') === true;
   const framesDir = keepFrames
     ? path.resolve(`${output}.frames`)
     : await mkdtemp(path.join(os.tmpdir(), 'hnc-social-'));
@@ -231,7 +256,7 @@ async function main(): Promise<void> {
   console.log('HNC Social Render');
   console.log('');
   console.log(whatLine);
-  console.log(`Matchup: ${video.home} vs ${video.away}`);
+  console.log(matchupLine);
   console.log(`Resolution: ${width}x${height}`);
   console.log(`FPS: ${fps}`);
   console.log(`Duration: ${duration.toFixed(2)}s`);
@@ -240,9 +265,11 @@ async function main(): Promise<void> {
 
   try {
     console.log('Rendering frames...');
-    const session = tpl !== null
-      ? await SocialRenderSession.openTemplate(tpl)
-      : await SocialRenderSession.open(compiled!);
+    const session = trl !== null
+      ? await SocialRenderSession.openTrailer(trl)
+      : tpl !== null
+        ? await SocialRenderSession.openTemplate(tpl)
+        : await SocialRenderSession.open(compiled!);
     state.session = session;
     try {
       for (let frame = 0; frame < totalFrames; frame++) {
@@ -257,11 +284,21 @@ async function main(): Promise<void> {
     }
     console.log('');
     console.log('Rendering audio...');
-    console.log(`Audio events: ${audioPlan.events.length}`);
+    console.log(`Audio events: ${audioPlan.events.length} (crowd: ${crowdMode})`);
+    if (audioPlanDebug) {
+      console.log('Audio plan:');
+      for (const e of [...audioPlan.events].sort((a, b) => a.time - b.time)) {
+        console.log(`  ${e.time.toFixed(2)} ${e.type} dur=${e.duration.toFixed(2)} int=${e.intensity.toFixed(2)}${e.pan !== undefined ? ` pan=${e.pan.toFixed(2)}` : ''} ${e.assetId ?? '(procedural)'}`);
+      }
+      for (const d of [...(audioPlan.ducks ?? [])].sort((a, b) => a.start - b.start)) {
+        console.log(`  duck ${d.bus} ${d.start.toFixed(2)}→${d.end.toFixed(2)} -${d.depthDb}dB`);
+      }
+    }
     if (monoLegacy) {
       writeFileSync(sfxPath, renderAudioToWav(audioPlan, seed));
     } else {
-      const mix = renderStereoMix(audioPlan, seed, { stems });
+      const mix = renderStereoMix(audioPlan, seed, { stems, crowdMode });
+      if (mix.warnings) for (const w of mix.warnings) console.warn(`audio fallback: ${w}`);
       writeFileSync(sfxPath, encodeStereoWav(mix));
       if (stems) {
         const { writeFileSync: writeStem } = await import('node:fs');

@@ -17,10 +17,10 @@ export const DEFAULT_DURATION = 4;
 /** Scene-level default clip lengths: each scene paces its own beats. */
 export const SCENE_DEFAULT_DURATION = {
   faceoff: 4,
-  'attack-goal': 6,
-  'cross-header-goal': 6,
-  'crossbar-chaos': 6,
-  'keeper-disaster': 5.5,
+  'attack-goal': 9.5,
+  'cross-header-goal': 8,
+  'crossbar-chaos': 9.5,
+  'keeper-disaster': 10.5,
 } as const;
 
 /**

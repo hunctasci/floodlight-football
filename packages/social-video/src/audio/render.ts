@@ -108,6 +108,12 @@ function renderEvent(
     case 'crowd': // celebration swell: slow-attack noise wash.
       renderNoise(out, sampleRate, start, ev.duration, 0.1 * k, rand, Math.min(0.4, ev.duration / 3));
       break;
+    case 'disappointment': { // procedural fallback "awww" (mono legacy path).
+      renderTone(out, sampleRate, start, 380, Math.max(0.3, ev.duration), 'sawtooth', 0.03 * k, 0.6);
+      renderTone(out, sampleRate, start, 190, Math.max(0.3, ev.duration), 'triangle', 0.04 * k, 0.65);
+      renderNoise(out, sampleRate, start, Math.max(0.3, ev.duration), 0.05 * k, rand, 0.05);
+      break;
+    }
     case 'cross': // whipped cross: brighter, longer kick with air noise.
       renderTone(out, sampleRate, start, 200, 0.09, 'square', 0.05 * k, 0.5);
       renderNoise(out, sampleRate, start, 0.09, 0.03 * k, rand);

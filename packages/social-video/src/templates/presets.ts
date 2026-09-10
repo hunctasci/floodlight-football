@@ -5,10 +5,11 @@ import type { OverlayPlanEntry } from '../overlays/types';
  * Production template segment tables. The template owns WHEN segments play;
  * scene compilers/evaluators are reused untouched with scene-local timing.
  *
- * country-rivalry-reel (11.0s): faceoff intro slice → full attack-goal →
- * celebration continuation outro. Boundaries sit on exact 30fps frames
- * (72, 252) so local-frame mapping is bit-exact at the default frame rate;
- * other rates round to the nearest local frame (deterministic, ≤½ frame).
+ * country-rivalry-reel (15.5s): faceoff intro slice → full attack-goal (9.5s
+ * readable cut) → celebration continuation outro. Boundaries sit on exact
+ * 30fps frames (90, 375) so local-frame mapping is bit-exact at the default
+ * frame rate; other rates round to the nearest local frame (deterministic,
+ * ≤½ frame).
  */
 
 export interface TemplateSegmentDef {
@@ -21,8 +22,8 @@ export interface TemplateSegmentDef {
   scene: 'faceoff' | 'attack-goal';
   /**
    * Duration handed to the scene evaluators (the scene believes its own
-   * clock). Faceoff plays a compressed 2.4s arc; attack plays its full 6s;
-   * the outro continues attack evaluation past 6s for living celebration.
+   * clock). Faceoff plays a compressed 3.0s arc; attack plays its full 9.5s;
+   * the outro continues attack evaluation past 9.5s for living celebration.
    */
   localDuration: number;
 }
@@ -30,9 +31,9 @@ export interface TemplateSegmentDef {
 /** Production segment table for country-rivalry-reel. */
 export function countryRivalrySegments(): TemplateSegmentDef[] {
   return [
-    { kind: 'scene', scene: 'faceoff', start: 0, duration: 2.4, localDuration: 2.4 },
-    { kind: 'scene', scene: 'attack-goal', start: 2.4, duration: 6.0, localDuration: 6.0 },
-    { kind: 'outro', scene: 'attack-goal', start: 8.4, duration: 2.6, localDuration: 6.0 },
+    { kind: 'scene', scene: 'faceoff', start: 0, duration: 3.0, localDuration: 3.0 },
+    { kind: 'scene', scene: 'attack-goal', start: 3.0, duration: 9.5, localDuration: 9.5 },
+    { kind: 'outro', scene: 'attack-goal', start: 12.5, duration: 3.0, localDuration: 9.5 },
   ];
 }
 
@@ -40,7 +41,7 @@ export function templateTableDuration(segments: TemplateSegmentDef[]): number {
   return segments.reduce((end, s) => Math.max(end, s.start + s.duration), 0);
 }
 
-/** Total production duration (11.0s for country-rivalry-reel). */
+/** Total production duration (15.5s for country-rivalry-reel). */
 export function countryRivalryDuration(): number {
   return templateTableDuration(countryRivalrySegments());
 }

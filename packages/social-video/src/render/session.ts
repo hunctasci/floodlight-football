@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { Browser, chromium, Page } from '@playwright/test';
 import type { CompiledSocialVideo } from '../timeline';
 import type { CompiledTemplate } from '../templates/types';
+import type { CompiledTrailer } from '../trailers/types';
 import { pngDimensions } from './png';
 
 const PACKAGE_ROOT = path.dirname(path.dirname(path.dirname(fileURLToPath(import.meta.url))));
@@ -104,6 +105,17 @@ export class SocialRenderSession {
     if (tpl.headline !== undefined) params.set('headline', tpl.headline);
     if (tpl.secondary !== undefined) params.set('secondary', tpl.secondary);
     if (tpl.cta !== undefined) params.set('cta', tpl.cta);
+    return SocialRenderSession.openWithParams({ width: tpl.width, height: tpl.height }, params);
+  }
+
+  static async openTrailer(tpl: CompiledTrailer): Promise<SocialRenderSession> {
+    const params = new URLSearchParams({
+      trailer: tpl.trailer, countries: tpl.countries.join(','),
+      format: tpl.format, seed: String(tpl.seed),
+      fps: String(tpl.fps),
+      attackTeam: tpl.attackTeam, attackStyle: tpl.attackStyle,
+      overlays: tpl.overlaysMode,
+    });
     return SocialRenderSession.openWithParams({ width: tpl.width, height: tpl.height }, params);
   }
 

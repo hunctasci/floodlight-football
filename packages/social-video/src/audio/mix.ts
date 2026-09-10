@@ -1,23 +1,32 @@
 import { seededRandom } from '../scenes/faceoff';
 import { AUDIO_SAMPLE_RATE } from './compile';
-import { preferredAssetId } from './library';
-import type { CompiledAudio, MixDuck } from './types';
+import { CROWD_POOL_BY_TYPE, preferredAssetId } from './library';
+import { loadAudioManifest, resolveAssetFile } from './manifest-fs';
+import { loadCrowdSample, type DecodedSample } from './samples';
+import type { AudioEvent, CompiledAudio, MixDuck } from './types';
 
 /**
  * Production stereo mix engine (48 kHz stereo).
  *
  * Semantic buses: foreground SFX / crowd / ambience / music / sweeteners.
  * Pre-impact ducks + 50–120 ms micro-silence create anticipation; major
- * contacts layer (header = thump + sub, shot = kick + whoosh, bar = clang +
- * sub) for emotional weight. Everything is seeded determinism: same plan +
- * same seed = byte-identical stereo WAV.
+ * contacts layer arcade procedural SFX (kick/header/bar/save + sub
+ * sweetener + whoosh) while the HUMAN atmosphere — stadium beds,
+ * anticipation rises, goal eruptions, disappointment groans — plays from
+ * real bundled Freesound CC0 recordings (assets/audio/crowd/).
  *
- * External bundled WAVs (manifest) are the preferred layer when present;
- * this checkout ships catalogue-only (no binaries committed), so the mix
- * below — the procedural HNC fallback — IS the production renderer until an
- * operator drops licensed files into assets/audio/. `assetId` choices are
- * still recorded deterministically per event (see preferredAssetId) so a
- * future drop-in changes nothing structurally.
+ * Architecture: scene/choreography code decides WHAT/WHEN/INTENSITY (and
+ * pins a deterministic variant via assetId); this mixer decides WHICH
+ * ASSET file, HOW LOUD, PAN, FADES and MIX. No filesystem or decode logic
+ * lives in scene code — only here (plus samples.ts).
+ *
+ * Fallback: a missing/corrupt crowd file renders the deterministic
+ * procedural HNC synth for that event and records an explicit warning on
+ * the result (never silent substitution). `--crowd-mode procedural`
+ * forces the full procedural path for A/B comparison.
+ *
+ * Everything is seeded determinism: same plan + same seed = byte-identical
+ * stereo WAV.
  */
 
 export const MIX_SAMPLE_RATE = AUDIO_SAMPLE_RATE;
@@ -87,11 +96,26 @@ const BUS_GAIN: Record<string, number> = {
   sweetener: 0.55,
 };
 
+/**
+ * Sample-voice gains (linear, replace the bus gain — crowd recordings are
+ * pre-mastered so the hierarchy is baked in here): bed QUIET presence,
+ * anticipation MEDIUM, roar VERY STRONG, celebration tails scale with
+ * intensity. The goal feels huge because the baseline was lower.
+ */
+const SAMPLE_GAIN: Record<string, number> = {
+  ambience: 0.9,
+  anticipation: 0.55,
+  goal: 0.95,
+  crowd: 0.95,
+  disappointment: 0.6,
+};
+
 function eventBus(type: string): string {
   switch (type) {
     case 'ambience': return 'ambience';
     case 'crowd':
     case 'anticipation':
+    case 'disappointment':
     case 'goal': return 'crowd';
     case 'impact':
     case 'sting': return 'sweetener';
@@ -160,6 +184,14 @@ function renderEventMono(
     case 'clearance':
       renderToneMono(mono, sampleRate, start, 140 * variantShift, 0.08, 'square', 0.055 * k, 0.5);
       break;
+    case 'disappointment': {
+      // Procedural FALLBACK "awww" (only when the real groan is missing):
+      // descending tonal sigh + deflating noise wash.
+      renderToneMono(mono, sampleRate, start, 380 * variantShift, Math.max(0.3, duration), 'sawtooth', 0.03 * k, 0.6);
+      renderToneMono(mono, sampleRate, start, 190 * variantShift, Math.max(0.3, duration), 'triangle', 0.04 * k, 0.65);
+      renderNoiseMono(mono, sampleRate, start, Math.max(0.3, duration), 0.05 * k, rand, 0.05);
+      break;
+    }
     case 'goal':
     case 'crowd': {
       // Wide eruption: slow-attack noise wash + rising swell.
@@ -221,21 +253,177 @@ export interface StereoMix {
     sfx: { left: Float32Array; right: Float32Array };
     music: { left: Float32Array; right: Float32Array };
   };
+  /**
+   * Explicit fallback report: one entry per crowd event that could not use
+   * its real recording (missing/corrupt file) and rendered procedurally
+   * instead. Absent/empty means the mix is fully real where designed.
+   */
+  warnings?: string[];
 }
+
+export type CrowdMode = 'real' | 'procedural';
 
 export interface StereoMixOptions {
   /** Preserve per-bus stems (debug flag, off by default). */
   stems?: boolean;
+  /**
+   * 'real' (default): bundled crowd recordings where designed, procedural
+   * fallback + warning otherwise. 'procedural': force the legacy synth for
+   * A/B comparison against the old game-engine sound.
+   */
+  crowdMode?: CrowdMode;
 }
 
 function makeStereo(n: number): { left: Float32Array; right: Float32Array } {
   return { left: new Float32Array(n), right: new Float32Array(n) };
 }
 
+interface SampleVoice {
+  sample: DecodedSample;
+  /** Pre-mastered linear gain (already includes intensity; replaces bus gain). */
+  gain: number;
+  bed: boolean;
+}
+
+/**
+ * Resolve a sample-backed event to its bundled recording. Deterministic:
+ * same seed + event type + occurrence index = same file. Returns null when
+ * the event is procedural-only (kicks, impacts, …) or when crowdMode forces
+ * the synth; records a warning and returns null when a designed recording
+ * is missing or corrupt (caller renders the procedural fallback).
+ */
+function resolveVoice(
+  seed: number, ev: AudioEvent, index: number, warnings: string[],
+): SampleVoice | null {
+  let id = ev.assetId ?? null;
+  if (!id) {
+    const pool = CROWD_POOL_BY_TYPE[ev.type];
+    if (!pool) return null;
+    id = preferredAssetId(seed, pool, index);
+  }
+  const manifest = loadAudioManifest();
+  const asset = manifest.assets.find((a) => a.id === id);
+  if (!asset) {
+    warnings.push(`crowd asset "${id}" (${ev.type}@${ev.time.toFixed(2)}s): not in manifest — procedural fallback`);
+    return null;
+  }
+  const file = resolveAssetFile(asset);
+  if (!file) {
+    warnings.push(`crowd asset "${id}" (${ev.type}@${ev.time.toFixed(2)}s): file missing (${asset.file}) — procedural fallback`);
+    return null;
+  }
+  try {
+    const sample = loadCrowdSample(file, MIX_SAMPLE_RATE);
+    const gain = (SAMPLE_GAIN[ev.type] ?? 0.8) * ev.intensity;
+    return { sample, gain, bed: ev.type === 'ambience' };
+  } catch (error) {
+    warnings.push(`crowd asset "${id}" (${ev.type}@${ev.time.toFixed(2)}s): ${error instanceof Error ? error.message : String(error)} — procedural fallback`);
+    return null;
+  }
+}
+
+/** Raised-cosine ramp 0→1 over n samples (click-free voice attack). */
+function attackRamp(i: number, n: number): number {
+  if (n <= 0 || i >= n) return 1;
+  const k = Math.sin((Math.PI / 2) * (i / n));
+  return k * k;
+}
+
+/**
+ * Render a one-shot crowd sample (roar/anticipation/groan) into the master
+ * buses at event time. The voice plays at most ev.duration (the plan's
+ * dramatic window) with a short release fade when truncated; files carry
+ * their own attack fades, plus a few-ms safety attack here.
+ */
+function renderSampleOneshot(
+  masterL: Float32Array, masterR: Float32Array,
+  stems: StereoMix['stems'] | null, bus: string,
+  voice: SampleVoice, startSample: number, durSamples: number, panL: number, panR: number,
+  ducks: readonly MixDuck[], sampleRate: number,
+): void {
+  const n = masterL.length;
+  const playLen = Math.min(voice.sample.left.length, durSamples, n - startSample);
+  if (playLen <= 0) return;
+  const attack = Math.round(0.008 * sampleRate);
+  const release = Math.min(Math.round(0.1 * sampleRate), Math.floor(playLen / 2));
+  for (let i = 0; i < playLen; i++) {
+    const at = startSample + i;
+    if (at < 0) continue;
+    const tail = playLen - 1 - i;
+    const rel = tail < release ? Math.sin((Math.PI / 2) * (tail / release)) ** 2 : 1;
+    const t = at / sampleRate;
+    const g = voice.gain * attackRamp(i, attack) * rel * duckGainAt(ducks, bus, t);
+    const l = voice.sample.left[i] * panL * g;
+    const r = voice.sample.right[i] * panR * g;
+    masterL[at] += l;
+    masterR[at] += r;
+    if (stems) routeStem(stems, bus, at, l, r);
+  }
+}
+
+/**
+ * Render a looping stadium bed across [startSample, startSample+durSamples)
+ * with an equal-power crossfade at the loop joint. The baked 0.5 s file
+ * edges are excluded from the loop region so the seam stays inaudible.
+ */
+function renderBedLoop(
+  masterL: Float32Array, masterR: Float32Array,
+  stems: StereoMix['stems'] | null, bus: string,
+  voice: SampleVoice, startSample: number, durSamples: number,
+  ducks: readonly MixDuck[], sampleRate: number,
+): void {
+  const n = masterL.length;
+  const frames = Math.min(durSamples, n - startSample);
+  if (frames <= 0) return;
+  const edge = Math.round(0.5 * sampleRate);
+  const sN = voice.sample.left.length;
+  const regionStart = Math.min(edge, Math.floor(sN / 4));
+  const regionLen = Math.max(1, sN - regionStart * 2);
+  const xf = Math.max(1, Math.min(Math.round(1.0 * sampleRate), Math.floor(regionLen / 2)));
+  const loopLen = regionLen - xf;
+  for (let i = 0; i < frames; i++) {
+    const at = startSample + i;
+    if (at < 0) continue;
+    const p = loopLen > 0 ? i % loopLen : 0;
+    let l: number;
+    let r: number;
+    if (p < xf && loopLen > 0) {
+      const a = (Math.PI / 2) * (p / xf);
+      const gIn = Math.sin(a);
+      const gOut = Math.cos(a);
+      const head = regionStart + p;
+      const tail = regionStart + p + loopLen;
+      l = voice.sample.left[head] * gIn + voice.sample.left[tail] * gOut;
+      r = voice.sample.right[head] * gIn + voice.sample.right[tail] * gOut;
+    } else {
+      const s = regionStart + p;
+      l = voice.sample.left[s];
+      r = voice.sample.right[s];
+    }
+    const t = at / sampleRate;
+    const g = voice.gain * duckGainAt(ducks, bus, t);
+    const lv = l * g;
+    const rv = r * g;
+    masterL[at] += lv;
+    masterR[at] += rv;
+    if (stems) routeStem(stems, bus, at, lv, rv);
+  }
+}
+
+function routeStem(
+  stems: NonNullable<StereoMix['stems']>, bus: string, at: number, l: number, r: number,
+): void {
+  if (bus === 'ambience') { stems.ambience.left[at] += l; stems.ambience.right[at] += r; }
+  else if (bus === 'crowd') { stems.crowd.left[at] += l; stems.crowd.right[at] += r; }
+  else if (bus === 'foreground' || bus === 'sweetener') { stems.sfx.left[at] += l; stems.sfx.right[at] += r; }
+  else { stems.music.left[at] += l; stems.music.right[at] += r; }
+}
+
 /**
  * Render a compiled plan to a stereo mix. Deterministic: same plan + seed =
- * identical samples. Crowd renders decorrelated L/R (wide stereo); point
- * sources (kicks) respect event pan (subtle left→right for crosses).
+ * identical samples. Crowd recordings keep their natural stereo width;
+ * point sources (kicks) respect event pan (subtle left→right for crosses,
+ * scoring-stand lean for eruptions).
  */
 export function renderStereoMix(
   plan: CompiledAudio,
@@ -248,18 +436,32 @@ export function renderStereoMix(
   const masterR = new Float32Array(n);
   const ducks = plan.ducks ?? [];
   const wantStems = opts.stems === true;
+  const realCrowd = (opts.crowdMode ?? 'real') === 'real';
   const stemAmbience = wantStems ? makeStereo(n) : null;
   const stemCrowd = wantStems ? makeStereo(n) : null;
   const stemSfx = wantStems ? makeStereo(n) : null;
   const stemMusic = wantStems ? makeStereo(n) : null;
+  const stems = wantStems
+    ? { ambience: stemAmbience!, crowd: stemCrowd!, sfx: stemSfx!, music: stemMusic! }
+    : null;
+  const warnings: string[] = [];
 
   // Crowd/mono beds pre-rendered once per channel with different seeds so
   // the stereo image is wide, not dual-mono.
   plan.events.forEach((ev, index) => {
-    void preferredAssetId(seed, ev.type, index);
     const bus = eventBus(ev.type);
-    const gain = BUS_GAIN[bus] ?? 1;
     const [pgL, pgR] = panGains(ev.pan ?? defaultPanFor(ev.type, ev.time));
+    const voice = realCrowd ? resolveVoice(seed, ev, index, warnings) : null;
+    if (voice) {
+      const startSample = Math.round(ev.time * sr);
+      if (voice.bed) {
+        renderBedLoop(masterL, masterR, stems, bus, voice, startSample, Math.round(ev.duration * sr), ducks, sr);
+      } else {
+        renderSampleOneshot(masterL, masterR, stems, bus, voice, startSample, Math.round(ev.duration * sr), pgL, pgR, ducks, sr);
+      }
+      return;
+    }
+    const gain = BUS_GAIN[bus] ?? 1;
     const mono = new Float32Array(n);
     renderEventMono(mono, sr, seed, index, ev.type, ev.time, ev.duration, ev.intensity);
     const isWide = bus === 'crowd';
@@ -274,16 +476,16 @@ export function renderStereoMix(
       masterL[i] += v * pgL * g;
       const rv = delay > 0 ? (i - delay >= 0 ? mono[i - delay] : 0) : v;
       masterR[i] += rv * pgR * g;
-      if (wantStems) {
-        if (bus === 'ambience' && stemAmbience) { stemAmbience.left[i] += v * pgL * g; stemAmbience.right[i] += rv * pgR * g; }
-        else if (bus === 'crowd' && stemCrowd) { stemCrowd.left[i] += v * pgL * g; stemCrowd.right[i] += rv * pgR * g; }
-        else if ((bus === 'foreground' || bus === 'sweetener') && stemSfx) { stemSfx.left[i] += v * pgL * g; stemSfx.right[i] += rv * pgR * g; }
-        else if (stemMusic) { stemMusic.left[i] += v * pgL * g; stemMusic.right[i] += rv * pgR * g; }
+      if (stems) {
+        if (bus === 'ambience') { stems.ambience.left[i] += v * pgL * g; stems.ambience.right[i] += rv * pgR * g; }
+        else if (bus === 'crowd') { stems.crowd.left[i] += v * pgL * g; stems.crowd.right[i] += rv * pgR * g; }
+        else if ((bus === 'foreground' || bus === 'sweetener')) { stems.sfx.left[i] += v * pgL * g; stems.sfx.right[i] += rv * pgR * g; }
+        else { stems.music.left[i] += v * pgL * g; stems.music.right[i] += rv * pgR * g; }
       }
     }
   });
 
-  // Conservative normalization: preserve balance, avoid clipping.
+  // Conservative gain staging: preserve balance, light peak protection only.
   let peak = 0;
   for (let i = 0; i < n; i++) {
     const a = Math.abs(masterL[i]);
@@ -294,9 +496,8 @@ export function renderStereoMix(
   if (peak > 0.89) {
     const g = 0.89 / peak;
     for (let i = 0; i < n; i++) { masterL[i] *= g; masterR[i] *= g; }
-    if (wantStems) {
-      for (const s of [stemAmbience, stemCrowd, stemSfx, stemMusic]) {
-        if (!s) continue;
+    if (stems) {
+      for (const s of [stems.ambience, stems.crowd, stems.sfx, stems.music]) {
         for (let i = 0; i < n; i++) { s.left[i] *= g; s.right[i] *= g; }
       }
     }
@@ -308,6 +509,7 @@ export function renderStereoMix(
     ...(wantStems
       ? { stems: { ambience: stemAmbience!, crowd: stemCrowd!, sfx: stemSfx!, music: stemMusic! } }
       : {}),
+    ...(warnings.length > 0 ? { warnings } : {}),
   };
 }
 

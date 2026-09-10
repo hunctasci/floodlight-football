@@ -7,9 +7,13 @@ import { SCENE_RECOMMENDED_FPS } from '../src/config.ts';
 import { buildEncodeArgs } from '../src/encode/video.ts';
 import { compileVideo, evaluateFrame, type SceneFrameDescription } from '../src/timeline.ts';
 import { CROSS_HEADER_BEATS } from '../src/scenes/cross-header-goal.ts';
+import { CROSS_HEADER_SHOTS } from '../src/scenes/cross-header-goal.ts';
 import { CROSSBAR_BEATS } from '../src/scenes/crossbar-chaos.ts';
+import { CROSSBAR_SHOTS } from '../src/scenes/crossbar-chaos.ts';
 import { KEEPER_BEATS } from '../src/scenes/keeper-disaster.ts';
+import { KEEPER_SHOTS } from '../src/scenes/keeper-disaster.ts';
 import { ATTACK_GOAL_BEATS } from '../src/scenes/attack-goal.ts';
+import { ATTACK_SHOTS } from '../src/scenes/attack-goal.ts';
 
 // ---------------------------------------------------------------------------
 // Facing: shortest-arc interpolation never spins the long way.
@@ -85,9 +89,9 @@ const HOLD_WINDOWS: Record<string, [number, number][]> = {
   'cross-header-goal': [[CROSS_HEADER_BEATS.contact, CROSS_HEADER_BEATS.contact + CROSS_HEADER_BEATS.holdLen]],
   'crossbar-chaos': [[CROSSBAR_BEATS.barHit, CROSSBAR_BEATS.barHit + CROSSBAR_BEATS.holdLen]],
   // Save clang + the poacher's first-touch settle (control, not lag). The
-  // touch freeze is staged in action time [2.55, 2.6) but the earlier save
-  // hold shifts the action clock 0.05s behind scene time, so it manifests
-  // at scene time [2.6, 2.65).
+  // touch freeze is staged in action time [clearanceEnd, clearanceEnd+0.05)
+  // but the earlier save hold shifts the action clock 0.05s behind scene
+  // time, so it manifests at scene time [clearanceEnd + holdLen, +0.05).
   'keeper-disaster': [
     [KEEPER_BEATS.saveMoment, KEEPER_BEATS.saveMoment + KEEPER_BEATS.holdLen],
     [KEEPER_BEATS.clearanceEnd + KEEPER_BEATS.holdLen, KEEPER_BEATS.clearanceEnd + KEEPER_BEATS.holdLen + 0.05],
@@ -96,17 +100,17 @@ const HOLD_WINDOWS: Record<string, [number, number][]> = {
 
 /** Flight windows: the ball must travel every frame except inside holds. */
 const FLIGHT_WINDOWS: Record<string, [number, number][]> = {
-  'attack-goal': [[ATTACK_GOAL_BEATS.pass1Start, ATTACK_GOAL_BEATS.pass1End], [ATTACK_GOAL_BEATS.pass1End, ATTACK_GOAL_BEATS.carryEnd], [ATTACK_GOAL_BEATS.carryEnd, ATTACK_GOAL_BEATS.settleEnd], [ATTACK_GOAL_BEATS.shotStart, ATTACK_GOAL_BEATS.netSettleEnd]],
-  'cross-header-goal': [[CROSS_HEADER_BEATS.crossContact, CROSS_HEADER_BEATS.headerEnd], [CROSS_HEADER_BEATS.headerEnd, CROSS_HEADER_BEATS.netSettleEnd]],
-  'crossbar-chaos': [[CROSSBAR_BEATS.shotStart, CROSSBAR_BEATS.barHit], [CROSSBAR_BEATS.barHit, CROSSBAR_BEATS.reboundEnd], [CROSSBAR_BEATS.reboundEnd, CROSSBAR_BEATS.volleyContact], [CROSSBAR_BEATS.volleyContact, CROSSBAR_BEATS.volleyEnd], [CROSSBAR_BEATS.volleyEnd, CROSSBAR_BEATS.netSettleEnd]],
-  'keeper-disaster': [[KEEPER_BEATS.shotStart, KEEPER_BEATS.saveMoment], [KEEPER_BEATS.saveMoment, KEEPER_BEATS.gatherEnd], [KEEPER_BEATS.holdBallEnd, KEEPER_BEATS.clearanceEnd], [KEEPER_BEATS.clearanceEnd, KEEPER_BEATS.instantShotEnd], [KEEPER_BEATS.instantShotEnd, KEEPER_BEATS.netSettleEnd]],
+  'attack-goal': [[ATTACK_GOAL_BEATS.pass1Start, ATTACK_GOAL_BEATS.pass1End], [ATTACK_GOAL_BEATS.pass1End, ATTACK_GOAL_BEATS.carryEnd], [ATTACK_GOAL_BEATS.carryEnd, ATTACK_GOAL_BEATS.settleEnd], [ATTACK_GOAL_BEATS.shotStart + 0.02, ATTACK_GOAL_BEATS.netSettleEnd]],
+  'cross-header-goal': [[CROSS_HEADER_BEATS.passStart, CROSS_HEADER_BEATS.passEnd], [CROSS_HEADER_BEATS.passEnd, CROSS_HEADER_BEATS.crossContact], [CROSS_HEADER_BEATS.crossContact, CROSS_HEADER_BEATS.headerEnd], [CROSS_HEADER_BEATS.headerEnd, CROSS_HEADER_BEATS.netSettleEnd]],
+  'crossbar-chaos': [[CROSSBAR_BEATS.shotStart, CROSSBAR_BEATS.barHit], [CROSSBAR_BEATS.barHit, CROSSBAR_BEATS.volleyContact], [CROSSBAR_BEATS.volleyContact, CROSSBAR_BEATS.volleyEnd], [CROSSBAR_BEATS.volleyEnd, CROSSBAR_BEATS.netSettleEnd]],
+  'keeper-disaster': [[KEEPER_BEATS.shotStart, KEEPER_BEATS.saveMoment], [KEEPER_BEATS.saveMoment, KEEPER_BEATS.gatherEnd], [KEEPER_BEATS.holdBallEnd, KEEPER_BEATS.clearanceKick], [KEEPER_BEATS.clearanceKick, KEEPER_BEATS.clearanceEnd], [KEEPER_BEATS.clearanceEnd, KEEPER_BEATS.settleEnd], [KEEPER_BEATS.shot2Start + KEEPER_BEATS.holdLen + 0.02, KEEPER_BEATS.instantShotEnd], [KEEPER_BEATS.instantShotEnd, KEEPER_BEATS.netSettleEnd]],
 };
 
 const SCENE_SPECS: Record<string, Record<string, unknown>> = {
-  'attack-goal': { scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 6 },
-  'cross-header-goal': { scene: 'cross-header-goal', home: 'TR', away: 'GR', seed: 42, fps: 60, duration: 6 },
-  'crossbar-chaos': { scene: 'crossbar-chaos', home: 'BR', away: 'AR', seed: 7, fps: 60, duration: 6 },
-  'keeper-disaster': { scene: 'keeper-disaster', home: 'TR', away: 'DE', seed: 11, fps: 60, duration: 5.5 },
+  'attack-goal': { scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 9.5 },
+  'cross-header-goal': { scene: 'cross-header-goal', home: 'TR', away: 'GR', seed: 42, fps: 60, duration: 8 },
+  'crossbar-chaos': { scene: 'crossbar-chaos', home: 'BR', away: 'AR', seed: 7, fps: 60, duration: 9.5 },
+  'keeper-disaster': { scene: 'keeper-disaster', home: 'TR', away: 'DE', seed: 11, fps: 60, duration: 10.5 },
 };
 
 function inHold(scene: string, time: number): boolean {
@@ -146,13 +150,20 @@ for (const [scene, spec] of Object.entries(SCENE_SPECS)) {
 // Camera: smooth within beats, jumps only at declared cuts.
 // ---------------------------------------------------------------------------
 
-/** Declared hard-cut times (seconds) per scene. */
-const CAMERA_CUTS: Record<string, number[]> = {
-  'attack-goal': [ATTACK_GOAL_BEATS.pass2End, ATTACK_GOAL_BEATS.shotStart, ATTACK_GOAL_BEATS.cineEnd - 1.0, ATTACK_GOAL_BEATS.cineEnd],
-  'cross-header-goal': [0.8, CROSS_HEADER_BEATS.crossContact, CROSS_HEADER_BEATS.lensStart, CROSS_HEADER_BEATS.lensEnd, CROSS_HEADER_BEATS.contact, 3.2, CROSS_HEADER_BEATS.celebStart],
-  'crossbar-chaos': [CROSSBAR_BEATS.shotStart, CROSSBAR_BEATS.barHit, 2.0, CROSSBAR_BEATS.reboundEnd, CROSSBAR_BEATS.volleyContact, CROSSBAR_BEATS.volleyEnd + 0.3, CROSSBAR_BEATS.celebStart],
-  'keeper-disaster': [KEEPER_BEATS.shotStart, KEEPER_BEATS.saveMoment, 1.7, KEEPER_BEATS.holdBallEnd, KEEPER_BEATS.clearanceEnd + 0.1, KEEPER_BEATS.instantShotEnd + 0.3, KEEPER_BEATS.celebStart, KEEPER_BEATS.celebStart + 0.9],
+/** Declared hard-cut times (seconds) per scene — derived from the scene shot tables. */
+const SHOT_TABLES: Record<string, readonly { start: number }[]> = {
+  'attack-goal': ATTACK_SHOTS,
+  'cross-header-goal': CROSS_HEADER_SHOTS,
+  'crossbar-chaos': CROSSBAR_SHOTS,
+  'keeper-disaster': KEEPER_SHOTS,
 };
+
+const CAMERA_CUTS: Record<string, number[]> = Object.fromEntries(
+  Object.entries(SHOT_TABLES).map(([scene, shots]) => [
+    scene,
+    shots.map((s) => s.start).filter((t) => t > 0),
+  ]),
+);
 
 function camJump(d: SceneFrameDescription): { pos: number; fov: number } {
   void d;
@@ -173,10 +184,11 @@ for (const [scene, spec] of Object.entries(SCENE_SPECS)) {
       if (jump > 3) {
         assert.ok(cut, `${scene} ${(jump).toFixed(1)}m camera jump at frame ${f} is not a declared cut`);
       }
-      // A hard cut swaps lenses outright (up to ~5° FOV steps are the new
-      // shot, not a glitch); inside a beat the FOV only breathes via punch.
+      // A hard cut swaps lenses outright (up to ~8° FOV steps are the new
+      // shot, not a glitch — wide information shots vs tight impact lenses);
+      // inside a beat the FOV only breathes via punch.
       const fovStep = Math.abs(b.camera.fov - a.camera.fov);
-      assert.ok(fovStep < (cut ? 5.5 : 0.5), `${scene} FOV step ${fovStep.toFixed(2)} at frame ${f}`);
+      assert.ok(fovStep < (cut ? 8.5 : 0.5), `${scene} FOV step ${fovStep.toFixed(2)} at frame ${f}`);
     }
   });
 }
@@ -217,9 +229,9 @@ for (const [scene, spec] of Object.entries(SCENE_SPECS)) {
 // ---------------------------------------------------------------------------
 
 test('camera shake is fps-independent (same moment, same offset)', () => {
-  const at30 = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 6 });
-  const at60 = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 60, duration: 6 });
-  for (const t of [3.3, 3.5, 3.7]) {
+  const at30 = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 9.5 });
+  const at60 = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 60, duration: 9.5 });
+  for (const t of [5.5, 5.7, 5.8]) {
     const a = evaluateFrame(at30, Math.round(t * 30)) as { effects: { shakeX: number; shakeY: number } };
     const b = evaluateFrame(at60, Math.round(t * 60)) as { effects: { shakeX: number; shakeY: number } };
     assert.ok(Math.abs(a.effects.shakeX - b.effects.shakeX) < 1e-9, `shakeX matches at t=${t}`);

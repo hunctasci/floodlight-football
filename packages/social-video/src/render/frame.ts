@@ -2,6 +2,7 @@ import { mkdir, readdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { compileVideo, frameFilename } from '../timeline';
 import type { CompiledTemplate } from '../templates/types';
+import type { CompiledTrailer } from '../trailers/types';
 import type { ResolvedVideoSpec } from '../schema';
 import { SocialRenderSession } from './session';
 
@@ -118,6 +119,47 @@ export async function renderTemplateFramesToDir(
   await mkdir(dir, { recursive: true });
   await clearFramePngs(dir);
   const session = await SocialRenderSession.openTemplate(tpl);
+  try {
+    for (let frame = 0; frame < tpl.totalFrames; frame++) {
+      const out = path.join(dir, frameFilename(frame));
+      await session.screenshotFrame(frame, out);
+      onProgress?.({ frame, totalFrames: tpl.totalFrames, path: out });
+    }
+  } finally {
+    await session.close();
+  }
+  return { dir, totalFrames: tpl.totalFrames, width: tpl.width, height: tpl.height };
+}
+
+/**
+ * Render one deterministic trailer frame (global montage position) with
+ * the real HNC renderer. Same random-access contract as renderFrameToPng.
+ */
+export async function renderTrailerFrameToPng(
+  tpl: CompiledTrailer,
+  output: string,
+  frame = 0,
+): Promise<RenderedFrame> {
+  const session = await SocialRenderSession.openTrailer(tpl);
+  try {
+    return await session.screenshotFrame(frame, output);
+  } finally {
+    await session.close();
+  }
+}
+
+/**
+ * Render a full trailer PNG sequence through ONE reused browser session.
+ * Frames are named 000000.png ... NNNNNN.png (global trailer frames).
+ */
+export async function renderTrailerFramesToDir(
+  tpl: CompiledTrailer,
+  dir: string,
+  onProgress?: (p: SequenceProgress) => void,
+): Promise<RenderedSequence> {
+  await mkdir(dir, { recursive: true });
+  await clearFramePngs(dir);
+  const session = await SocialRenderSession.openTrailer(tpl);
   try {
     for (let frame = 0; frame < tpl.totalFrames; frame++) {
       const out = path.join(dir, frameFilename(frame));

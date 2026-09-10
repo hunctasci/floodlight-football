@@ -39,7 +39,8 @@ export function compileTemplateAudio(input: TemplateAudioInput): CompiledAudio {
     { type: 'ambience', time: 0, duration: input.totalDuration, intensity: 0.5 },
   ];
   const ducks: MixDuck[] = [];
-  for (const seg of input.segments) {
+  for (let s = 0; s < input.segments.length; s++) {
+    const seg = input.segments[s];
     if (seg.kind === 'outro') continue;
     const plan = compileAudioPlan({
       scene: seg.scene,
@@ -49,6 +50,9 @@ export function compileTemplateAudio(input: TemplateAudioInput): CompiledAudio {
       attackStyle: input.attackStyle,
       home: input.home,
       away: input.away,
+      // Salt per segment: the same scene compiled for intro vs main cut
+      // picks different deterministic crowd variants (still same spec → same).
+      assetSalt: s + 1,
     });
     events.push(...shiftEvents(plan.events, seg.start, input.totalDuration));
     ducks.push(...shiftDucks(plan.ducks, seg.start, input.totalDuration));

@@ -78,30 +78,30 @@ test('faceoff overlay timing across 0/15/45/90/119', () => {
   assert.deepEqual(kindsAt(compiled, 119), ['headline'], 'frame 119: hero frame');
 });
 
-test('attack-goal overlay timing across 0/30/110/120/150/170/179', () => {
+test('attack-goal overlay timing across 0/30/180/190/230/262/284', () => {
   const compiled = attackGoal();
   assert.deepEqual(kindsAt(compiled, 0), ['versus'], 'frame 0: compact context strip');
   assert.deepEqual(kindsAt(compiled, 30), ['versus'], 'frame 30 (1.0s): strip holds');
-  assert.deepEqual(kindsAt(compiled, 110), ['goal'], 'frame 110 (3.67s): goal punch');
-  assert.deepEqual(kindsAt(compiled, 120), ['goal'], 'frame 120 (4.0s): goal holds');
-  assert.deepEqual(kindsAt(compiled, 150), ['headline'], 'frame 150 (5.0s): celebration headline');
-  assert.deepEqual(kindsAt(compiled, 170), ['brand', 'cta'], 'frame 170 (5.67s): end card');
-  assert.deepEqual(kindsAt(compiled, 179), ['brand', 'cta'], 'frame 179: end card holds');
+  assert.deepEqual(kindsAt(compiled, 180), ['goal'], 'frame 180 (6.0s): goal punch');
+  assert.deepEqual(kindsAt(compiled, 190), ['goal'], 'frame 190 (6.33s): goal holds');
+  assert.deepEqual(kindsAt(compiled, 230), ['headline'], 'frame 230 (7.67s): celebration headline');
+  assert.deepEqual(kindsAt(compiled, 262), ['brand', 'cta'], 'frame 262 (8.73s): end card');
+  assert.deepEqual(kindsAt(compiled, 284), ['brand', 'cta'], 'frame 284: end card holds');
 });
 
 test('goal overlay does not leak into the shot flight or the celebration', () => {
   const compiled = attackGoal();
-  assert.ok(!kindsAt(compiled, 105).includes('goal'), 'frame 105 (shot flying): no goal text yet');
-  assert.ok(!kindsAt(compiled, 150).includes('goal'), 'frame 150 (celebration): goal text gone');
+  assert.ok(!kindsAt(compiled, 168).includes('goal'), 'frame 168 (shot flying): no goal text yet');
+  assert.ok(!kindsAt(compiled, 230).includes('goal'), 'frame 230 (celebration): goal text gone');
 });
 
 test('trailing overlays hold full opacity on the final frame (usable end card)', () => {
   const fo = evaluateOverlays(faceoff(), 119).overlays.find((o) => o.kind === 'headline');
   assert.ok(fo && fo.opacity > 0.9, `faceoff hero frame holds (opacity=${fo?.opacity})`);
-  const ag = evaluateOverlays(attackGoal(), 179);
+  const ag = evaluateOverlays(attackGoal(), 284);
   for (const kind of ['cta', 'brand'] as const) {
     const ov = ag.overlays.find((o) => o.kind === kind);
-    assert.ok(ov && ov.opacity > 0.9, `attack-goal ${kind} holds on frame 179 (opacity=${ov?.opacity})`);
+    assert.ok(ov && ov.opacity > 0.9, `attack-goal ${kind} holds on frame 284 (opacity=${ov?.opacity})`);
   }
 });
 
@@ -109,18 +109,18 @@ test('trailing overlays hold full opacity on the final frame (usable end card)',
 // Random access + determinism (no browser)
 // ---------------------------------------------------------------------------
 
-test('overlay evaluation is random-access: frame 170 deep-equals after other frames', () => {
+test('overlay evaluation is random-access: frame 190 deep-equals after other frames', () => {
   const compiled = attackGoal();
-  const direct = evaluateOverlays(compiled, 170);
-  for (const f of [0, 30, 110, 120, 150, 179, 40, 20]) evaluateOverlays(compiled, f);
-  assert.deepEqual(evaluateOverlays(compiled, 170), direct);
+  const direct = evaluateOverlays(compiled, 190);
+  for (const f of [0, 30, 180, 190, 230, 284, 40, 20]) evaluateOverlays(compiled, f);
+  assert.deepEqual(evaluateOverlays(compiled, 190), direct);
 });
 
 test('compile/evaluate twice with the same spec deep-equals', () => {
   const a = attackGoal();
   const b = attackGoal();
   assert.deepEqual(a.overlayPlan, b.overlayPlan);
-  for (const frame of [0, 30, 110, 120, 150, 170, 179]) {
+  for (const frame of [0, 30, 180, 190, 230, 262, 284]) {
     assert.deepEqual(evaluateOverlays(a, frame), evaluateOverlays(b, frame));
   }
   const c = faceoff();
@@ -132,7 +132,7 @@ test('compile/evaluate twice with the same spec deep-equals', () => {
 
 test('evaluated overlay values are absolute and bounded', () => {
   const compiled = attackGoal();
-  for (const frame of [0, 110, 150, 170]) {
+  for (const frame of [0, 180, 230, 262]) {
     for (const ov of evaluateOverlays(compiled, frame).overlays) {
       assert.ok(ov.opacity >= 0 && ov.opacity <= 1, `opacity bounded at frame ${frame}`);
       assert.ok(Number.isFinite(ov.scale) && Number.isFinite(ov.translateX) && Number.isFinite(ov.translateY));
@@ -159,10 +159,10 @@ test('custom headline and CTA survive compilation exactly', () => {
   const cta = compiled.overlayPlan.find((e) => e.kind === 'cta');
   assert.equal(cta?.text, 'PLAY FOR TÜRKİYE');
   // Evaluated frames carry the exact text too.
-  const at150 = evaluateOverlays(compiled, 150).overlays.find((o) => o.kind === 'headline');
-  assert.equal(at150?.text, 'ONE WIN FROM #1');
-  const at170 = evaluateOverlays(compiled, 170).overlays.find((o) => o.kind === 'cta');
-  assert.equal(at170?.text, 'PLAY FOR TÜRKİYE');
+  const at230 = evaluateOverlays(compiled, 230).overlays.find((o) => o.kind === 'headline');
+  assert.equal(at230?.text, 'ONE WIN FROM #1');
+  const at262 = evaluateOverlays(compiled, 262).overlays.find((o) => o.kind === 'cta');
+  assert.equal(at262?.text, 'PLAY FOR TÜRKİYE');
 });
 
 test('defaults apply when no custom copy is given', () => {
@@ -250,10 +250,10 @@ test('brand overlay references the canonical retro logo with a text fallback', (
 
 test('overlay evaluation needs no browser: evaluateOverlayFrame is pure', () => {
   const compiled = attackGoal();
-  const a = evaluateOverlayFrame(compiled.overlayPlan, 170, compiled.fps);
-  assert.equal(a.frame, 170);
-  assert.equal(a.time, 170 / 30);
-  assert.deepEqual(a, evaluateOverlayFrame(compiled.overlayPlan, 170, compiled.fps));
+  const a = evaluateOverlayFrame(compiled.overlayPlan, 190, compiled.fps);
+  assert.equal(a.frame, 190);
+  assert.equal(a.time, 190 / 30);
+  assert.deepEqual(a, evaluateOverlayFrame(compiled.overlayPlan, 190, compiled.fps));
 });
 
 test('brand punch is deterministic: 0.75 → 1.06 → 1.0 with opacity, no CSS', () => {
@@ -265,12 +265,12 @@ test('brand punch is deterministic: 0.75 → 1.06 → 1.0 with opacity, no CSS',
   // Brand entries evaluate with punch scale, zero slide, bounded opacity.
   const compiled = attackGoal();
   const brandAt = (frame: number) => evaluateOverlays(compiled, frame).overlays.find((o) => o.kind === 'brand');
-  const early = brandAt(162); // 5.4s, just after 5.35 start → entering
+  const early = brandAt(262); // 8.73s, just after 8.7 start → entering
   assert.ok(early, 'brand active just after entry');
   assert.ok(early.scale >= 0.74 && early.scale <= 1.07, `punch scale bounded (got ${early.scale})`);
   assert.equal(early.translateX, 0);
   assert.equal(early.translateY, 0, 'badge punches in place, no slide');
-  const held = brandAt(179);
+  const held = brandAt(284);
   assert.ok(held && Math.abs(held.scale - 1.0) < 1e-9, 'brand holds at 1.0');
   assert.ok(held.opacity > 0.9, 'brand holds opacity');
 });

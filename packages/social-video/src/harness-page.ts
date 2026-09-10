@@ -3,6 +3,8 @@ import { resolveVideoSpec } from './schema';
 import { compileVideo, evaluateFrame, evaluateOverlays, sceneFrameToRenderInput } from './timeline';
 import { compileTemplate } from './templates/compile';
 import { evaluateTemplateFrame } from './templates/evaluate';
+import { compileTrailer } from './trailers/compile';
+import { evaluateTrailerFrame } from './trailers/evaluate';
 import './overlays/styles.css';
 import { OVERLAY_ROOT_ID, ensureBrandLogoReady, ensureOverlayAssets, renderOverlays } from './overlays/render-dom';
 
@@ -33,9 +35,11 @@ declare global {
 function boot(): void {
   try {
     const q = new URLSearchParams(location.search);
+    const trailerParam = q.get('trailer');
     const specInput = {
       scene: q.get('scene'),
       template: q.get('template'),
+      trailer: q.get('trailer'),
       home: q.get('home'),
       away: q.get('away'),
       format: q.get('format'),
@@ -49,12 +53,23 @@ function boot(): void {
       cta: q.get('cta'),
       overlays: q.get('overlays'),
     };
-    const resolved = resolveVideoSpec(specInput);
-    const tpl = resolved.template !== undefined ? compileTemplate(specInput) : null;
-    const compiled = tpl === null ? compileVideo(specInput) : null;
-    const width = tpl?.width ?? compiled!.width;
-    const height = tpl?.height ?? compiled!.height;
-    const pixelRatio = tpl?.pixelRatio ?? compiled!.pixelRatio;
+    const trailerInput = trailerParam ? {
+      trailer: q.get('trailer'),
+      countries: q.get('countries'),
+      format: q.get('format'),
+      seed: q.get('seed'),
+      fps: q.get('fps'),
+      attackTeam: q.get('attackTeam'),
+      attackStyle: q.get('attackStyle'),
+      overlays: q.get('overlays'),
+    } : null;
+    const trl = trailerInput ? compileTrailer(trailerInput) : null;
+    const resolved = trl === null ? resolveVideoSpec(specInput) : null;
+    const tpl = trl === null && resolved!.template !== undefined ? compileTemplate(specInput) : null;
+    const compiled = trl === null && tpl === null ? compileVideo(specInput) : null;
+    const width = trl?.width ?? tpl?.width ?? compiled!.width;
+    const height = trl?.height ?? tpl?.height ?? compiled!.height;
+    const pixelRatio = trl?.pixelRatio ?? tpl?.pixelRatio ?? compiled!.pixelRatio;
     const stage = document.getElementById('stage');
     if (!stage) throw new Error('Missing #stage mount');
     const overlayHost = document.getElementById(OVERLAY_ROOT_ID);
@@ -74,7 +89,13 @@ function boot(): void {
       assetsDone = true;
     });
     const renderFrame = (frame: number): Promise<void> => {
-      if (tpl !== null) {
+      if (trl !== null) {
+        const result = evaluateTrailerFrame(trl, frame);
+        renderer.renderSocial(
+          result.input.state, result.input.camera, result.input.clock, result.input.pose, result.input.effects, result.input.crowd,
+        );
+        renderOverlays(result.overlays, overlayHost);
+      } else if (tpl !== null) {
         const result = evaluateTemplateFrame(tpl, frame);
         renderer.renderSocial(
           result.input.state, result.input.camera, result.input.clock, result.input.pose, result.input.effects, result.input.crowd,

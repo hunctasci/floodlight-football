@@ -79,7 +79,7 @@ test('one reused browser session renders frames 0, 30 and 60', { timeout: 180_00
   }
 });
 
-test('browser renders attack-goal frame 105 (shot) at 1080x1920', { timeout: 180_000 }, async (t) => {
+test('browser renders attack-goal frame 170 (shot) at 1080x1920', { timeout: 180_000 }, async (t) => {
   if (process.env.SOCIAL_BROWSER_TEST === '0' || !chromiumAvailable()) {
     t.skip('Chromium not installed — run `npx playwright install chromium` to enable');
     return;
@@ -87,13 +87,13 @@ test('browser renders attack-goal frame 105 (shot) at 1080x1920', { timeout: 180
   const { compileVideo } = await import('../src/timeline.ts');
   const { SocialRenderSession } = await import('../src/render/session.ts');
   const compiled = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30 });
-  assert.equal(compiled.totalFrames, 180);
+  assert.equal(compiled.totalFrames, 285);
   const dir = path.join(tmpdir(), 'hnc-social-test', 'attack-goal');
   mkdirSync(dir, { recursive: true });
   const session = await SocialRenderSession.open(compiled);
   try {
     // Shot, goal and celebration through one reused session.
-    for (const frame of [105, 115, 150]) {
+    for (const frame of [170, 180, 240]) {
       const out = path.join(dir, `goal-${String(frame).padStart(6, '0')}.png`);
       const rendered = await session.screenshotFrame(frame, out);
       assert.deepEqual({ width: rendered.width, height: rendered.height }, { width: 1080, height: 1920 });

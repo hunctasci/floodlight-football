@@ -5,35 +5,49 @@ import { goalCineShot, goalCineVariant } from '../../../../apps/game/src/render/
 import { countryTeams } from '../../../../apps/game/src/city-league/kits';
 import type { AttackStyle, ResolvedVideoSpec } from '../schema';
 import type { SocialLens } from '../cameras/social-camera';
+import { assertShotTable, presetLens, type SceneShot } from '../cameras/presets';
 import { lerp, segmentProgress, smoothstep } from '../timeline/math';
 import { evaluateTrack, evaluateTrackCR, facingBetween, groundPass, shotArc, type ActorKeyframe, type Vec2, type Vec3 } from '../timeline/tracks';
 import { angleBlendFocus } from '../timeline/arcade';
 import { seededRandom } from './faceoff';
 
 /**
- * First scripted football action scene: ATTACK → PASS → FINAL BALL → SHOT →
- * KEEPER DIVE → GOAL → CELEBRATION. Deterministic semantic choreography over
- * real HNC visual entities — NOT a MatchEngine replay. Every transform is a
- * pure function of (spec, seed, time); random-access safe.
+ * ATTACK → PASS → CARRY → FINAL BALL → SHOT → KEEPER DIVE → GOAL → CELEBRATION
+ * (9.5s readable cut): broadcast-wide establishment → held medium through the
+ * carry and final pass → shooter setup → shot flight → goal → celebration.
+ * Deterministic semantic choreography over real HNC visual entities — NOT a
+ * MatchEngine replay. Every transform is a pure function of (spec, seed, time);
+ * random-access safe.
  */
 
 export const GOAL_X = FIELD.halfLength; // 46: the attacked goal line.
 
-/** Beat boundaries in seconds (6s default cut). */
+/** Beat boundaries in seconds (9.5s readable cut). */
 export const ATTACK_GOAL_BEATS = {
-  pass1Start: 0.7,
-  pass1End: 1.5,
-  carryEnd: 2.1,
-  pass2End: 2.6,
-  settleEnd: 2.9,
-  shotStart: 3.15,
-  shotEnd: 3.65,
-  diveStart: 3.25,
-  diveEnd: 3.8,
-  netSettleEnd: 3.95,
-  cineEnd: 4.7,
-  celebStart: 4.7,
+  pass1Start: 1.2,
+  pass1End: 2.2,
+  carryEnd: 3.6,
+  pass2End: 4.4,
+  settleEnd: 4.9,
+  shotStart: 5.3,
+  shotEnd: 5.85,
+  diveStart: 5.4,
+  diveEnd: 6.0,
+  netSettleEnd: 6.15,
+  cineEnd: 7.2,
+  celebStart: 7.2,
 } as const;
+
+/** Deliberate camera cuts — information shots hold, spectacle is earned. */
+export const ATTACK_SHOTS: readonly SceneShot[] = [
+  { name: 'broadcast-wide', start: 0.0, end: 2.2, kind: 'info' },
+  { name: 'broadcast-medium', start: 2.2, end: 4.4, kind: 'info' },
+  { name: 'striker-low', start: 4.4, end: 5.3, kind: 'info' },
+  { name: 'ball-follow', start: 5.3, end: 5.95, kind: 'info' },
+  { name: 'goal-cine', start: 5.95, end: 7.2, kind: 'info' },
+  { name: 'celebration', start: 7.2, end: 9.5, kind: 'reaction' },
+];
+assertShotTable(ATTACK_SHOTS);
 
 /** One staged hero/background actor at a timeline instant. */
 export interface AttackGoalActorFrame {
@@ -291,7 +305,7 @@ function shooterKeys(d: AttackGoalTimelineData): ActorKeyframe[] {
     { time: B.cineEnd, x: d.shootSpot.x + 1.2, z: d.shootSpot.z },
   ];
   if (d.celebration === 2) {
-    keys.push({ time: 5.4, x: d.shootSpot.x + 2.8, z: d.shootSpot.z });
+    keys.push({ time: B.celebStart + 1.0, x: d.shootSpot.x + 2.8, z: d.shootSpot.z });
     keys.push({ time: 99, x: d.shootSpot.x + 2.8, z: d.shootSpot.z });
   } else {
     keys.push({ time: 99, x: d.shootSpot.x + 1.2, z: d.shootSpot.z });
@@ -424,32 +438,32 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: TeamId, defendIdx: TeamId): Att
   const hop = t >= B.celebStart ? Math.abs(Math.sin((t - B.celebStart) * 6)) * 0.25 * teamCeleb : 0;
   const midPos = evaluateTrackCR(midKeys(d), t);
   const midBase = baseActor(0, attackIdx, 8, 'Midfielder', false, midPos, ball, phases[0], t);
-  const mateLift = 1.5 * segmentProgress(t, 5.0, 5.4);
+  const mateLift = 1.5 * segmentProgress(t, 8.3, 8.7);
   const mid: AttackGoalActorFrame = {
     ...midBase,
-    legSwing: stride(t, 0.4) * moveWindow(t, 0.7, 2.8),
+    legSwing: stride(t, 0.4) * moveWindow(t, B.pass1Start, 4.6),
     armLift: mateLift,
-    armSpread: 0.5 * segmentProgress(t, 5.0, 5.4),
+    armSpread: 0.5 * segmentProgress(t, 8.3, 8.7),
     bob: midBase.bob + hop,
   };
   const wingPos = evaluateTrackCR(wingKeys(d), t);
   // Catch gaze in angle space (see cross-header-goal): the touch happens at
   // his own feet, where point tracking whips the facing.
   const wingLookAhead = { x: d.recv.x + d.carrierDir.x * 8, z: d.recv.z + d.carrierDir.z * 8 };
-  const ballAtCatch0 = evaluateBall({ ...ctx, time: 1.0 });
-  const wingCatchRef = evaluateTrackCR(wingKeys(d), 1.0);
+  const ballAtCatch0 = evaluateBall({ ...ctx, time: 1.7 });
+  const wingCatchRef = evaluateTrackCR(wingKeys(d), 1.7);
   let wingFocus: Vec2 = ball;
   let wingAngle: { facingX: number; facingZ: number } | null = null;
-  if (t >= 1.0 && t < 1.6) {
-    wingAngle = angleBlendFocus(wingCatchRef, ballAtCatch0, wingLookAhead, t, 1.0, 1.6);
+  if (t >= 1.7 && t < 2.3) {
+    wingAngle = angleBlendFocus(wingCatchRef, ballAtCatch0, wingLookAhead, t, 1.7, 2.3);
   }
   const wingBase0 = baseActor(1, attackIdx, 7, 'Winger', false, wingPos, wingFocus, phases[1], t);
   const wingBase = wingAngle ? { ...wingBase0, facingX: wingAngle.facingX, facingZ: wingAngle.facingZ } : wingBase0;
   const wing: AttackGoalActorFrame = {
     ...wingBase,
-    legSwing: stride(t, 2.1) * moveWindow(t, 0.7, 2.8),
+    legSwing: stride(t, 2.1) * moveWindow(t, B.pass1Start, 4.6),
     armLift: mateLift,
-    armSpread: 0.5 * segmentProgress(t, 5.0, 5.4),
+    armSpread: 0.5 * segmentProgress(t, 8.3, 8.7),
     bob: wingBase.bob + hop,
   };
 
@@ -528,7 +542,7 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: TeamId, defendIdx: TeamId): Att
     }
     return {
       ...baseActor(3 + k, defendIdx, num, `Defender${k + 1}`, false, pos, defFocus, phases[3] + k, t),
-      legSwing: stride(t, 1.1 + k * 0.9) * moveWindow(t, 0, 2.8),
+      legSwing: stride(t, 1.1 + k * 0.9) * moveWindow(t, B.pass1Start, 4.6),
       lean: 0.2 * slump,
     };
   });
@@ -550,54 +564,62 @@ function evaluateBackground(
   }));
 }
 
+function activeShot(time: number): SceneShot {
+  for (const s of ATTACK_SHOTS) {
+    if (time < s.end) return s;
+  }
+  return ATTACK_SHOTS[ATTACK_SHOTS.length - 1];
+}
+
 function evaluateAttackCamera(ctx: EvalCtx, ball: Vec3): SocialLens {
-  const { data: d, time: t, duration } = ctx;
+  const { data: d, time: t } = ctx;
   const L = d.cameraLateral;
-  if (t < B.pass2End) {
-    // Broadcast-like attack tracking riding with the ball.
-    return {
-      pos: { x: ball.x - 4 + L, y: 10.5, z: ball.z + 12.5 },
-      look: { x: ball.x + 2.5, y: 0.7, z: ball.z - 2 },
-      fov: 52,
-    };
+  const shot = activeShot(t);
+  switch (shot.name) {
+    case 'broadcast-wide':
+      // Establish: everyone + direction + goal readable, no cuts.
+      return presetLens('broadcast-wide', { ball, goalX: GOAL_X, lateral: L });
+    case 'broadcast-medium':
+      // Held through the carry AND the final pass — actions happen inside
+      // the frame, the cut waits for the shooter's setup.
+      return presetLens('broadcast-medium', { ball, goalX: GOAL_X, lateral: L });
+    case 'striker-low': {
+      // Deliberate cut: goal-side setup closeup on the shooter settling the
+      // strike, so the ball stays visible beside his feet.
+      const s = d.settleSpot;
+      return {
+        pos: { x: s.x + 2.5 + L, y: 3.4, z: s.z + 8 },
+        look: { x: s.x - 1, y: 1.0, z: s.z - 0.5 },
+        fov: 50,
+      };
+    }
+    case 'ball-follow':
+      // Fast ball-follow for the flight.
+      return presetLens('ball-follow', { ball, goalX: GOAL_X, lateral: L });
+    case 'goal-cine': {
+      // Deliberate cut: behind-the-net goal angle (pure game helper math).
+      const g = goalCineShot(d.cineVariant, 1, ball.x, ball.z);
+      return {
+        pos: { x: g.pos.x + L * 0.3, y: g.pos.y, z: g.pos.z },
+        look: { x: g.look.x, y: g.look.y, z: g.look.z },
+        fov: 50,
+      };
+    }
+    case 'celebration': {
+      // Deliberate cut: side-on celebration framing. The camera sits just
+      // behind the play looking up-pitch, so celebrating teammates behind it
+      // stay out of frame and the shooter owns the shot.
+      const s = d.shootSpot;
+      const p = segmentProgress(t, B.cineEnd, 9.5);
+      return {
+        pos: { x: lerp(s.x - 3, s.x - 2, p) + L, y: lerp(3.8, 3.1, p), z: lerp(s.z + 13, s.z + 11, p) },
+        look: { x: s.x + 1, y: 1.1, z: s.z },
+        fov: 52,
+      };
+    }
+    default:
+      throw new Error(`Unknown attack shot: ${shot.name}`);
   }
-  if (t < B.shotStart) {
-    // Deliberate cut: closeup on the shooter setting the strike, shot from
-    // the goal side so the ball stays visible beside his feet.
-    const s = d.settleSpot;
-    return {
-      pos: { x: s.x + 2.5 + L, y: 3.4, z: s.z + 8 },
-      look: { x: s.x - 1, y: 1.0, z: s.z - 0.5 },
-      fov: 50,
-    };
-  }
-  if (t < B.cineEnd - 1.0) {
-    // Deliberate cut: fast ball-follow for the flight.
-    return {
-      pos: { x: ball.x - 8 + L, y: 4.5, z: ball.z + 9.5 },
-      look: { x: ball.x + 2.5, y: 1.0, z: ball.z - 1 },
-      fov: 53,
-    };
-  }
-  if (t < B.cineEnd) {
-    // Deliberate cut: behind-the-net goal angle (pure game helper math).
-    const g = goalCineShot(d.cineVariant, 1, ball.x, ball.z);
-    return {
-      pos: { x: g.pos.x + L * 0.3, y: g.pos.y, z: g.pos.z },
-      look: { x: g.look.x, y: g.look.y, z: g.look.z },
-      fov: 50,
-    };
-  }
-  // Deliberate cut: side-on celebration framing. The camera sits just
-  // behind the play looking up-pitch, so celebrating teammates behind it
-  // stay out of frame and the shooter owns the shot.
-  const s = d.shootSpot;
-  const p = segmentProgress(t, B.cineEnd, Math.min(duration, 6));
-  return {
-    pos: { x: lerp(s.x - 3, s.x - 2, p) + L, y: lerp(3.8, 3.1, p), z: lerp(s.z + 13, s.z + 11, p) },
-    look: { x: s.x + 1, y: 1.1, z: s.z },
-    fov: 52,
-  };
 }
 
 function evaluateAttackEffects(ctx: EvalCtx): AttackGoalEffects {
@@ -629,22 +651,22 @@ function mirrorVec2<T extends Vec2>(v: T): T {
  * Supporter choreography for the attack: the stand watches quietly, rises
  * as the ball reaches dangerous territory (early enough to read in the
  * pre-cut wide shots), peaks as the shot flies, then the scoring section
- * erupts while the conceding section drops. Past the 6s end (outro
+ * erupts while the conceding section drops. Past the 9.5s end (outro
  * continuation) the celebration slowly settles. Pure function of local
  * time + seed + attacking side.
  */
 export function evaluateAttackCrowd(time: number, seed: number, attackIdx: TeamId): SocialCrowdState {
-  if (time < 2.2) return { mood: 'idle', intensity: 0.2, time, seed, moodTime: time };
-  if (time < 3.15) {
-    const p = (time - 2.2) / 0.95;
-    return { mood: 'anticipation', intensity: 0.25 + 0.45 * p, time, seed, moodTime: time - 2.2 };
+  if (time < 3.6) return { mood: 'idle', intensity: 0.2, time, seed, moodTime: time };
+  if (time < 4.9) {
+    const p = (time - 3.6) / 1.3;
+    return { mood: 'anticipation', intensity: 0.25 + 0.45 * p, time, seed, moodTime: time - 3.6 };
   }
   if (time < B.shotEnd) {
-    const p = (time - 3.15) / (B.shotEnd - 3.15);
-    return { mood: 'anticipation', intensity: 0.7 + 0.3 * p, time, seed, moodTime: time - 3.15 };
+    const p = (time - 4.9) / (B.shotEnd - 4.9);
+    return { mood: 'anticipation', intensity: 0.7 + 0.3 * p, time, seed, moodTime: time - 4.9 };
   }
   const moodTime = time - B.shotEnd;
-  const intensity = time < 6 ? 1 - 0.4 * (moodTime / (6 - B.shotEnd)) : Math.max(0.4, 0.6 - 0.15 * ((time - 6) / 2.6));
+  const intensity = time < 9.5 ? 1 - 0.4 * (moodTime / (9.5 - B.shotEnd)) : Math.max(0.4, 0.6 - 0.15 * ((time - 9.5) / 2.6));
   return { mood: 'goal', intensity, time, seed, scoringTeam: attackIdx, moodTime };
 }
 

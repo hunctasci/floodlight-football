@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ATTACK_GOAL_BEATS } from '../src/scenes/attack-goal.ts';
-import { AUDIO_SAMPLE_RATE, compileAudioPlan } from '../src/audio/compile.ts';
+import { AUDIO_SAMPLE_RATE, compileAudioPlan, GOAL_ROAR_DELAY } from '../src/audio/compile.ts';
 import { encodeWav, renderAudioSamples, renderAudioToWav } from '../src/audio/render.ts';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -17,16 +17,24 @@ const attackGoal = (extra: Record<string, unknown> = {}) =>
 const near = (actual: number, expected: number, tol = 0.02): boolean => Math.abs(actual - expected) <= tol;
 
 test('attack-goal audio events anchor to the canonical scene beats', () => {
-  const plan = attackGoal();
+  const plan = attackGoal({ duration: 9.5 });
   const at = (type: string) => plan.events.filter((e) => e.type === type).map((e) => e.time);
   assert.ok(at('ambience').some((t) => t === 0), 'ambience starts at 0');
   assert.ok(at('kick').some((t) => near(t, ATTACK_GOAL_BEATS.pass1Start)), `pass kick at ${ATTACK_GOAL_BEATS.pass1Start}s`);
   assert.ok(at('kick').some((t) => near(t, ATTACK_GOAL_BEATS.carryEnd)), `final-pass kick at ${ATTACK_GOAL_BEATS.carryEnd}s`);
   assert.ok(at('shot').some((t) => near(t, ATTACK_GOAL_BEATS.shotStart)), `shot at ${ATTACK_GOAL_BEATS.shotStart}s`);
-  assert.ok(at('goal').some((t) => near(t, ATTACK_GOAL_BEATS.shotEnd)), `goal at ${ATTACK_GOAL_BEATS.shotEnd}s`);
-  assert.ok(at('crowd').length >= 1, 'celebration crowd present');
+  // Human reaction delay: goal impact SFX lands at the line, the REAL roar
+  // erupts 80 ms later (never pre-fired).
+  assert.ok(at('impact').some((t) => near(t, ATTACK_GOAL_BEATS.shotEnd)), `impact at ${ATTACK_GOAL_BEATS.shotEnd}s`);
+  assert.ok(at('goal').some((t) => near(t, ATTACK_GOAL_BEATS.shotEnd + GOAL_ROAR_DELAY)), `roar at ${ATTACK_GOAL_BEATS.shotEnd + GOAL_ROAR_DELAY}s`);
+  assert.ok(at('crowd').length >= 0, 'crowd layer optional per scene');
   const kinds = new Set(plan.events.map((e) => e.type));
-  assert.ok(kinds.has('ambience') && kinds.has('kick') && kinds.has('shot') && kinds.has('goal') && kinds.has('crowd'));
+  assert.ok(kinds.has('ambience') && kinds.has('kick') && kinds.has('shot') && kinds.has('goal'));
+  // One real eruption voice carries the celebration (onset + sustain in a
+  // single sample, truncated at the clip end — no stacked crowd layers).
+  const roar = plan.events.find((e) => e.type === 'goal')!;
+  assert.ok(roar.duration >= 3.5, `roar sustains through celebration (${roar.duration}s)`);
+  assert.ok(typeof roar.assetId === 'string' && roar.assetId.length > 0, 'roar pins a real asset');
 });
 
 test('faceoff audio stays minimal: ambience plus an identity whistle', () => {

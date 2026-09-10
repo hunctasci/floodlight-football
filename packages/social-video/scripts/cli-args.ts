@@ -41,6 +41,7 @@ export function specInputFromArgs(args: Map<string, string | true>): RawVideoInp
   return {
     scene: argStr(args, 'scene'),
     template: argStr(args, 'template'),
+    trailer: argStr(args, 'trailer'),
     home: argStr(args, 'home'),
     away: argStr(args, 'away'),
     format: argStr(args, 'format'),
@@ -52,6 +53,20 @@ export function specInputFromArgs(args: Map<string, string | true>): RawVideoInp
     headline: argStr(args, 'headline'),
     secondary: argStr(args, 'secondary'),
     cta: argStr(args, 'cta'),
+    overlays: argFlag(args, 'no-overlays', 'noOverlays') ? 'none' : argStr(args, 'overlays'),
+  };
+}
+
+/** Trailer-only semantic input (no timecodes, no cameras — director-owned). */
+export function trailerInputFromArgs(args: Map<string, string | true>): Record<string, unknown> {
+  return {
+    trailer: argStr(args, 'trailer'),
+    countries: argStr(args, 'countries'),
+    format: argStr(args, 'format'),
+    seed: argStr(args, 'seed'),
+    fps: argStr(args, 'fps'),
+    attackTeam: argStr(args, 'attack-team') ?? argStr(args, 'attackTeam'),
+    attackStyle: argStr(args, 'attack-style') ?? argStr(args, 'attackStyle'),
     overlays: argFlag(args, 'no-overlays', 'noOverlays') ? 'none' : argStr(args, 'overlays'),
   };
 }

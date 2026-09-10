@@ -137,31 +137,31 @@ test('faceoff crowd: quiet establishment, then a Mexican wave', () => {
 
 test('attack crowd: idle → anticipation → eruption → settling celebration', () => {
   assert.equal(evaluateAttackCrowd(1.0, 42, 0).mood, 'idle');
-  const early = evaluateAttackCrowd(2.8, 42, 0);
+  const early = evaluateAttackCrowd(4.2, 42, 0);
   assert.equal(early.mood, 'anticipation');
-  const peak = evaluateAttackCrowd(3.5, 42, 0);
+  const peak = evaluateAttackCrowd(5.2, 42, 0);
   assert.equal(peak.mood, 'anticipation');
   assert.ok(peak.intensity > early.intensity, 'anticipation builds toward the shot');
-  const goal = evaluateAttackCrowd(4.0, 42, 0);
+  const goal = evaluateAttackCrowd(6.2, 42, 0);
   assert.equal(goal.mood, 'goal');
   assert.equal(goal.scoringTeam, 0, 'home attack erupts the home section');
-  assert.equal(evaluateAttackCrowd(4.0, 42, 1).scoringTeam, 1, 'away attack mirrors');
-  const late = evaluateAttackCrowd(7.5, 42, 0);
+  assert.equal(evaluateAttackCrowd(6.2, 42, 1).scoringTeam, 1, 'away attack mirrors');
+  const late = evaluateAttackCrowd(12.0, 42, 0);
   assert.equal(late.mood, 'goal', 'outro keeps celebrating behind the branding');
   assert.ok(late.intensity < goal.intensity && late.intensity >= 0.4, `celebration settles (${late.intensity})`);
 });
 
 test('scene frame descriptions carry crowd state deterministically', () => {
-  const compiled = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 6 });
-  const a = evaluateFrame(compiled, 115);
-  const b = evaluateFrame(compiled, 115);
+  const compiled = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 9.5 });
+  const a = evaluateFrame(compiled, 180);
+  const b = evaluateFrame(compiled, 180);
   assert.deepEqual(a, b);
   if (a.scene !== 'attack-goal') assert.fail('expected attack-goal');
-  assert.equal(a.crowd.mood, 'goal', 'frame 115 (3.83s) erupts just after the strike');
-  const ante = evaluateFrame(compiled, 100);
+  assert.equal(a.crowd.mood, 'goal', 'frame 180 (6.0s) erupts just after the strike');
+  const ante = evaluateFrame(compiled, 160);
   if (ante.scene !== 'attack-goal') assert.fail('expected attack-goal');
-  assert.equal(ante.crowd.mood, 'anticipation', 'frame 100 (3.33s) anticipates the strike');
-  const goal = evaluateAttackGoalFrame({ data: compiled.attackGoal!, home: 'TR', away: 'GR', seed: 42, frame: 130, fps: 30, duration: 6 });
+  assert.equal(ante.crowd.mood, 'anticipation', 'frame 160 (5.33s) anticipates the strike');
+  const goal = evaluateAttackGoalFrame({ data: compiled.attackGoal!, home: 'TR', away: 'GR', seed: 42, frame: 200, fps: 30, duration: 9.5 });
   assert.equal(goal.crowd.mood, 'goal');
 });
 
@@ -169,18 +169,18 @@ test('template outro crowd keeps celebrating behind the end card', () => {
   const tpl = compileTemplate({ template: 'country-rivalry-reel', home: 'TR', away: 'GR', seed: 42, fps: 30 });
   const wave = evaluateTemplateFrame(tpl, 48);
   assert.equal(wave.input.crowd?.mood, 'wave', 'faceoff intro waves');
-  const danger = evaluateTemplateFrame(tpl, 171);
+  const danger = evaluateTemplateFrame(tpl, 225);
   assert.equal(danger.input.crowd?.mood, 'anticipation', 'attack danger rises');
-  const eruption = evaluateTemplateFrame(tpl, 200);
+  const eruption = evaluateTemplateFrame(tpl, 276);
   assert.equal(eruption.input.crowd?.mood, 'goal', 'goal erupts');
   assert.equal(eruption.input.crowd?.scoringTeam, 0, 'home TR section erupts');
-  const outro = evaluateTemplateFrame(tpl, 300);
+  const outro = evaluateTemplateFrame(tpl, 405);
   assert.equal(outro.input.crowd?.mood, 'goal');
   assert.ok((outro.input.crowd?.intensity ?? 1) < 0.7, 'outro settles but stays alive');
   // Random access: last frame deep-equals after other evaluations.
-  const direct = evaluateTemplateFrame(tpl, 329);
-  for (const f of [0, 48, 171, 200, 300]) evaluateTemplateFrame(tpl, f);
-  assert.deepEqual(evaluateTemplateFrame(tpl, 329), direct);
+  const direct = evaluateTemplateFrame(tpl, 464);
+  for (const f of [0, 48, 225, 276, 405]) evaluateTemplateFrame(tpl, f);
+  assert.deepEqual(evaluateTemplateFrame(tpl, 464), direct);
 });
 
 test('wave amplitude is exaggerated enough to read on mobile', () => {

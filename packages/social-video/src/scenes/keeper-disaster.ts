@@ -5,6 +5,7 @@ import { goalCineShot, goalCineVariant } from '../../../../apps/game/src/render/
 import { countryTeams } from '../../../../apps/game/src/city-league/kits';
 import type { AttackStyle, ResolvedVideoSpec } from '../schema';
 import type { SocialLens } from '../cameras/social-camera';
+import { assertShotTable, presetLens, type SceneShot } from '../cameras/presets';
 import { lerp, segmentProgress } from '../timeline/math';
 import { evaluateTrack, evaluateTrackCR, shotArc, type ActorKeyframe, type Vec2, type Vec3 } from '../timeline/tracks';
 import {
@@ -16,26 +17,47 @@ import {
 import { seededRandom } from './faceoff';
 
 /**
- * KEEPER DISASTER: power shot → INCREDIBLE SAVE (brief glory) → keeper
- * gathers → BAD CLEARANCE straight to the poacher → instant shot → GOAL →
- * keeper collapses. Fast comedy timing; the first save must genuinely thrill
- * for half a second before the disaster. Deterministic, random-access.
+ * KEEPER DISASTER (10.5s readable cut): wide attack → shot + INCREDIBLE SAVE
+ * → held reaction (the viewer believes the hero moment) → keeper prepares the
+ * clearance (wide, receivers visible) → bad clearance travels DIRECTLY to the
+ * poacher on one readable camera → control + setup → instant shot → goal →
+ * keeper despair + celebration. The comedy is HERO → pause → IDIOT, and the
+ * pause is exactly why this cut is longer.
  */
 
 export const GOAL_X = FIELD.halfLength;
 
 export const KEEPER_BEATS = {
-  shotStart: 0.7,
-  saveMoment: 1.15,
+  shotStart: 2.5,
+  saveMoment: 3.3,
   /** Deliberate save hold: the parry hangs (3 frames at 60fps). */
   holdLen: 0.05,
-  gatherEnd: 1.55,
-  holdBallEnd: 2.2,
-  clearanceEnd: 2.55,
-  instantShotEnd: 3.0,
-  netSettleEnd: 3.3,
-  celebStart: 3.35,
+  gatherEnd: 3.75,
+  holdBallEnd: 4.6,
+  /** The rushed punt contact. */
+  clearanceKick: 5.8,
+  /** The clearance lands at the poacher (the mistake completes). */
+  clearanceEnd: 7.0,
+  settleEnd: 7.55,
+  /** Second shot contact (after the poacher's plant). */
+  shot2Start: 7.8,
+  instantShotEnd: 8.3,
+  netSettleEnd: 8.55,
+  celebStart: 8.6,
 } as const;
+
+/** Deliberate camera cuts — comedy pacing, never machine-gun edits. */
+export const KEEPER_SHOTS: readonly SceneShot[] = [
+  { name: 'broadcast-wide', start: 0.0, end: 2.5, kind: 'info' },
+  { name: 'broadcast-medium', start: 2.5, end: 3.6, kind: 'info' },
+  { name: 'keeper-close', start: 3.6, end: 4.6, kind: 'reaction' },
+  { name: 'wide-goal', start: 4.6, end: 6.2, kind: 'info' },
+  { name: 'broadcast-medium', start: 6.2, end: 7.8, kind: 'info' },
+  { name: 'shot-impact', start: 7.8, end: 8.35, kind: 'impact' },
+  { name: 'goal-cine', start: 8.35, end: 9.0, kind: 'info' },
+  { name: 'celebration', start: 9.0, end: 10.5, kind: 'reaction' },
+];
+assertShotTable(KEEPER_SHOTS);
 
 export interface KeeperFrameDescription {
   scene: 'keeper-disaster';
@@ -75,6 +97,7 @@ export interface KeeperTimelineData {
   shotFrom: Vec3;
   parryPoint: Vec3;
   gatherPoint: Vec3;
+  puntSpot: Vec2;
   clearanceTarget: Vec3;
   poacherStart: Vec2;
   interceptSpot: Vec2;
@@ -98,7 +121,7 @@ export function compileKeeperTimeline(
   const cameraLateral = (rand() - 0.5) * 0.7;
   const breathPhases = [rand(), rand(), rand(), rand()].map((r) => r * Math.PI * 2);
 
-  const shooterStart = { x: 19, z: -3.5 * lane + j };
+  const shooterStart = { x: 17, z: -3.5 * lane + j };
   const strikeSpot = { x: 24.5, z: -2.5 * lane + j * 0.5 };
   const shotFrom: Vec3 = { x: 25, y: 0.3, z: -2.5 * lane + j * 0.5 };
   // Fingertip parry, ~0.9m off the keeper's centre: close enough for honest
@@ -106,6 +129,7 @@ export function compileKeeperTimeline(
   // any social lens (a tighter parry hides the money frame behind him).
   const parryPoint: Vec3 = { x: 42.7, y: 1.25, z: 2.55 * lane + j * 0.2 };
   const gatherPoint: Vec3 = { x: 41.0, y: 0.3, z: 2.0 * lane + j * 0.2 };
+  const puntSpot = { x: 40.4, z: 1.7 * lane + j * 0.2 };
   const clearanceTarget: Vec3 = { x: 30, y: 0.5, z: -1.0 * lane };
   const poacherStart = { x: 26, z: 1.0 * lane + j };
   const interceptSpot = { x: 30, z: -1.0 * lane + j * 0.2 };
@@ -130,7 +154,7 @@ export function compileKeeperTimeline(
     lane,
     cameraLateral,
     cineVariant: goalCineVariant(1, goalTarget.x, goalTarget.z),
-    shooterStart, strikeSpot, shotFrom, parryPoint, gatherPoint,
+    shooterStart, strikeSpot, shotFrom, parryPoint, gatherPoint, puntSpot,
     clearanceTarget, poacherStart, interceptSpot, goalTarget,
     keeperHome, saveSpot, scrambleSpot, defStart, defSpot,
     bgSpots, breathPhases,
@@ -155,8 +179,8 @@ interface EvalCtx {
 function shooterKeys(d: KeeperTimelineData): ActorKeyframe[] {
   return [
     { time: 0, x: d.shooterStart.x, z: d.shooterStart.z },
-    { time: 0.3, x: d.shooterStart.x + 2, z: d.shooterStart.z },
-    { time: B.shotStart, x: d.strikeSpot.x, z: d.strikeSpot.z },
+    { time: 0.5, x: d.shooterStart.x + 2, z: d.shooterStart.z },
+    { time: 2.0, x: d.strikeSpot.x, z: d.strikeSpot.z },
     { time: 99, x: d.strikeSpot.x + 1.5, z: d.strikeSpot.z },
   ];
 }
@@ -164,8 +188,9 @@ function shooterKeys(d: KeeperTimelineData): ActorKeyframe[] {
 function poacherKeys(d: KeeperTimelineData): ActorKeyframe[] {
   return [
     { time: 0, x: d.poacherStart.x, z: d.poacherStart.z },
-    { time: 1.8, x: d.poacherStart.x + 1, z: d.poacherStart.z - 0.5 },
-    { time: 2.5, x: d.interceptSpot.x, z: d.interceptSpot.z },
+    { time: 5.4, x: d.poacherStart.x + 1, z: d.poacherStart.z - 0.5 },
+    { time: 7.0, x: d.interceptSpot.x, z: d.interceptSpot.z },
+    { time: 7.55, x: d.interceptSpot.x + 0.6, z: d.interceptSpot.z },
     { time: 99, x: d.interceptSpot.x + 1, z: d.interceptSpot.z },
   ];
 }
@@ -173,8 +198,8 @@ function poacherKeys(d: KeeperTimelineData): ActorKeyframe[] {
 function defKeys(d: KeeperTimelineData): ActorKeyframe[] {
   return [
     { time: 0, x: d.defStart.x, z: d.defStart.z },
-    { time: B.shotStart, x: d.defStart.x + 2, z: d.defStart.z - 1 },
-    { time: 2.0, x: d.defSpot.x, z: d.defSpot.z },
+    { time: 2.0, x: d.defStart.x + 2, z: d.defStart.z - 1 },
+    { time: 5.8, x: d.defSpot.x, z: d.defSpot.z },
     { time: 99, x: d.defSpot.x, z: d.defSpot.z },
   ];
 }
@@ -183,16 +208,17 @@ function keeperKeys(d: KeeperTimelineData): ActorKeyframe[] {
   return [
     { time: 0, x: d.keeperHome.x, z: d.keeperHome.z },
     { time: B.shotStart, x: d.keeperHome.x, z: d.keeperHome.z },
-    { time: 1.3, x: d.saveSpot.x, z: d.saveSpot.z },
-    { time: B.holdBallEnd, x: d.gatherPoint.x - 0.5, z: d.gatherPoint.z },
-    { time: 2.6, x: d.saveSpot.x + 0.5, z: d.saveSpot.z },
-    { time: 3.1, x: d.scrambleSpot.x, z: d.scrambleSpot.z },
+    { time: 3.45, x: d.saveSpot.x, z: d.saveSpot.z },
+    { time: 4.0, x: d.gatherPoint.x - 0.5, z: d.gatherPoint.z },
+    { time: 5.6, x: d.puntSpot.x, z: d.puntSpot.z },
+    { time: 7.4, x: d.puntSpot.x - 1, z: d.puntSpot.z - 0.5 },
+    { time: 8.3, x: d.scrambleSpot.x, z: d.scrambleSpot.z },
     { time: 99, x: d.scrambleSpot.x, z: d.scrambleSpot.z },
   ];
 }
 
 function keeperBallSpot(d: KeeperTimelineData, t: number): Vec3 {
-  const k = evaluateTrack(keeperKeys(d), Math.min(t, B.holdBallEnd));
+  const k = evaluateTrack(keeperKeys(d), Math.min(t, B.clearanceKick));
   return { x: k.x + 0.5, y: 0.3, z: k.z };
 }
 
@@ -211,11 +237,12 @@ function evaluateKeeperBall(ctx: EvalCtx): Vec3 {
   if (te < B.gatherEnd) {
     return parryDeflect(d.parryPoint, d.gatherPoint, (te - B.saveMoment) / (B.gatherEnd - B.saveMoment), 0.5);
   }
-  if (te < B.holdBallEnd) return keeperBallSpot(d, te);
+  if (te < B.clearanceKick) return keeperBallSpot(d, te);
   if (te < B.clearanceEnd) {
-    // Flat horrible clearance straight to the poacher's lane.
-    const p = (te - B.holdBallEnd) / (B.clearanceEnd - B.holdBallEnd);
-    const from = keeperBallSpot(d, B.holdBallEnd);
+    // Loopy, horrible, DIRECT clearance to the poacher — slow enough to
+    // read, wrong enough to be funny.
+    const p = (te - B.clearanceKick) / (B.clearanceEnd - B.clearanceKick);
+    const from = keeperBallSpot(d, B.clearanceKick);
     return {
       x: lerp(from.x, d.clearanceTarget.x, p),
       y: lerp(from.y, d.clearanceTarget.y, p) + Math.sin(p * Math.PI) * 1.2,
@@ -224,11 +251,18 @@ function evaluateKeeperBall(ctx: EvalCtx): Vec3 {
   }
   if (te < B.clearanceEnd + 0.05) {
     // First-touch settle: the poacher kills the clearance dead for 3 frames
-    // at 60fps, then volleys it first-time. Reads as control, not lag.
+    // at 60fps. Reads as control, not lag.
     return { ...d.clearanceTarget };
   }
+  if (te < B.settleEnd) {
+    // Control: the ball rides with the poacher while he steadies himself.
+    const po = evaluateTrackCR(poacherKeys(d), te);
+    return { x: po.x + 0.7, y: 0.25, z: po.z };
+  }
+  if (te < B.shot2Start) return { x: d.interceptSpot.x + 0.7, y: 0.25, z: d.interceptSpot.z };
   if (te < B.instantShotEnd) {
-    return shotArc(d.clearanceTarget, d.goalTarget, (te - B.clearanceEnd) / (B.instantShotEnd - B.clearanceEnd), 0.8);
+    const from: Vec3 = { x: d.interceptSpot.x + 0.7, y: 0.25, z: d.interceptSpot.z };
+    return shotArc(from, d.goalTarget, (te - B.shot2Start) / (B.instantShotEnd - B.shot2Start), 0.8);
   }
   if (te < B.netSettleEnd) {
     const p = (te - B.instantShotEnd) / (B.netSettleEnd - B.instantShotEnd);
@@ -243,42 +277,43 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: number, defendIdx: number): Arc
   const phases = d.breathPhases;
   const { te: teHold } = applyHold(t, B.saveMoment, B.holdLen);
 
-  // Shooter: unleashes, collapses at the save, joins the late party.
+  // Shooter: approaches, unleashes, collapses at the save, joins the party.
   const shPos = evaluateTrackCR(shooterKeys(d), t);
   const kickP = segmentProgress(t, B.shotStart - 0.1, B.shotStart + 0.05);
   let shooter: ArcadeActorFrame = {
     ...arcadeBaseActor(2, attackIdx, 9, 'Shooter', false, shPos, ball, phases[2], t),
-    legSwing: -1.1 * segmentProgress(t, B.shotStart - 0.3, B.shotStart) * (1 - kickP) + 0.9 * kickP,
+    legSwing: arcadeStride(t, 1.0) * arcadeMoveWindow(t, 0.4, 2.0)
+      - 1.1 * segmentProgress(t, B.shotStart - 0.35, B.shotStart) * (1 - kickP) + 0.9 * kickP,
   };
-  if (t >= 1.25 && t < 2.4) shooter = applyArcadePose(shooter, handsOnHeadPose(segmentProgress(t, 1.25, 1.55) * (1 - segmentProgress(t, 2.1, 2.4))));
+  if (t >= 3.5 && t < 4.8) shooter = applyArcadePose(shooter, handsOnHeadPose(segmentProgress(t, 3.5, 3.8) * (1 - segmentProgress(t, 4.5, 4.8))));
   if (t >= B.celebStart + 0.2) shooter = applyArcadePose(shooter, armsUpPose(segmentProgress(t, B.celebStart + 0.2, B.celebStart + 0.5)));
   {
     // Release gaze in angle space (touch happens at his feet).
-    const ballAt06 = evaluateKeeperBall({ ...ctx, time: 0.55 });
-    const ref = evaluateTrackCR(shooterKeys(d), 0.55);
+    const ballAt22 = evaluateKeeperBall({ ...ctx, time: 2.2 });
+    const ref = evaluateTrackCR(shooterKeys(d), 2.2);
     const goalMouth: Vec2 = { x: GOAL_X, z: 0 };
     let f: { facingX: number; facingZ: number };
-    if (t < 0.55) f = arcadeFacing(shPos, ball);
-    else if (t < 1.05) f = angleBlendFocus(ref, ballAt06, goalMouth, t, 0.55, 1.05);
+    if (t < 2.2) f = arcadeFacing(shPos, ball);
+    else if (t < 2.85) f = angleBlendFocus(ref, ballAt22, goalMouth, t, 2.2, 2.85);
     else f = arcadeFacing(shPos, ball);
     shooter.facingX = f.facingX; shooter.facingZ = f.facingZ;
   }
 
-  // Poacher: reads the clearance, steps in, first-time finish, celebrates.
+  // Poacher: reads the clearance, steps in, settles, first-time finish.
   const poPos = evaluateTrackCR(poacherKeys(d), t);
-  const finishKick = segmentProgress(teHold, 2.5, 2.6);
+  const finishKick = segmentProgress(teHold, B.shot2Start - 0.1, B.shot2Start);
   let poacher: ArcadeActorFrame = {
     ...arcadeBaseActor(1, attackIdx, 7, 'Poacher', false, poPos, ball, phases[1], t),
-    legSwing: arcadeStride(t, 2.2) * arcadeMoveWindow(t, 1.8, 2.55) + 0.9 * finishKick,
+    legSwing: arcadeStride(t, 2.2) * arcadeMoveWindow(t, 5.4, 7.4) + 0.9 * finishKick,
   };
   {
     // Intercept + finish gaze in angle space (both happen at his feet).
-    const ballAt23 = evaluateKeeperBall({ ...ctx, time: 2.3 });
-    const ref = evaluateTrackCR(poacherKeys(d), 2.3);
+    const ballAt68 = evaluateKeeperBall({ ...ctx, time: 6.8 });
+    const ref = evaluateTrackCR(poacherKeys(d), 6.8);
     const aim: Vec2 = { x: d.goalTarget.x, z: d.goalTarget.z };
     let f: { facingX: number; facingZ: number };
-    if (t < 2.3) f = arcadeFacing(poPos, ball);
-    else if (t < 2.62) f = angleBlendFocus(ref, ballAt23, aim, t, 2.3, 2.62);
+    if (t < 6.8) f = arcadeFacing(poPos, ball);
+    else if (t < 7.5) f = angleBlendFocus(ref, ballAt68, aim, t, 6.8, 7.5);
     else f = arcadeFacing(poPos, aim);
     poacher.facingX = f.facingX; poacher.facingZ = f.facingZ;
   }
@@ -288,41 +323,40 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: number, defendIdx: number): Arc
   const defPos = evaluateTrackCR(defKeys(d), t);
   let defender: ArcadeActorFrame = {
     ...arcadeBaseActor(3, defendIdx, 5, 'Defender', false, defPos, ball, phases[3], t),
-    legSwing: arcadeStride(t, 1.1) * arcadeMoveWindow(t, 0, 1.0),
-    armLift: 1.6 * segmentProgress(t, 1.4, 1.7) * (1 - segmentProgress(t, 2.2, 2.5)),
-    armSpread: 0.6 * segmentProgress(t, 1.4, 1.7) * (1 - segmentProgress(t, 2.2, 2.5)),
+    legSwing: arcadeStride(t, 1.1) * arcadeMoveWindow(t, 0.4, 2.0),
+    armLift: 1.6 * segmentProgress(t, 3.8, 4.1) * (1 - segmentProgress(t, 4.6, 4.9)),
+    armSpread: 0.6 * segmentProgress(t, 3.8, 4.1) * (1 - segmentProgress(t, 4.6, 4.9)),
   };
-  if (t >= 3.2) defender = applyArcadePose(defender, handsOnHeadPose(segmentProgress(t, 3.2, 3.6)));
+  if (t >= 8.3) defender = applyArcadePose(defender, handsOnHeadPose(segmentProgress(t, 8.3, 8.7)));
 
-  // Keeper: heroic launch, brief smug glory, rushed punt, stranded scramble,
-  // kneeling despair.
+  // Keeper: heroic launch, brief smug glory, walk-out, rushed punt, stranded
+  // scramble, kneeling despair. The glory BEAT is the whole joke's setup.
   const keeperPos = evaluateTrack(keeperKeys(d), t);
-  const diveP = segmentProgress(t, B.shotStart, 1.3);
-  const landP = segmentProgress(t, 1.35, 1.8);
+  const diveP = segmentProgress(t, B.shotStart, 3.45);
+  const landP = segmentProgress(t, 3.55, 4.0);
   const dirZ = Math.sign(d.saveSpot.z - d.keeperHome.z) || 1;
   let keeper = arcadeBaseActor(6, defendIdx, 1, 'Keeper', true, keeperPos, ball, phases[0] + 2, t);
   keeper = applyArcadePose(keeper, keeperDivePose(Math.min(1, diveP), dirZ, landP));
-  if (t >= 1.6 && t < 2.2) {
+  if (t >= 3.8 && t < 4.5) {
     // Brief glory: fist pump with the ball at his feet.
-    const g = segmentProgress(t, 1.6, 1.8) * (1 - segmentProgress(t, 2.0, 2.2));
+    const g = segmentProgress(t, 3.8, 4.0) * (1 - segmentProgress(t, 4.25, 4.5));
     keeper = { ...keeper, armLift: keeper.armLift + 1.5 * g, bob: keeper.bob + 0.1 * g };
   }
-  if (t >= 2.1) {
+  if (t >= 5.5) {
     // Rushed punt motion with a smooth release (never a branch-edge snap).
-    keeper = { ...keeper, legSwing: -1.0 * segmentProgress(t, 2.1, 2.2) * (1 - segmentProgress(t, 2.2, 2.45)) };
+    keeper = { ...keeper, legSwing: -1.0 * segmentProgress(t, 5.5, 5.6) * (1 - segmentProgress(t, 5.6, 5.85)) };
   }
-  if (t >= 2.6) {
-    // Stranded scramble with a smooth release into the kneel (the kneel
-    // ramps from 3.3 while the dive releases through 3.4: no snap).
-    const sc = segmentProgress(t, 2.6, 3.15);
-    const rel = 1 - segmentProgress(t, 3.15, 3.4);
+  if (t >= 7.4) {
+    // Stranded scramble with a smooth release into the kneel.
+    const sc = segmentProgress(t, 7.4, 8.0);
+    const rel = 1 - segmentProgress(t, 8.0, 8.35);
     const dp = keeperDivePose(sc, dirZ * 0.5, 0);
     keeper = applyArcadePose(keeper, {
       bob: dp.bob * rel, lean: dp.lean * rel, armLift: dp.armLift * rel,
       armSpread: dp.armSpread * rel, legSwing: keeper.legSwing, roll: 0, spin: 0,
     });
   }
-  if (t >= 3.3) keeper = applyArcadePose(keeper, keeperKneelPose(segmentProgress(t, 3.3, 3.8)));
+  if (t >= 8.6) keeper = applyArcadePose(keeper, keeperKneelPose(segmentProgress(t, 8.6, 9.1)));
   {
     // Save gaze: watches it into his hands (angle space), then eyes upfield
     // to the clearance target THROUGH the gather — the parried ball ends
@@ -330,17 +364,17 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: number, defendIdx: number): Arc
     // target is 11m away and exactly where the ball is going, so there is
     // no release whip either; the handoff back to the live ball lands on
     // the frozen first touch (identical point, zero step).
-    const ballAt10 = evaluateKeeperBall({ ...ctx, time: 1.0 });
-    const ref = evaluateTrack(keeperKeys(d), 1.0);
+    const ballAt29 = evaluateKeeperBall({ ...ctx, time: 2.9 });
+    const ref = evaluateTrack(keeperKeys(d), 2.9);
     const puntAim: Vec2 = { x: d.clearanceTarget.x, z: d.clearanceTarget.z };
-    const ballAt26 = evaluateKeeperBall({ ...ctx, time: 2.6 });
-    const ref31 = evaluateTrack(keeperKeys(d), 3.1);
+    const ballAt74 = evaluateKeeperBall({ ...ctx, time: 7.4 });
+    const ref74 = evaluateTrack(keeperKeys(d), 7.4);
     const goalAim: Vec2 = { x: d.goalTarget.x, z: d.goalTarget.z };
     let f: { facingX: number; facingZ: number };
-    if (t < 1.0) f = arcadeFacing(keeperPos, ball);
-    else if (t < 1.6) f = angleBlendFocus(ref, ballAt10, puntAim, t, 1.0, 1.6);
-    else if (t < 2.6) f = arcadeFacing(keeperPos, puntAim);
-    else if (t < 3.1) f = angleBlendFocus(ref31, ballAt26, goalAim, t, 2.6, 3.1);
+    if (t < 2.9) f = arcadeFacing(keeperPos, ball);
+    else if (t < 3.6) f = angleBlendFocus(ref, ballAt29, puntAim, t, 2.9, 3.6);
+    else if (t < 7.4) f = arcadeFacing(keeperPos, puntAim);
+    else if (t < 8.3) f = angleBlendFocus(ref74, ballAt74, goalAim, t, 7.4, 8.3);
     else f = arcadeFacing(keeperPos, ball);
     keeper.facingX = f.facingX; keeper.facingZ = f.facingZ;
   }
@@ -349,9 +383,9 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: number, defendIdx: number): Arc
   const midPos = { x: d.shooterStart.x + 2 + t * 0.8, z: d.shooterStart.z + 2 };
   const mid: ArcadeActorFrame = {
     ...arcadeBaseActor(0, attackIdx, 8, 'Midfielder', false, midPos, ball, phases[0], t),
-    legSwing: arcadeStride(t, 0.4) * arcadeMoveWindow(t, 0.2, 1.2),
-    armLift: 1.5 * segmentProgress(t, 3.5, 3.9),
-    armSpread: 0.5 * segmentProgress(t, 3.5, 3.9),
+    legSwing: arcadeStride(t, 0.4) * arcadeMoveWindow(t, 0.2, 2.4),
+    armLift: 1.5 * segmentProgress(t, 8.8, 9.2),
+    armSpread: 0.5 * segmentProgress(t, 8.8, 9.2),
   };
 
   return [mid, poacher, shooter, defender, keeper];
@@ -368,93 +402,84 @@ function evaluateBackground(ctx: EvalCtx, attackIdx: number, defendIdx: number, 
   }));
 }
 
+function activeShot(time: number): SceneShot {
+  for (const s of KEEPER_SHOTS) {
+    if (time < s.end) return s;
+  }
+  return KEEPER_SHOTS[KEEPER_SHOTS.length - 1];
+}
+
 function evaluateKeeperCamera(ctx: EvalCtx, ball: Vec3): SocialLens {
-  const { data: d, time: t, duration } = ctx;
+  const { data: d, time: t } = ctx;
   const L = d.cameraLateral;
-  if (t < B.shotStart) {
-    return {
-      pos: { x: ball.x - 4 + L, y: 10.5, z: ball.z + 12.5 },
-      look: { x: ball.x + 2.5, y: 0.7, z: ball.z - 2 },
-      fov: 52,
-    };
+  const shot = activeShot(t);
+  switch (shot.name) {
+    case 'broadcast-wide':
+      return presetLens('broadcast-wide', { ball, goalX: GOAL_X, lateral: L });
+    case 'broadcast-medium':
+      return presetLens('broadcast-medium', { ball, goalX: GOAL_X, lateral: L });
+    case 'keeper-close': {
+      // Keeper hero portrait: ball at his feet, crowd behind — the glory
+      // beat the joke needs. Goal-side lens so the keeper reads front-on.
+      const k = d.gatherPoint;
+      return {
+        pos: { x: k.x - 4.5 + L, y: 2.2, z: k.z + 5.5 },
+        look: { x: k.x, y: 1.0, z: k.z },
+        fov: 50,
+      };
+    }
+    case 'wide-goal':
+      // Keeper walk-out + punt + the mistake STARTING: keeper, goal and the
+      // free poacher all in one readable frame (the viewer sees the error
+      // happen spatially — never hidden behind a cut).
+      return {
+        pos: { x: ball.x - 9 + L, y: 10.5, z: ball.z + 12 },
+        look: { x: ball.x + 5, y: 1.4, z: ball.z * 0.5 },
+        fov: 58,
+      };
+    case 'shot-impact': {
+      // Ball-riding impact punch: close at the first-time strike, then rides
+      // the shot toward the goal so the finish stays readable.
+      return {
+        pos: { x: ball.x - 3.5 + L, y: 2.6, z: ball.z + 5 },
+        look: { x: ball.x + 2.5, y: 1.1, z: ball.z - 1 },
+        fov: 52,
+      };
+    }
+    case 'goal-cine': {
+      const g = goalCineShot(d.cineVariant, 1, ball.x, ball.z);
+      return {
+        pos: { x: g.pos.x + L * 0.3, y: g.pos.y, z: g.pos.z },
+        look: { x: g.look.x, y: g.look.y, z: g.look.z },
+        fov: 50,
+      };
+    }
+    case 'celebration': {
+      // One wide reaction shot: keeper despair + scorer + crowd together,
+      // then a slow push toward the kneeling keeper (never a hard cut).
+      const k = d.scrambleSpot;
+      const p = segmentProgress(t, B.celebStart, 10.5);
+      return {
+        pos: {
+          x: lerp(k.x + 7, k.x + 4.2, p) + L,
+          y: lerp(4.6, 2.2, p),
+          z: lerp(k.z + 10, k.z + 1.8, p),
+        },
+        look: { x: lerp(k.x - 4, k.x, p), y: 1.0, z: lerp(k.z, k.z, p) },
+        fov: 50,
+      };
+    }
+    default:
+      throw new Error(`Unknown keeper shot: ${shot.name}`);
   }
-  if (t < B.saveMoment) {
-    return {
-      pos: { x: ball.x - 8 + L, y: 4.5, z: ball.z + 9.5 },
-      look: { x: ball.x + 2.5, y: 1.2, z: ball.z - 1 },
-      fov: 53,
-    };
-  }
-  if (t < 1.7) {
-    // WHAT A SAVE closeup: shot from the goal side back out at the keeper,
-    // so the parried ball reads IN FRONT of his torso. (A pitch-side lens
-    // hides the ball exactly behind his body: the parry point sits 0.4m off
-    // his centre by design, i.e. body contact.)
-    const p = d.parryPoint;
-    return {
-      pos: { x: p.x + 3.5 + L * 0.3, y: p.y + 1.2, z: p.z + 2.5 },
-      look: { x: p.x, y: p.y, z: p.z },
-      fov: 50,
-    };
-  }
-  if (t < B.holdBallEnd) {
-    const k = d.gatherPoint;
-    return {
-      pos: { x: k.x - 4.5 + L, y: 2.2, z: k.z + 5.5 },
-      look: { x: k.x, y: 0.7, z: k.z },
-      fov: 50,
-    };
-  }
-  if (t < B.clearanceEnd + 0.1) {
-    return {
-      pos: { x: ball.x - 7 + L, y: 4.0, z: ball.z + 8.5 },
-      look: { x: ball.x + 2, y: 0.8, z: ball.z - 1 },
-      fov: 53,
-    };
-  }
-  if (t < B.instantShotEnd + 0.3) {
-    return {
-      pos: { x: ball.x - 7 + L, y: 4.2, z: ball.z + 8.5 },
-      look: { x: ball.x + 2.5, y: 1.0, z: ball.z - 1 },
-      fov: 53,
-    };
-  }
-  if (t < B.celebStart) {
-    const g = goalCineShot(d.cineVariant, 1, ball.x, ball.z);
-    return {
-      pos: { x: g.pos.x + L * 0.3, y: g.pos.y, z: g.pos.z },
-      look: { x: g.look.x, y: g.look.y, z: g.look.z },
-      fov: 50,
-    };
-  }
-  if (t < B.celebStart + 0.9) {
-    // Dedicated REACTION-KEEPER payoff: kneeling despair shot from the GOAL
-    // side looking back out (was ~14m away). The keeper faces the goal (+x,
-    // where the ball died), so his front is only visible from +x: the lens
-    // sits just inside the goal mouth, catching his slump with the crowd
-    // behind him — never another back-of-shirt closeup.
-    const k = d.scrambleSpot;
-    return {
-      pos: { x: k.x + 4.2 + L, y: 2.2, z: k.z + 1.8 },
-      look: { x: k.x, y: 1.0, z: k.z },
-      fov: 48,
-    };
-  }
-  const s = d.interceptSpot;
-  const p = segmentProgress(t, B.celebStart, Math.min(duration, 5.5));
-  return {
-    pos: { x: lerp(s.x - 3, s.x - 2, p) + L, y: lerp(3.8, 3.1, p), z: lerp(s.z + 13, s.z + 11, p) },
-    look: { x: s.x + 1, y: 1.1, z: s.z },
-    fov: 52,
-  };
 }
 
 function evaluateKeeperEffects(ctx: EvalCtx): KeeperFrameDescription['effects'] {
   const { data: d, seed, time: t } = ctx;
   const shotP = segmentProgress(t, B.shotStart, B.saveMoment);
-  const instP = segmentProgress(t, B.clearanceEnd, B.instantShotEnd);
+  const instP = segmentProgress(t, B.shot2Start, B.instantShotEnd);
   const instFade = 1 - segmentProgress(t, B.instantShotEnd, B.netSettleEnd);
-  const from = instP > 0 ? d.clearanceTarget : d.shotFrom;
+  const from = instP > 0 ? { x: d.interceptSpot.x + 0.7, y: 0.25, z: d.interceptSpot.z } : d.shotFrom;
   const intensity = Math.max(
     shotP > 0 && shotP < 1 ? 1 : 0,
     instP > 0 && instFade > 0 ? Math.min(instP * 4, 1) * instFade : 0,
@@ -462,9 +487,9 @@ function evaluateKeeperEffects(ctx: EvalCtx): KeeperFrameDescription['effects'] 
   // Save punch (heroic) + goal punch (comic); the clearance gets nothing —
   // the joke lands drier without juice.
   const savePunch = 3.5 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - B.saveMoment) / 0.4)));
-  const goalPunch = 2.5 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - 2.9) / 0.4)));
+  const goalPunch = 2.5 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - B.instantShotEnd) / 0.4)));
   const shakeAmp = 0.12 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - B.saveMoment) / 0.5)))
-    + 0.08 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - 2.9) / 0.5)));
+    + 0.08 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - B.instantShotEnd) / 0.5)));
   return {
     trailFrom: intensity > 0.01 ? { ...from } : null,
     trailIntensity: intensity,
@@ -488,12 +513,12 @@ export function evaluateKeeperCrowd(time: number, seed: number, attackIdx: TeamI
     // The keeper's glory moment: his section erupts, the attackers groan.
     return { mood: 'goal', intensity: 0.85, time, seed, scoringTeam: defendIdx, moodTime: time - B.saveMoment };
   }
-  if (time < 2.9) {
-    const p = (time - B.holdBallEnd) / (2.9 - B.holdBallEnd);
+  if (time < 8.3) {
+    const p = (time - B.holdBallEnd) / (8.3 - B.holdBallEnd);
     return { mood: 'anticipation', intensity: 0.4 + 0.4 * p, time, seed, moodTime: time - B.holdBallEnd };
   }
-  const moodTime = time - 2.9;
-  const intensity = time < 5.5 ? 1 - 0.35 * (moodTime / 2.6) : 0.6;
+  const moodTime = time - 8.3;
+  const intensity = time < 10.5 ? 1 - 0.35 * (moodTime / 2.2) : 0.6;
   return { mood: 'goal', intensity, time, seed, scoringTeam: attackIdx, moodTime };
 }
 

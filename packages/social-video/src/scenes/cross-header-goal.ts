@@ -5,7 +5,8 @@ import { goalCineShot, goalCineVariant } from '../../../../apps/game/src/render/
 import { countryTeams } from '../../../../apps/game/src/city-league/kits';
 import type { AttackStyle, ResolvedVideoSpec } from '../schema';
 import type { SocialLens } from '../cameras/social-camera';
-import { lerp, segmentProgress, smoothstep } from '../timeline/math';
+import { assertShotTable, presetLens, type SceneShot } from '../cameras/presets';
+import { lerp, segmentProgress } from '../timeline/math';
 import { ballSpeedAt, evaluateTrack, evaluateTrackCR, groundPass, velocityTrailGate, type ActorKeyframe, type Vec2, type Vec3 } from '../timeline/tracks';
 import {
   applyArcadePose, applyHold, angleBlendFocus, arcadeBaseActor, arcadeFacing, arcadeMoveWindow,
@@ -16,28 +17,47 @@ import {
 import { seededRandom } from './faceoff';
 
 /**
- * CROSS → HEADER → GOAL: winger sprint, whipped cross, ball-follow with a
- * ball-near-lens insert, striker + defender leap, slow-tension header,
- * keeper flies, goal, eruption. Deterministic semantic choreography over
- * real HNC entities — pure function of (spec, seed, time), random-access.
+ * CROSS → HEADER → GOAL (8s readable cut): broadcast-wide establishment →
+ * midfielder passes wide → winger carries and prepares → whipped cross (held
+ * camera through the first flight) → ball-near-lens insert → cross-follow →
+ * wide-goal header setup (striker, defender, keeper, ball, goal together) →
+ * impact → one strong goal angle → celebration. Deterministic, random-access,
+ * pure — and paced so a first-time viewer can narrate the whole story.
  */
 
 export const GOAL_X = FIELD.halfLength;
 
-/** Beat boundaries in seconds (6s default cut). */
+/** Beat boundaries in seconds (8s readable cut). */
 export const CROSS_HEADER_BEATS = {
-  crossContact: 1.3,
-  lensStart: 1.7,
-  lensEnd: 2.0,
-  mouthStart: 2.0,
-  leapStart: 2.3,
-  contact: 2.6,
+  passStart: 1.1,
+  passEnd: 1.8,
+  crossContact: 3.5,
+  lensStart: 4.15,
+  lensEnd: 4.5,
+  leapStart: 5.35,
+  contact: 5.8,
   /** Deliberate impact hold: contact freezes (3 frames at 60fps). */
   holdLen: 0.05,
-  headerEnd: 3.15,
-  netSettleEnd: 3.45,
-  celebStart: 3.6,
+  headerEnd: 6.35,
+  netSettleEnd: 6.7,
+  celebStart: 6.8,
 } as const;
+
+/**
+ * Deliberate camera cuts. Every shot exists for a reason; normal information
+ * shots hold 1.5–2.2s so the football reads (see tests/editorial.test.ts).
+ */
+export const CROSS_HEADER_SHOTS: readonly SceneShot[] = [
+  { name: 'broadcast-wide', start: 0.0, end: 2.2, kind: 'info' },
+  { name: 'broadcast-medium', start: 2.2, end: 4.15, kind: 'info' },
+  { name: 'ball-near-lens', start: 4.15, end: 4.5, kind: 'spectacle' },
+  { name: 'cross-follow', start: 4.5, end: 5.0, kind: 'info' },
+  { name: 'wide-goal', start: 5.0, end: 5.8, kind: 'info' },
+  { name: 'header-impact', start: 5.8, end: 6.05, kind: 'impact' },
+  { name: 'goal-cine', start: 6.05, end: 6.8, kind: 'info' },
+  { name: 'celebration', start: 6.8, end: 8.0, kind: 'reaction' },
+];
+assertShotTable(CROSS_HEADER_SHOTS);
 
 export interface CrossHeaderFrameDescription {
   scene: 'cross-header-goal';
@@ -72,7 +92,9 @@ export interface CrossHeaderTimelineData {
   lane: 1 | -1;
   cameraLateral: number;
   cineVariant: 0 | 1 | 2;
+  midStart: Vec2;
   wingStart: Vec2;
+  recv: Vec2;
   crossSpot: Vec2;
   crossFrom: Vec3;
   contactPoint: Vec3;
@@ -100,7 +122,9 @@ export function compileCrossHeaderTimeline(
   const cameraLateral = (rand() - 0.5) * 0.7;
   const breathPhases = [rand(), rand(), rand(), rand()].map((r) => r * Math.PI * 2);
 
-  const wingStart = { x: 8, z: 13 * lane + j };
+  const midStart = { x: 2, z: -6 * lane + j * 0.5 };
+  const wingStart = { x: 12, z: 13 * lane + j };
+  const recv = { x: 13.2, z: 13 * lane + j };
   const crossSpot = { x: 26, z: 13 * lane + j * 0.5 };
   const crossFrom: Vec3 = { x: 26.7, y: 0.3, z: 13 * lane + j * 0.5 };
   const contactPoint: Vec3 = { x: 38.5, y: 1.8, z: 0.5 * lane + j * 0.3 };
@@ -118,7 +142,7 @@ export function compileCrossHeaderTimeline(
   // flight (never eyeballed per seed). The side facing pitch centre is
   // chosen so the lens looks at the ball against crowd/pitch — never into a
   // floodlight pylon.
-  const mid = whippedCross(crossFrom, contactPoint, 0.45, 3.4, 2.5);
+  const mid = whippedCross(crossFrom, contactPoint, 0.36, 3.4, 2.5);
   const mdx = contactPoint.x - crossFrom.x, mdz = contactPoint.z - crossFrom.z;
   const ml = Math.hypot(mdx, mdz) || 1;
   const px = -mdz / ml, pz = mdx / ml;
@@ -137,7 +161,7 @@ export function compileCrossHeaderTimeline(
     return worst;
   };
   const side = scoreSide(1) >= scoreSide(-1) ? 1 : -1;
-  const lensPos: Vec3 = { x: mid.x + px * 4.0 * side, y: mid.y + 0.2, z: mid.z + pz * 4.0 * side };
+  const lensPos: Vec3 = { x: mid.x + px * 4.5 * side, y: mid.y + 0.2, z: mid.z + pz * 4.5 * side };
   const lensLook: Vec3 = { ...mid };
 
   const bgSpots = [
@@ -154,7 +178,7 @@ export function compileCrossHeaderTimeline(
     lane,
     cameraLateral,
     cineVariant: goalCineVariant(1, headerTarget.x, headerTarget.z),
-    wingStart, crossSpot, crossFrom, contactPoint,
+    midStart, wingStart, recv, crossSpot, crossFrom, contactPoint,
     strikerStart, meetGround, defenderStart, defGround,
     keeperHome, diveSpot, headerTarget, carrierDir,
     lensPos, lensLook, bgSpots, breathPhases,
@@ -176,21 +200,31 @@ interface EvalCtx {
   time: number;
 }
 
+function midKeys(d: CrossHeaderTimelineData): ActorKeyframe[] {
+  return [
+    { time: 0, x: d.midStart.x, z: d.midStart.z },
+    { time: B.passStart, x: d.midStart.x, z: d.midStart.z },
+    { time: B.passEnd + 0.6, x: d.midStart.x + 4, z: d.midStart.z + 1 },
+    { time: 99, x: d.midStart.x + 4, z: d.midStart.z + 1 },
+  ];
+}
+
 function wingKeys(d: CrossHeaderTimelineData): ActorKeyframe[] {
   return [
     { time: 0, x: d.wingStart.x, z: d.wingStart.z },
-    { time: 0.3, x: d.wingStart.x, z: d.wingStart.z },
+    { time: B.passStart, x: d.wingStart.x, z: d.wingStart.z },
+    { time: B.passEnd, x: d.recv.x, z: d.recv.z },
     { time: B.crossContact, x: d.crossSpot.x, z: d.crossSpot.z },
-    { time: B.crossContact + 0.5, x: d.crossSpot.x + 1, z: d.crossSpot.z },
-    { time: 99, x: d.crossSpot.x + 1, z: d.crossSpot.z },
+    { time: B.crossContact + 0.5, x: d.crossSpot.x + 1.2, z: d.crossSpot.z },
+    { time: 99, x: d.crossSpot.x + 1.2, z: d.crossSpot.z },
   ];
 }
 
 function strikerKeys(d: CrossHeaderTimelineData): ActorKeyframe[] {
   return [
     { time: 0, x: d.strikerStart.x, z: d.strikerStart.z },
-    { time: 0.4, x: d.strikerStart.x + 2, z: d.strikerStart.z },
-    { time: 2.5, x: d.meetGround.x, z: d.meetGround.z },
+    { time: 1.4, x: d.strikerStart.x, z: d.strikerStart.z },
+    { time: 5.4, x: d.meetGround.x, z: d.meetGround.z },
     { time: 99, x: d.meetGround.x, z: d.meetGround.z },
   ];
 }
@@ -198,8 +232,8 @@ function strikerKeys(d: CrossHeaderTimelineData): ActorKeyframe[] {
 function defenderKeys(d: CrossHeaderTimelineData): ActorKeyframe[] {
   return [
     { time: 0, x: d.defenderStart.x, z: d.defenderStart.z },
-    { time: 0.5, x: d.defenderStart.x + 1, z: d.defenderStart.z + 1 },
-    { time: 2.55, x: d.defGround.x, z: d.defGround.z },
+    { time: 0.8, x: d.defenderStart.x, z: d.defenderStart.z },
+    { time: 5.6, x: d.defGround.x, z: d.defGround.z },
     { time: 99, x: d.defGround.x, z: d.defGround.z },
   ];
 }
@@ -207,10 +241,15 @@ function defenderKeys(d: CrossHeaderTimelineData): ActorKeyframe[] {
 function keeperKeys(d: CrossHeaderTimelineData): ActorKeyframe[] {
   return [
     { time: 0, x: d.keeperHome.x, z: d.keeperHome.z },
-    { time: 2.55, x: d.keeperHome.x, z: d.keeperHome.z },
-    { time: 3.25, x: d.diveSpot.x, z: d.diveSpot.z },
+    { time: 5.6, x: d.keeperHome.x, z: d.keeperHome.z },
+    { time: 6.3, x: d.diveSpot.x, z: d.diveSpot.z },
     { time: 99, x: d.diveSpot.x, z: d.diveSpot.z },
   ];
+}
+
+function midBallAt(d: CrossHeaderTimelineData, t: number): Vec3 {
+  const m = evaluateTrackCR(midKeys(d), Math.min(t, B.passStart));
+  return { x: m.x + 0.7, y: 0.25, z: m.z };
 }
 
 function wingerBallAt(d: CrossHeaderTimelineData, t: number): Vec3 {
@@ -220,6 +259,10 @@ function wingerBallAt(d: CrossHeaderTimelineData, t: number): Vec3 {
 
 function evaluateCrossBall(ctx: EvalCtx): Vec3 {
   const { data: d, time: t } = ctx;
+  if (t < B.passStart) return midBallAt(d, t);
+  if (t < B.passEnd) {
+    return groundPass(midBallAt(d, B.passStart), { ...d.recv, y: 0.25 }, (t - B.passStart) / (B.passEnd - B.passStart));
+  }
   if (t < B.crossContact) return wingerBallAt(d, t);
   if (t < B.contact) {
     return whippedCross(d.crossFrom, d.contactPoint, (t - B.crossContact) / (B.contact - B.crossContact), 3.4, 2.5);
@@ -243,76 +286,99 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: number, defendIdx: number): Arc
   const phases = d.breathPhases;
   const { te: teHold } = applyHold(t, B.contact, B.holdLen);
 
-  // Winger: sprint, cross, hold, late celebration. Gaze uses the
-  // angle-domain blend (see striker): the touch happens at his own feet.
+  // Midfielder: holds, plays the wide pass, jogs on, celebrates late.
+  const midPos = evaluateTrackCR(midKeys(d), t);
+  const midKick = segmentProgress(t, B.passStart - 0.1, B.passStart + 0.05);
+  // Gaze in angle space: the pass leaves his own feet, so live tracking of
+  // the departing ball would whip his facing at the kick. Blend from the
+  // frozen ball at the kick toward the receiver over half a second.
+  const ballAtKick = midBallAt(d, B.passStart);
+  const midRef = evaluateTrackCR(midKeys(d), B.passStart);
+  const recvPt: Vec2 = { x: d.recv.x, z: d.recv.z };
+  let midFace: { facingX: number; facingZ: number };
+  if (t < B.passStart) midFace = arcadeFacing(midPos, ball);
+  else if (t < B.passStart + 0.5) midFace = angleBlendFocus(midRef, ballAtKick, recvPt, t, B.passStart, B.passStart + 0.5);
+  else midFace = arcadeFacing(midPos, recvPt);
+  const mid: ArcadeActorFrame = {
+    ...arcadeBaseActor(0, attackIdx, 8, 'Midfielder', false, midPos, ball, phases[0], t),
+    legSwing: -1.0 * segmentProgress(t, B.passStart - 0.35, B.passStart) * (1 - midKick) + 0.9 * midKick,
+    armLift: 1.5 * segmentProgress(t, 7.1, 7.5),
+    armSpread: 0.5 * segmentProgress(t, 7.1, 7.5),
+  };
+  mid.facingX = midFace.facingX; mid.facingZ = midFace.facingZ;
+
+  // Winger: waits, receives the wide pass, carries, whips the cross, holds,
+  // then celebrates. Gaze uses the angle-domain blend (touch at his feet).
   const wingPos = evaluateTrackCR(wingKeys(d), t);
   const kickP = segmentProgress(t, B.crossContact - 0.12, B.crossContact);
   const wingLookAhead = { x: d.crossSpot.x + 8 * d.carrierDir.x, z: d.crossSpot.z + 8 * d.carrierDir.z };
-  const ballAt1 = wingerBallAt(d, 1.0);
-  const wingRef = evaluateTrackCR(wingKeys(d), 1.0);
-  const ballAt19 = evaluateCrossBall({ ...ctx, time: 1.9 });
-  const wingRef145 = evaluateTrackCR(wingKeys(d), 1.45);
+  const ballAt16 = evaluateCrossBall({ ...ctx, time: 1.6 });
+  const wingRef = evaluateTrackCR(wingKeys(d), 1.6);
+  const ballAt33 = evaluateCrossBall({ ...ctx, time: 3.3 });
+  const wingRef33 = evaluateTrackCR(wingKeys(d), 3.3);
   let wingFace: { facingX: number; facingZ: number };
-  if (t < 1.0) {
+  if (t < 1.6) {
     wingFace = arcadeFacing(wingPos, ball);
-  } else if (t < 1.45) {
-    wingFace = angleBlendFocus(wingRef, ballAt1, wingLookAhead, t, 1.0, 1.45);
-  } else if (t < 1.9) {
-    wingFace = angleBlendFocus(wingRef145, wingLookAhead, ballAt19, t, 1.45, 1.9);
+  } else if (t < 2.1) {
+    wingFace = angleBlendFocus(wingRef, ballAt16, wingLookAhead, t, 1.6, 2.1);
+  } else if (t < 3.3) {
+    wingFace = arcadeFacing(wingPos, wingLookAhead);
+  } else if (t < 3.7) {
+    // Turn from the carry-lookahead onto the box while the cross flies —
+    // ends exactly where the post-cross gaze begins (no handoff snap).
+    wingFace = angleBlendFocus(wingRef33, wingLookAhead, { x: d.contactPoint.x, z: d.contactPoint.z }, t, 3.3, 3.7);
   } else {
-    wingFace = arcadeFacing(wingPos, ball);
+    // Watches his own cross into the box (the live ball leaves his feet —
+    // tracking it would whip the facing).
+    wingFace = arcadeFacing(wingPos, { x: d.contactPoint.x, z: d.contactPoint.z });
   }
   let winger: ArcadeActorFrame = {
     ...arcadeBaseActor(1, attackIdx, 7, 'Winger', false, wingPos, ball, phases[1], t),
-    legSwing: arcadeStride(t, 2.1) * arcadeMoveWindow(t, 0.2, 1.5) - 1.0 * kickP * (1 - kickP * 0.4),
-    armLift: 1.5 * segmentProgress(t, 3.9, 4.3),
-    armSpread: 0.5 * segmentProgress(t, 3.9, 4.3),
+    legSwing: arcadeStride(t, 2.1) * arcadeMoveWindow(t, 2.0, 3.4) - 1.0 * kickP * (1 - kickP * 0.4),
+    armLift: 1.5 * segmentProgress(t, 7.0, 7.4),
+    armSpread: 0.5 * segmentProgress(t, 7.0, 7.4),
   };
   winger.facingX = wingFace.facingX; winger.facingZ = wingFace.facingZ;
 
-  // Striker: run, leap, power header, arms-up celebration.
+  // Striker: reads the play, times the run, leap, power header, arms-up.
   const shPos = evaluateTrackCR(strikerKeys(d), t);
-  const leapP = (teHold - B.leapStart) / 0.5;
-  const leaping = teHold > B.leapStart && teHold < B.leapStart + 0.55;
-  const contactP = (teHold - (B.contact - 0.15)) / 0.3;
+  const leapP = (teHold - B.leapStart) / 0.45;
+  const leaping = teHold > B.leapStart && teHold < B.leapStart + 0.5;
+  const contactP = (teHold - (B.contact - 0.25)) / 0.3;
   let striker: ArcadeActorFrame = {
     ...arcadeBaseActor(2, attackIdx, 9, 'Striker', false, shPos, ball, phases[2], t),
-    legSwing: arcadeStride(t, 0.7) * arcadeMoveWindow(t, 0.2, 2.3),
+    legSwing: arcadeStride(t, 0.7) * arcadeMoveWindow(t, 1.6, 5.3),
   };
   if (leaping) striker = applyArcadePose(striker, powerHeaderPose(Math.min(1, Math.max(0, contactP))));
-  // Striker gaze: the incoming-ball → far-corner line passes almost through
-  // his own head, so point-lerping the focus whips the facing (1/r trap).
-  // Instead the turn is interpolated in ANGLE space over long windows: eyes
-  // on the cross, downfield commitment for the leap, watch it into the
-  // corner, then the crowd. Pure, shortest-arc, no snaps.
+  // Striker gaze in ANGLE space (the incoming ball ends at his own head).
   const downfield: Vec2 = { x: GOAL_X, z: d.meetGround.z };
-  const ballAt2 = evaluateCrossBall({ ...ctx, time: 2.0 });
-  const strikerRef = evaluateTrackCR(strikerKeys(d), 2.0);
+  const ballAt45 = evaluateCrossBall({ ...ctx, time: 4.5 });
+  const strikerRef = evaluateTrackCR(strikerKeys(d), 4.5);
   const crowdPt: Vec2 = { x: shPos.x + 7, z: shPos.z + 16 };
   let sFace: { facingX: number; facingZ: number };
-  if (t < 2.0) {
+  if (t < 4.5) {
     sFace = arcadeFacing(shPos, ball);
-  } else if (t < 2.6) {
-    sFace = angleBlendFocus(strikerRef, ballAt2, downfield, t, 2.0, 2.6);
-  } else if (t < 3.0) {
+  } else if (t < 5.5) {
+    sFace = angleBlendFocus(strikerRef, ballAt45, downfield, t, 4.5, 5.5);
+  } else if (t < 6.15) {
     sFace = arcadeFacing(shPos, downfield);
-  } else if (t < 3.45) {
-    sFace = angleBlendFocus(strikerRef, downfield, d.headerTarget, t, 3.0, 3.45);
+  } else if (t < 6.6) {
+    sFace = angleBlendFocus(strikerRef, downfield, d.headerTarget, t, 6.15, 6.6);
   } else if (t < B.celebStart) {
-    sFace = angleBlendFocus(strikerRef, d.headerTarget, crowdPt, t, 3.45, B.celebStart);
+    sFace = angleBlendFocus(strikerRef, d.headerTarget, crowdPt, t, 6.6, B.celebStart);
   } else {
     sFace = arcadeFacing(shPos, crowdPt);
   }
   striker.facingX = sFace.facingX; striker.facingZ = sFace.facingZ;
   if (t >= B.celebStart) striker = applyArcadePose(striker, armsUpPose(segmentProgress(t, B.celebStart, B.celebStart + 0.3)));
 
-  // Defender: chases late, mistimed leap, beaten hands-on-head.
+  // Defender: tracks the striker, mistimed leap, beaten hands-on-head.
   const defPos = evaluateTrackCR(defenderKeys(d), t);
-  const dLeapP = (teHold - 2.45) / 0.5;
-  const dLeaping = teHold > 2.45 && teHold < 3.0;
+  const dLeapP = (teHold - 5.5) / 0.45;
+  const dLeaping = teHold > 5.5 && teHold < 6.0;
   let defender: ArcadeActorFrame = {
     ...arcadeBaseActor(3, defendIdx, 4, 'Defender', false, defPos, striker, phases[3], t),
-    legSwing: arcadeStride(t, 1.3) * arcadeMoveWindow(t, 0.2, 2.5),
+    legSwing: arcadeStride(t, 1.3) * arcadeMoveWindow(t, 0.8, 5.5),
   };
   if (dLeaping) {
     const c = Math.min(1, Math.max(0, dLeapP));
@@ -321,25 +387,16 @@ function evaluateHeroes(ctx: EvalCtx, attackIdx: number, defendIdx: number): Arc
       armLift: 1.2 * Math.sin(c * Math.PI), armSpread: 0.3, legSwing: 0, roll: 0, spin: 0,
     });
   }
-  if (t >= 3.3) defender = applyArcadePose(defender, handsOnHeadPose(segmentProgress(t, 3.3, 3.7)));
+  if (t >= 6.3) defender = applyArcadePose(defender, handsOnHeadPose(segmentProgress(t, 6.3, 6.7)));
 
   // Keeper: set, heroic flight (short), ground, kneel.
   const keeperPos = evaluateTrack(keeperKeys(d), t);
-  const diveP = segmentProgress(t, 2.55, 3.25);
-  const landP = segmentProgress(t, 3.4, 4.0);
+  const diveP = segmentProgress(t, 5.6, 6.3);
+  const landP = segmentProgress(t, 6.45, 7.05);
   const dirZ = Math.sign(d.diveSpot.z - d.keeperHome.z) || 1;
   let keeper = arcadeBaseActor(6, defendIdx, 1, 'Keeper', true, keeperPos, ball, phases[0] + 2, t);
   keeper = applyArcadePose(keeper, keeperDivePose(Math.min(1, diveP), dirZ, landP));
-  if (t >= 3.9) keeper = applyArcadePose(keeper, keeperKneelPose(segmentProgress(t, 3.9, 4.4)));
-
-  // Midfielder teammate: trails the play, joins celebration late.
-  const midPos = { x: d.wingStart.x + 4 + t * 1.2, z: d.wingStart.z - 4 };
-  const mid: ArcadeActorFrame = {
-    ...arcadeBaseActor(0, attackIdx, 8, 'Midfielder', false, midPos, ball, phases[0], t),
-    legSwing: arcadeStride(t, 0.4) * arcadeMoveWindow(t, 0.2, 2.0),
-    armLift: 1.5 * segmentProgress(t, 4.0, 4.4),
-    armSpread: 0.5 * segmentProgress(t, 4.0, 4.4),
-  };
+  if (t >= 7.0) keeper = applyArcadePose(keeper, keeperKneelPose(segmentProgress(t, 7.0, 7.5)));
 
   return [mid, winger, striker, defender, keeper];
 }
@@ -355,70 +412,59 @@ function evaluateBackground(ctx: EvalCtx, attackIdx: number, defendIdx: number, 
   }));
 }
 
+function activeShot(time: number): SceneShot {
+  for (const s of CROSS_HEADER_SHOTS) {
+    if (time < s.end) return s;
+  }
+  return CROSS_HEADER_SHOTS[CROSS_HEADER_SHOTS.length - 1];
+}
+
 function evaluateCrossCamera(ctx: EvalCtx, ball: Vec3): SocialLens {
-  const { data: d, time: t, duration } = ctx;
+  const { data: d, time: t } = ctx;
   const L = d.cameraLateral;
-  if (t < 0.8) {
-    return {
-      pos: { x: ball.x - 4 + L, y: 10.5, z: ball.z + 12.5 },
-      look: { x: ball.x + 2.5, y: 0.7, z: ball.z - 2 },
-      fov: 52,
-    };
+  const shot = activeShot(t);
+  switch (shot.name) {
+    case 'broadcast-wide':
+      return presetLens('broadcast-wide', { ball, goalX: GOAL_X, lateral: L });
+    case 'broadcast-medium':
+      return presetLens('broadcast-medium', { ball, goalX: GOAL_X, lateral: L });
+    case 'ball-near-lens':
+      return { pos: { ...d.lensPos, x: d.lensPos.x + L }, look: { ...d.lensLook }, fov: 58 };
+    case 'cross-follow':
+      return presetLens('cross-follow', { ball, goalX: GOAL_X, lateral: L });
+    case 'wide-goal':
+      return presetLens('wide-goal', { ball, goalX: GOAL_X, lateral: L });
+    case 'header-impact': {
+      // Header-impact hero: 3/4 striker angle, ball + striker + defender
+      // challenge + keeper/goal all readable. The look leads toward the
+      // goal so the punch reads as contact, not a wall.
+      const m = d.contactPoint;
+      return {
+        pos: { x: m.x - 4.2 + L, y: 2.6, z: m.z + 7 },
+        look: { x: m.x + 1.5, y: 1.7, z: m.z - 0.4 },
+        fov: 52,
+      };
+    }
+    case 'goal-cine': {
+      const g = goalCineShot(d.cineVariant, 1, ball.x, ball.z);
+      return {
+        pos: { x: g.pos.x + L * 0.3, y: g.pos.y, z: g.pos.z },
+        look: { x: g.look.x, y: g.look.y, z: g.look.z },
+        fov: 50,
+      };
+    }
+    case 'celebration': {
+      const s = d.meetGround;
+      const p = segmentProgress(t, B.celebStart, 8.0);
+      return {
+        pos: { x: lerp(s.x - 3, s.x - 2, p) + L, y: lerp(3.8, 3.1, p), z: lerp(s.z + 13, s.z + 11, p) },
+        look: { x: s.x + 1, y: 1.1, z: s.z },
+        fov: 52,
+      };
+    }
+    default:
+      throw new Error(`Unknown cross shot: ${shot.name}`);
   }
-  if (t < B.crossContact) {
-    const s = d.crossSpot;
-    return {
-      pos: { x: s.x + 3 + L, y: 3.2, z: s.z + 7.5 },
-      look: { x: s.x, y: 1.0, z: s.z },
-      fov: 50,
-    };
-  }
-  if (t < B.lensStart) {
-    return {
-      pos: { x: ball.x - 7 + L, y: 4.2, z: ball.z + 8.5 },
-      look: { x: ball.x + 2, y: 1.2, z: ball.z - 1 },
-      fov: 53,
-    };
-  }
-  if (t < B.lensEnd) {
-    // Signature ball-near-lens: the cross sweeps past the parked camera.
-    return { pos: { ...d.lensPos, x: d.lensPos.x + L }, look: { ...d.lensLook }, fov: 55 };
-  }
-  if (t < B.contact) {
-    const m = d.meetGround;
-    return {
-      pos: { x: m.x - 2 + L, y: 2.6, z: m.z + 7 },
-      look: { x: m.x, y: 1.6, z: m.z },
-      fov: 52,
-    };
-  }
-  if (t < 3.2) {
-    // Header-impact hero: 3/4 striker angle, slightly lower and further out
-    // so ball + striker face/body + defender challenge + keeper/goal all
-    // read. The defender stays (contest = drama) but sits deeper/off-axis
-    // instead of filling ~30% of the frame as a back.
-    const m = d.contactPoint;
-    return {
-      pos: { x: m.x - 4.2 + L, y: 2.4, z: m.z + 6.2 },
-      look: { x: m.x + 0.6, y: 1.7, z: m.z - 0.4 },
-      fov: 50,
-    };
-  }
-  if (t < B.celebStart) {
-    const g = goalCineShot(d.cineVariant, 1, ball.x, ball.z);
-    return {
-      pos: { x: g.pos.x + L * 0.3, y: g.pos.y, z: g.pos.z },
-      look: { x: g.look.x, y: g.look.y, z: g.look.z },
-      fov: 50,
-    };
-  }
-  const s = d.meetGround;
-  const p = segmentProgress(t, B.celebStart, Math.min(duration, 6));
-  return {
-    pos: { x: lerp(s.x - 3, s.x - 2, p) + L, y: lerp(3.8, 3.1, p), z: lerp(s.z + 13, s.z + 11, p) },
-    look: { x: s.x + 1, y: 1.1, z: s.z },
-    fov: 52,
-  };
 }
 
 function evaluateCrossEffects(ctx: EvalCtx): CrossHeaderFrameDescription['effects'] {
@@ -435,7 +481,7 @@ function evaluateCrossEffects(ctx: EvalCtx): CrossHeaderFrameDescription['effect
   const from = headP > 0 ? d.contactPoint : d.crossFrom;
   // FOV punch: contact snap + goal-line punch.
   const contactPunch = 4 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - B.contact) / 0.35)));
-  const linePunch = 2 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - 3.0) / 0.4)));
+  const linePunch = 2 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - B.headerEnd) / 0.4)));
   const shakeAmp = 0.12 * Math.sin(Math.PI * Math.min(1, Math.max(0, (t - B.contact) / 0.5)))
     + (t >= B.headerEnd && t <= B.headerEnd + 0.4 ? 0.06 * (1 - (t - B.headerEnd) / 0.4) : 0);
   return {
@@ -453,12 +499,12 @@ function evaluateCrossEffects(ctx: EvalCtx): CrossHeaderFrameDescription['effect
  */
 export function evaluateCrossCrowd(time: number, seed: number, attackIdx: TeamId): SocialCrowdState {
   if (time < B.crossContact) return { mood: 'wave', intensity: 1, time, seed, moodTime: time };
-  if (time < 3.0) {
-    const p = (time - B.crossContact) / (3.0 - B.crossContact);
+  if (time < B.contact) {
+    const p = (time - B.crossContact) / (B.contact - B.crossContact);
     return { mood: 'anticipation', intensity: 0.4 + 0.6 * p, time, seed, moodTime: time - B.crossContact };
   }
-  const moodTime = time - 3.0;
-  const intensity = time < 6 ? 1 - 0.4 * (moodTime / 3) : Math.max(0.4, 0.6 - 0.1 * ((time - 6) / 2.6));
+  const moodTime = time - B.contact;
+  const intensity = time < 8 ? 1 - 0.4 * (moodTime / (8 - B.contact)) : 0.6;
   return { mood: 'goal', intensity, time, seed, scoringTeam: attackIdx, moodTime };
 }
 

@@ -11,6 +11,7 @@ export type AudioEventType =
   | 'whistle'
   | 'ambience'
   | 'crowd'
+  | 'disappointment'
   | 'cross'
   | 'header'
   | 'crossbar'

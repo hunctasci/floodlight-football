@@ -14,7 +14,7 @@ export const DEFAULT_CTA = 'PLAY FOR YOUR COUNTRY';
 export const BRAND_DOMAIN = 'hncleague.com';
 
 /** Entertainment-scene hooks (semantic, customizable via --headline). */
-export const DEFAULT_CROSS_HEADER_HOOK = '3 SECONDS LEFT.';
+export const DEFAULT_CROSS_HEADER_HOOK = 'THE CROSS IS COMING.';
 export const DEFAULT_CROSSBAR_HOOK = 'HOW DID THIS END IN A GOAL?';
 export const DEFAULT_KEEPER_HOOK = 'BRO...';
 
@@ -71,23 +71,24 @@ export function faceoffOverlayPlan(args: PresetArgs): OverlayPlanEntry[] {
 }
 
 /**
- * Attack-goal (6s default): compact context strip, explosive goal message at
- * the strike, celebration headline, then CTA + branding as the end card.
+ * Attack-goal (9.5s readable cut): compact context strip, explosive goal
+ * message at the strike, celebration headline, then CTA + branding as the
+ * end card.
  */
 export function attackGoalOverlayPlan(args: PresetArgs): OverlayPlanEntry[] {
   const scorer = args.attackTeam === 'home' ? args.home : args.away;
   return [
     { kind: 'versus', start: 0.0, end: 1.4, versus: versusPayload(args.home, args.away, 'strip') },
-    { kind: 'goal', start: 3.65, end: 4.35, text: goalText(scorer) },
+    { kind: 'goal', start: 5.85, end: 6.55, text: goalText(scorer) },
     {
       kind: 'headline',
-      start: 4.7,
-      end: 5.45,
+      start: 7.4,
+      end: 8.2,
       text: args.headline ?? DEFAULT_ATTACK_HEADLINE,
       ...(args.secondary !== undefined ? { secondary: args.secondary } : {}),
     },
-    { kind: 'cta', start: 5.35, end: 99, text: args.cta ?? DEFAULT_CTA },
-    { kind: 'brand', start: 5.35, end: 99 },
+    { kind: 'cta', start: 8.7, end: 99, text: args.cta ?? DEFAULT_CTA },
+    { kind: 'brand', start: 8.7, end: 99 },
   ];
 }
 
@@ -123,17 +124,17 @@ function entertainmentOverlayPlan(args: {
   ];
 }
 
-/** Cross-header-goal (6s): hook, header goal punch, branded outro. */
+/** Cross-header-goal (8s): hook, header goal punch, branded outro. */
 export function crossHeaderOverlayPlan(args: PresetArgs): OverlayPlanEntry[] {
-  return entertainmentOverlayPlan({ ...args, hook: DEFAULT_CROSS_HEADER_HOOK, goalAt: 3.05, brandAt: 4.8 });
+  return entertainmentOverlayPlan({ ...args, hook: DEFAULT_CROSS_HEADER_HOOK, goalAt: 6.15, brandAt: 6.8 });
 }
 
-/** Crossbar-chaos (6s): hook, rebound goal punch, branded outro. */
+/** Crossbar-chaos (9.5s): hook, rebound goal punch, branded outro. */
 export function crossbarOverlayPlan(args: PresetArgs): OverlayPlanEntry[] {
-  return entertainmentOverlayPlan({ ...args, hook: DEFAULT_CROSSBAR_HOOK, goalAt: 3.8, brandAt: 5.0 });
+  return entertainmentOverlayPlan({ ...args, hook: DEFAULT_CROSSBAR_HOOK, goalAt: 7.4, brandAt: 8.3 });
 }
 
-/** Keeper-disaster (5.5s): hook, robbery goal punch, branded outro. */
+/** Keeper-disaster (10.5s): hook, robbery goal punch, branded outro. */
 export function keeperOverlayPlan(args: PresetArgs): OverlayPlanEntry[] {
-  return entertainmentOverlayPlan({ ...args, hook: DEFAULT_KEEPER_HOOK, goalAt: 2.9, brandAt: 4.5 });
+  return entertainmentOverlayPlan({ ...args, hook: DEFAULT_KEEPER_HOOK, goalAt: 8.6, brandAt: 9.3 });
 }

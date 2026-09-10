@@ -1,8 +1,8 @@
 export { SOCIAL_FORMATS, DEFAULT_FORMAT, DEFAULT_SCENE, DEFAULT_SEED, DEFAULT_FPS, DEFAULT_DURATION, SCENE_DEFAULT_DURATION, MIN_FPS, MAX_FPS, MIN_DURATION, MAX_DURATION, formatSize, type SocialFormatId } from './config';
 export {
-  SOCIAL_SCENES, SOCIAL_TEMPLATES, ATTACK_TEAMS, ATTACK_STYLES, OVERLAY_MODES, HEADLINE_MAX, SECONDARY_MAX, CTA_MAX, SocialSpecError, compileSpec, parseAttackStyle, parseAttackTeam, parseDuration, parseFormat, parseFps, parseFrameIndex, parseScene, parseTemplate, parseSeed, parseOverlays, parseHeadline, parseSecondary, parseCta,
-  resolveSpec, resolveVideoSpec, frameTime, type AttackStyle, type AttackTeam, type OverlayMode, type RawFrameInput, type RawVideoInput, type ResolvedFrameSpec, type ResolvedVideoSpec,
-  type SocialFrameSpec, type SocialSceneId, type SocialVideoSpec, type TemplateId,
+  SOCIAL_SCENES, SOCIAL_TEMPLATES, ATTACK_TEAMS, ATTACK_STYLES, OVERLAY_MODES, HEADLINE_MAX, SECONDARY_MAX, CTA_MAX, SocialSpecError, compileSpec, parseAttackStyle, parseAttackTeam, parseDuration, parseFormat, parseFps, parseFrameIndex, parseScene, parseTemplate, parseTrailer, parseTrailerCountries, parseSeed, parseOverlays, parseHeadline, parseSecondary, parseCta,
+  resolveSpec, resolveVideoSpec, resolveTrailerSpec, frameTime, type AttackStyle, type AttackTeam, type OverlayMode, type RawFrameInput, type RawVideoInput, type RawTrailerInput, type ResolvedFrameSpec, type ResolvedVideoSpec, type ResolvedTrailerSpec,
+  type SocialFrameSpec, type SocialSceneId, type SocialVideoSpec, type TemplateId, type TrailerId,
 } from './schema';
 export { faceoffCamera, faceoffCameraAt, type SocialLens } from './cameras/social-camera';
 export { clamp01, lerp, smoothstep, easeInOut, segmentProgress } from './timeline/math';
@@ -35,3 +35,8 @@ export { compileTemplateAudio, type TemplateAudioInput } from './templates/audio
 export { countryRivalryDuration, countryRivalrySegments, shiftOverlayPlan, templateDuration, templateTableDuration, type TemplateSegmentDef } from './templates/presets';
 export type { CompiledSegment, CompiledTemplate, TemplateSegmentKind } from './templates/types';
 export { renderTemplateFrameToPng, renderTemplateFramesToDir } from './render/frame';
+export { compileTrailer, compileTrailerFromResolved, trailerOverlayPlan } from './trailers/compile';
+export { evaluateTrailerFrame, trailerLocalFrame, trailerLocalTime, trailerSegmentAtTime, type TrailerFrameResult } from './trailers/evaluate';
+export { compileTrailerAudio, trailerEventTime } from './trailers/audio';
+export { worldLeagueHeroShots, trailerDuration, WORLD_LEAGUE_HERO_DURATION, WORLD_LEAGUE_HERO_FPS } from './trailers/presets';
+export type { CompiledTrailer, CompiledTrailerSegment, TrailerShotDef, TrailerShotPurpose, TrailerSourceScene } from './trailers/types';

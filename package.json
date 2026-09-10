@@ -18,6 +18,7 @@
     "social:frame": "tsx packages/social-video/scripts/render-frame.ts",
     "social:frames": "tsx packages/social-video/scripts/render-frames.ts",
     "social:render": "tsx packages/social-video/scripts/render-video.ts",
+    "social:trailer-board": "tsx packages/social-video/scripts/render-trailer-storyboard.ts",
     "social:validate": "npm run validate --workspace=@floodlight/social-video",
     "deploy": "npm run deploy --workspace=floodlight-football"
   },

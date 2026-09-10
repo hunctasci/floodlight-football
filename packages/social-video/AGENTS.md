@@ -82,23 +82,23 @@ Recommended inspection frames for a 4 sec / 30 fps faceoff:
 npm run social:frame -- --scene faceoff --home TR --away GR --frame 60 --output social/output/preview.png
 ```
 
-Recommended inspection frames for a default 6 sec / 30 fps attack-goal
-(180 frames):
+Recommended inspection frames for a default 9.5 sec / 30 fps attack-goal
+(285 frames):
 
 ```text
-0     establish (ball with the midfielder)
-30    first pass travelling
-60    buildup, receiver carrying
-90    shooter settling the final ball, keeper set
-105   shot flying, keeper diving  ← the money frame, check this first
-115   ball inside the net
-130   goal cinematic angle
-150   celebration
-179   final hero frame (leave headroom for text)
+0     broadcast-wide establishment (ball with the midfielder, goal readable)
+36    first pass release (t=1.2)
+50    first pass travelling
+66    receiver catches the wide ball (t=2.2)
+140   shooter settling the final ball, keeper set (t=4.67)
+170   shot flying, keeper diving  ← the money frame, check this first
+180   ball inside the net
+240   celebration (t=8.0)
+284   final hero frame (leave headroom for text)
 ```
 
 ```bash
-npm run social:frame -- --scene attack-goal --home TR --away GR --frame 105 --output social/output/preview.png
+npm run social:frame -- --scene attack-goal --home TR --away GR --frame 170 --output social/output/preview.png
 ```
 
 `frame` is a deterministic random-access timeline position — no sequence
@@ -185,8 +185,8 @@ Do not render the whole video repeatedly while tuning one frame.
 
 ## Production Reel template
 
-One command renders the finished 11s country-rivalry Reel (faceoff intro →
-attack-goal → branded CTA outro, 330 frames at 30fps):
+One command renders the finished 15.5s country-rivalry Reel (faceoff intro →
+full 9.5s attack-goal → branded CTA outro, 465 frames at 30fps):
 
 ```bash
 npm run social:render -- \
@@ -203,12 +203,44 @@ Preview template frames first (same frame indices as the MP4 timeline):
 npm run social:frame -- --template country-rivalry-reel --home TR --away GR --frame 10 --output social/output/preview.png
 ```
 
-Useful template frames: `10` rivalry title, `71` faceoff final, `100`
-attack, `192` goal, `230` celebration, `300` final CTA. Only
-`country-rivalry-reel` exists — do not invent other template names.
+Useful template frames: `10` rivalry title, `89` faceoff final, `100`
+attack establish, `270` goal, `320` celebration headline, `390` CTA+brand.
+Only `country-rivalry-reel` exists — do not invent other template names.
 `--scene` and `--template` are mutually exclusive; the template fixes its
-own duration (11s). Custom `--headline` reaches the celebration (not the
+own duration (15.5s). Custom `--headline` reaches the celebration (not the
 intro title); custom `--cta` reaches the outro end card.
+
+## Production trailer (world-league-hero)
+
+One command renders the finished ~17.6s World League hero trailer
+(54-shot montage across three country matchups, 1056 frames at 60fps):
+
+```bash
+npm run social:render -- \
+  --trailer world-league-hero \
+  --countries TR,GR,BR,AR,DE,FR \
+  --seed 42 \
+  --output social/output/world-league-hero.mp4
+```
+
+AI supplies only `trailer` + `countries` (6 codes = 3 matchups) + `seed`.
+Shot timecodes, source excerpts, cameras and copy are internal director
+decisions (`src/trailers/presets.ts`) — never pass them. The trailer fixes
+its own duration (17.6s) and defaults to 60 FPS. `--scene` / `--template` /
+`--trailer` are mutually exclusive.
+
+```bash
+# Preview trailer frames first (same frame indices as the MP4 timeline)
+npm run social:frame -- --trailer world-league-hero --countries TR,GR,BR,AR,DE,FR --seed 42 --frame 284 --output social/output/preview.png
+
+# Full 54-shot storyboard (one PNG per shot midpoint, one browser session)
+npm run social:trailer-board -- --trailer world-league-hero --countries TR,GR,BR,AR,DE,FR --seed 42 --output social/output/storyboards/world-league-hero/
+```
+
+Useful trailer frames: `12` TR portrait hook, `122` duel-chase,
+`284` header hero, `447` crossbar clang, `601` glove save,
+`689` keeper despair, `1013` brand payoff. Only `world-league-hero`
+exists — do not invent other trailer names.
 
 ## Agent prompt example
 
@@ -254,11 +286,11 @@ Recommended workflow:
 Recommended overlay inspection frames (check copy + safe zones first):
 
 ```text
-faceoff (4s/30fps):      15  45  90  119
-attack-goal (6s/30fps):  30  110  120  150  170  179
-cross-header-goal (6s/60fps):   102  156  188  250  330
-crossbar-chaos (6s/60fps):      96  150  204  231  300
-keeper-disaster (5.5s/60fps):   69  132  175  220  300
+faceoff (4s/30fps):                15  45  90  119
+attack-goal (9.5s/30fps):          30  170  180  240  262  284
+cross-header-goal (8s/60fps):      120  250  290  330  360  420
+crossbar-chaos (9.5s/60fps):       150  270  420  500  540
+keeper-disaster (10.5s/60fps):     150  330  420  480  580  620
 ```
 
 Country names/flags in `versus`/`goal` copy derive from the canonical game
@@ -280,25 +312,56 @@ faceoff   Staged 4-second rivalry shot: players approach over the ball while
           the portrait camera dollies from wide establishing to a tight
           low-angle final composition. Ball stays centered; no simulation.
 
-attack-goal   Scripted 6-second football action (default): attack → pass →
-          final ball → shot → keeper dive → goal → celebration, staged with
-          real HNC entities and canonical kits. Semantic options only:
+attack-goal   Scripted 9.5-second readable football (default): broadcast-wide
+          establishment → pass → carry → final ball → settle → shot → keeper
+          dive → goal → celebration, staged with real HNC entities and
+          canonical kits. Semantic options only:
           --attack-team home|away (default home),
           --attack-style central|wing|counter (default central).
           No coordinates in the spec — never invent positions.
 
-cross-header-goal   6-second arcade header: winger sprint → whipped cross →
-          ball-follow with a ball-near-lens insert → striker/defender leap →
-          power header → keeper flies → goal → eruption. Production: 60fps.
+cross-header-goal   8-second arcade header, cut for readability: midfield
+          pass wide → winger carry → whipped cross (held camera through the
+          first flight, ball-near-lens insert) → wide-goal header setup with
+          striker/defender/keeper/ball/goal ALL in frame → impact → one strong
+          goal angle → eruption. Production: 60fps.
 
-crossbar-chaos   6-second comedy: long shot → CLANG off the bar (false-dawn
-          eruption) → ball hangs → scramble → rebound volley → GOAL (double
-          eruption). Production: 60fps.
+crossbar-chaos   9.5-second comedy: wide buildup → long shot → CLANG off the
+          bar (false-dawn eruption) → ONE held wide-goal camera for the whole
+          rebound (ball up, keeper stranded, scramble, poacher arriving) →
+          rebound volley → goal (double eruption). Production: 60fps.
 
-keeper-disaster   5.5-second comedy: power shot → INCREDIBLE SAVE (brief
-          glory) → bad clearance straight to the poacher → instant shot →
-          GOAL → keeper despair. Production: 60fps.
+keeper-disaster   10.5-second comedy with a hero beat: wide attack → shot +
+          INCREDIBLE SAVE → held reaction (keeper gets up proudly) → bad
+          clearance travels DIRECTLY to the poacher on one readable camera →
+          instant shot → goal → keeper despair. Production: 60fps.
 ```
+
+## Editorial philosophy (readability milestone)
+
+The social cut is paced so a first-time viewer can narrate the football:
+
+```text
+UNDERSTAND → ANTICIPATE → IMPACT → REACT
+```
+
+- Information cameras (broadcast-wide / broadcast-medium / high-sideline /
+  far-touchline / wide-goal) cover ~65–75% of action scenes; cinematic
+  inserts are reserved for impact, keeper reactions and celebration.
+- Shots hold 1.5–2.5s during normal movement; sub-second cuts only for
+  impact punches and the ball-near-lens insert. Cuts never follow every
+  pass — actions happen INSIDE the frame.
+- Every action scene opens with a ≥1.5s establishing shot and closes with
+  a ≥1s reaction; dedicated flight tracking keeps the ball in frame for the
+  whole flight (ball-in-frame and goal-in-frame are test-enforced via
+  `tests/editorial.test.ts` and `tests/camera-presets.test.ts`).
+- The 180-degree rule: consecutive information shots never flip the attack
+  screen direction (enforced by the same tests).
+- Camera cut counts are budgeted per scene (cross-header 8, crossbar 7,
+  keeper 8, attack 6) — see the scene shot tables
+  (`CROSS_HEADER_SHOTS`, `CROSSBAR_SHOTS`, `KEEPER_SHOTS`, `ATTACK_SHOTS`).
+  Do not add tiny camera segments without updating those tables and the
+  editorial budgets.
 
 ## Frame rates
 
@@ -313,7 +376,8 @@ high-action scenes:   60 FPS recommended (attack-goal, cross-header-goal,
 clearly smoother on mobile. Camera shake and all motion are time-based, so
 the same moment renders identically at either rate — only the sampling
 density changes. Previews/tests may still use 30fps for speed; production
-MP4s for the four action scenes should pass `--fps 60`.
+MP4s for the four action scenes should pass `--fps 60` (and the Reel
+template renders great at 60 too).
 
 ## Country codes
 
@@ -360,5 +424,13 @@ Unknown country code: XX
   can never corrupt a future encode.
 - After changes run: `npm run social:validate`, the workspace tests, and one
   real `social:frame` render; inspect the PNG before claiming success.
-- Do NOT add: FFmpeg/MP4, audio, Remotion, MediaRecorder, timeline UI, backend
-  integrations. Those are later phases.
+- Audio rules: scene code decides WHAT/WHEN/INTENSITY via `compileAudioPlan`
+  (semantic `AudioEvent[]` + `assetId` variant pins); `src/audio/mix.ts`
+  decides WHICH ASSET/HOW LOUD/PAN/MIX. Crowd recordings live in
+  `assets/audio/crowd/` (provenance in `assets/audio/SOURCES.md`) — never
+  add YouTube/broadcast/commercial audio. Arcade impacts (kick/shot/header/
+  bar/save) stay procedural by design. Debug flags: `--audio-plan` prints
+  the event timeline, `--crowd-mode procedural` forces the legacy synth
+  for A/B comparison (default `real`).
+- Do NOT add: Remotion, MediaRecorder, timeline UI, backend
+  integrations.

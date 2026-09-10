@@ -1,18 +1,11 @@
-import { existsSync, readFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 /**
- * Curated external-audio library.
+ * Curated external-audio library (CLIENT-SAFE: pure, no node:fs).
  *
- * Every production SFX first consults `assets/audio/manifest.json`. When a
- * bundled file is present it is the preferred layer; when it is absent (the
- * default checkout — binaries are NOT committed) the deterministic
- * procedural HNC synth in `mix.ts` renders the same semantic event instead.
- * Production never fails because one optional asset is absent.
- *
- * Determinism: variant selection is `hash(seed + eventType + eventIndex)`,
- * so the same seed always picks the same sample.
+ * Variant selection is `hash(seed + eventType + eventIndex)`, so the same
+ * seed always picks the same sample. Scene/choreography code
+ * (`compile.ts`, bundled into the browser harness) may only import from
+ * here — filesystem access (manifest loading, file resolution) lives in
+ * `manifest-fs.ts`, which is Node-only (mixer + tests + CLI).
  */
 
 export type AudioCategory =
@@ -59,24 +52,6 @@ export interface AudioManifest {
 
 const REJECTED_LICENSE = /(BY-NC|NONCOMMERCIAL|NON-COMMERCIAL)/i;
 
-export function manifestDir(): string {
-  const here = path.dirname(fileURLToPath(import.meta.url));
-  return path.resolve(here, '../../assets/audio');
-}
-
-export function manifestPath(): string {
-  return path.join(manifestDir(), 'manifest.json');
-}
-
-let cached: AudioManifest | null = null;
-
-export function loadAudioManifest(): AudioManifest {
-  if (cached) return cached;
-  const raw = readFileSync(manifestPath(), 'utf8');
-  cached = JSON.parse(raw) as AudioManifest;
-  return cached;
-}
-
 /** For tests: validate an in-memory manifest without touching disk. */
 export function validateAudioManifest(manifest: AudioManifest): string[] {
   const errors: string[] = [];
@@ -103,17 +78,6 @@ export function validateAudioManifest(manifest: AudioManifest): string[] {
   return errors;
 }
 
-/** Absolute path of a bundled asset file, or null when not downloaded. */
-export function resolveAssetFile(asset: AudioAsset): string | null {
-  const p = path.join(manifestDir(), asset.file);
-  return existsSync(p) ? p : null;
-}
-
-/** All bundled (downloaded) files, for diagnostics. */
-export function bundledAssets(): AudioAsset[] {
-  return loadAudioManifest().assets.filter((a) => resolveAssetFile(a) !== null);
-}
-
 /**
  * Deterministic variant picker: hash(seed, eventType, eventIndex) →
  * variants[index]. Same inputs always yield the same sample; no RNG calls.
@@ -129,10 +93,13 @@ export function selectVariantId(
   for (const ch of eventType) h = Math.imul(h ^ ch.charCodeAt(0), 0x01000193) >>> 0;
   h = (Math.imul(h ^ (eventIndex >>> 0), 0x85ebca6b) >>> 0) || 1;
   // Final avalanche (xorshift-ish) so adjacent indices decorrelate.
+  // NOTE: bitwise ^ yields int32 (may be negative), so the final index must
+  // coerce back to uint32 — otherwise h % length can be -1 and the lookup
+  // returns undefined for some seeds (latent until crowd pools hit them).
   h ^= h >>> 15;
   h = Math.imul(h, 0x2c1b3c6d) >>> 0;
   h ^= h >>> 12;
-  return variantIds[h % variantIds.length];
+  return variantIds[(h >>> 0) % variantIds.length];
 }
 
 /** Variants available per semantic event (manifest ids, bundled-or-not). */
@@ -150,6 +117,22 @@ export const VARIANT_POOLS: Record<string, readonly string[]> = {
   whoosh: ['whoosh-fast-01', 'whoosh-short-01'],
   impact: ['impact-sub-01'],
   whistle: ['whistle-long-01'],
+  // Real Freesound CC0 crowd pools (assets/audio/crowd/, see SOURCES.md).
+  // compile.ts assigns these deterministically per event occurrence; mix.ts
+  // resolves them to bundled WAVs and falls back to procedural + warning.
+  bed: ['stadium-bed-01', 'stadium-bed-02'],
+  anticipationRise: ['anticipation-01', 'anticipation-02'],
+  goalRoar: ['goal-roar-01', 'goal-roar-02', 'goal-roar-03'],
+  disappointment: ['disappointment-01'],
+};
+
+/** Default real-crowd pool per sample-backed event type (mixer fallback). */
+export const CROWD_POOL_BY_TYPE: Record<string, string> = {
+  ambience: 'bed',
+  anticipation: 'anticipationRise',
+  goal: 'goalRoar',
+  crowd: 'goalRoar',
+  disappointment: 'disappointment',
 };
 
 /** Preferred asset id for one event occurrence (deterministic). */
@@ -161,12 +144,4 @@ export function preferredAssetId(
   const pool = VARIANT_POOLS[eventType];
   if (!pool) return null;
   return selectVariantId(seed, eventType, eventIndex, pool);
-}
-
-/** True when the preferred asset is actually bundled on disk. */
-export function hasBundledAsset(seed: number, eventType: string, eventIndex: number): boolean {
-  const id = preferredAssetId(seed, eventType, eventIndex);
-  if (!id) return false;
-  const asset = loadAudioManifest().assets.find((a) => a.id === id);
-  return asset ? resolveAssetFile(asset) !== null : false;
 }

@@ -16,6 +16,17 @@ export type SocialSceneId = (typeof SOCIAL_SCENES)[number];
 export const SOCIAL_TEMPLATES = ['country-rivalry-reel'] as const;
 export type TemplateId = (typeof SOCIAL_TEMPLATES)[number];
 
+/** Trailer / montage layer: one production trailer for now. */
+export const TRAILER_IDS = ['world-league-hero'] as const;
+export type TrailerId = (typeof TRAILER_IDS)[number];
+
+/** Trailer duration lives with the trailer preset table (single source). */
+export const TRAILER_DURATIONS: Record<TrailerId, number> = {
+  'world-league-hero': 17.6,
+};
+
+export const TRAILER_DEFAULT_FPS = 60;
+
 /** Which side stages the attack in action scenes. */
 export const ATTACK_TEAMS = ['home', 'away'] as const;
 export type AttackTeam = (typeof ATTACK_TEAMS)[number];
@@ -73,6 +84,36 @@ export function parseTemplate(v: unknown): TemplateId | undefined {
   if (v === undefined || v === null || v === '') return undefined;
   if (typeof v === 'string' && (SOCIAL_TEMPLATES as readonly string[]).includes(v)) return v as TemplateId;
   throw new SocialSpecError(`Unknown template: ${String(v)} (supported: ${SOCIAL_TEMPLATES.join(', ')})`);
+}
+
+export function parseTrailer(v: unknown): TrailerId | undefined {
+  if (v === undefined || v === null || v === '') return undefined;
+  if (typeof v === 'string' && (TRAILER_IDS as readonly string[]).includes(v)) return v as TrailerId;
+  throw new SocialSpecError(`Unknown trailer: ${String(v)} (supported: ${TRAILER_IDS.join(', ')})`);
+}
+
+/**
+ * Parse the trailer countries list: exactly 6 valid ISO codes in matchup
+ * order (home, away × 3). Accepts a comma-separated string
+ * ("TR,GR,BR,AR,DE,FR") or an array of 6 codes.
+ */
+export function parseTrailerCountries(v: unknown): [string, string, string, string, string, string] {
+  const list: unknown[] = Array.isArray(v)
+    ? v
+    : typeof v === 'string'
+      ? v.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+      : [];
+  if (list.length !== 6) {
+    throw new SocialSpecError(
+      `Invalid countries: expected 6 codes "HOME,AWAY,HOME,AWAY,HOME,AWAY" (got ${JSON.stringify(v)}).`,
+    );
+  }
+  for (const code of list) {
+    if (typeof code !== 'string' || !isValidCountryCode(code)) {
+      throw new SocialSpecError(`Unknown country code: ${String(code)}`);
+    }
+  }
+  return list as [string, string, string, string, string, string];
 }
 
 function parseCountry(v: unknown): string {
@@ -239,6 +280,7 @@ export type SocialVideoSpec = {
 /** Raw agent/CLI video input: everything optional and unvalidated. */
 export interface RawVideoInput extends RawFrameInput {
   template?: unknown;
+  trailer?: unknown;
   fps?: unknown;
   duration?: unknown;
   attackTeam?: unknown;
@@ -252,6 +294,8 @@ export interface RawVideoInput extends RawFrameInput {
 export interface ResolvedVideoSpec extends ResolvedFrameSpec {
   /** Production template (undefined = direct single-scene render). */
   template: TemplateId | undefined;
+  /** Trailer / montage render (undefined = not a trailer render). */
+  trailer: TrailerId | undefined;
   fps: number;
   duration: number;
   totalFrames: number;
@@ -265,6 +309,61 @@ export interface ResolvedVideoSpec extends ResolvedFrameSpec {
   cta?: string;
 }
 
+/** Raw AI/CLI trailer input: semantic only (no timecodes, no cameras). */
+export interface RawTrailerInput {
+  trailer?: unknown;
+  countries?: unknown;
+  format?: unknown;
+  seed?: unknown;
+  fps?: unknown;
+  attackTeam?: unknown;
+  attackStyle?: unknown;
+  overlays?: unknown;
+}
+
+export interface ResolvedTrailerSpec {
+  trailer: TrailerId;
+  countries: [string, string, string, string, string, string];
+  format: ResolvedFrameSpec['format'];
+  seed: number;
+  width: number;
+  height: number;
+  pixelRatio: number;
+  fps: number;
+  duration: number;
+  totalFrames: number;
+  attackTeam: AttackTeam;
+  attackStyle: AttackStyle;
+  overlays: OverlayMode;
+}
+
+/**
+ * Validate raw trailer input and fill deterministic defaults. Pure.
+ * The trailer fixes its own duration (17.6s) and defaults to 60 FPS for
+ * high-action output; AI supplies only trailer + countries + seed.
+ */
+export function resolveTrailerSpec(input: RawTrailerInput): ResolvedTrailerSpec {
+  const trailer = parseTrailer(input.trailer);
+  if (trailer === undefined) {
+    throw new SocialSpecError(`Missing trailer (supported: ${TRAILER_IDS.join(', ')}).`);
+  }
+  const countries = parseTrailerCountries(input.countries);
+  const format = parseFormat(input.format);
+  const seed = parseSeed(input.seed);
+  const fps = parseFps(input.fps ?? TRAILER_DEFAULT_FPS);
+  const duration = TRAILER_DURATIONS[trailer];
+  const totalFrames = Math.round(duration * fps);
+  const attackTeam = parseAttackTeam(input.attackTeam);
+  const attackStyle = parseAttackStyle(input.attackStyle);
+  const overlays = parseOverlays(input.overlays);
+  const size = SOCIAL_FORMATS[format];
+  return Object.freeze({
+    trailer, countries, format, seed,
+    width: size.width, height: size.height, pixelRatio: size.pixelRatio,
+    fps, duration, totalFrames, attackTeam, attackStyle, overlays,
+  });
+}
+
 /**
  * Validate raw input and fill deterministic defaults. Pure: the same input
  * always resolves to the same output; throws SocialSpecError on bad input.
@@ -274,12 +373,19 @@ export interface ResolvedVideoSpec extends ResolvedFrameSpec {
  */
 export function resolveVideoSpec(input: RawVideoInput): ResolvedVideoSpec {
   const template = parseTemplate(input.template);
+  const trailer = parseTrailer(input.trailer);
   const sceneGiven = input.scene !== undefined && input.scene !== null && input.scene !== '';
   if (template !== undefined && sceneGiven) {
     throw new SocialSpecError('Specify either scene or template, not both.');
   }
+  if (trailer !== undefined && (sceneGiven || template !== undefined)) {
+    throw new SocialSpecError('Specify only one of scene, template or trailer.');
+  }
   if (template !== undefined && input.duration !== undefined && input.duration !== null && input.duration !== '') {
     throw new SocialSpecError(`Duration is defined by the template (${template}) and cannot be overridden.`);
+  }
+  if (trailer !== undefined && input.duration !== undefined && input.duration !== null && input.duration !== '') {
+    throw new SocialSpecError(`Duration is defined by the trailer (${trailer}) and cannot be overridden.`);
   }
   const base = resolveSpec(input);
   const fps = parseFps(input.fps);
@@ -291,7 +397,7 @@ export function resolveVideoSpec(input: RawVideoInput): ResolvedVideoSpec {
   const headline = parseHeadline(input.headline);
   const secondary = parseSecondary(input.secondary);
   const cta = parseCta(input.cta);
-  return Object.freeze({ ...base, template, fps, duration, totalFrames, attackTeam, attackStyle, overlays, headline, secondary, cta });
+  return Object.freeze({ ...base, template, trailer, fps, duration, totalFrames, attackTeam, attackStyle, overlays, headline, secondary, cta });
 }
 
 /**

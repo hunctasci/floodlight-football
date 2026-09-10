@@ -21,16 +21,16 @@ function actor(d: KeeperFrameDescription, name: string): KeeperFrameDescription[
   return found;
 }
 
-test('keeper-disaster defaults: 5.5s crime comedy', () => {
+test('keeper-disaster defaults: 10.5s comedy with a hero beat', () => {
   const compiled = std();
-  assert.equal(compiled.duration, 5.5);
-  assert.equal(compiled.totalFrames, 330);
+  assert.equal(compiled.duration, 10.5);
+  assert.equal(compiled.totalFrames, 630);
 });
 
 test('first save genuinely intersects the ball', () => {
   const compiled = std();
   let min = Infinity;
-  for (let f = Math.round(0.7 * 60); f <= Math.round(1.4 * 60); f++) {
+  for (let f = Math.round(2.5 * 60); f <= Math.round(3.5 * 60); f++) {
     const d = desc(compiled, f);
     const k = actor(d, 'Keeper');
     const dist = Math.hypot(d.ball.x - k.x, d.ball.z - k.z, d.ball.y - 1.0);
@@ -40,24 +40,35 @@ test('first save genuinely intersects the ball', () => {
   assert.ok(min < 1.1, `WHAT A SAVE — glove contact (${min.toFixed(2)}m)`);
 });
 
-test('bad clearance lands on the poacher, fast (comedy timing)', () => {
+test('hero beat: keeper gets up with the ball and the viewer believes it', () => {
+  const compiled = std();
+  // After the save the keeper holds the ball at his feet through the glory
+  // window — the beat BEFORE the mistake is the joke's setup.
+  const glory = desc(compiled, Math.round(4.2 * 60));
+  const k = actor(glory, 'Keeper');
+  assert.ok(Math.hypot(glory.ball.x - k.x, glory.ball.z - k.z) < 1.2, 'ball at the keeper during the glory beat');
+  assert.ok(k.armLift > 0.5, 'keeper celebrates the save');
+});
+
+test('bad clearance lands directly on the poacher, slowly (readable comedy)', () => {
   const compiled = std();
   let min = Infinity;
-  for (let f = Math.round(2.5 * 60); f <= Math.round(2.7 * 60); f++) {
+  for (let f = Math.round(6.9 * 60); f <= Math.round(7.1 * 60); f++) {
     const d = desc(compiled, f);
     const po = actor(d, 'Poacher');
     const dist = Math.hypot(d.ball.x - po.x, d.ball.y - 0.3, d.ball.z - po.z);
     if (dist < min) min = dist;
   }
   assert.ok(min < 1.2, `clearance straight to the poacher (${min.toFixed(2)}m)`);
-  // No dawdling: clearance to instant shot in well under a second.
-  assert.ok(KEEPER_BEATS.clearanceEnd - KEEPER_BEATS.holdBallEnd < 0.5, 'keeper rushes it');
+  // The mistake is SLOW enough to watch — the flight must be readable, not
+  // a hidden cut (this is the whole readability point of the re-cut).
+  assert.ok(KEEPER_BEATS.clearanceEnd - KEEPER_BEATS.clearanceKick >= 1.0, 'clearance flight is watchable');
 });
 
 test('second shot scores; keeper collapses', () => {
   const compiled = std();
   let crossed = -1;
-  for (let f = 0; f < 330; f++) {
+  for (let f = 0; f < 630; f++) {
     const prev = desc(compiled, Math.max(0, f - 1)).ball;
     const cur = desc(compiled, f).ball;
     if (prev.x <= FIELD.halfLength && cur.x > FIELD.halfLength) {
@@ -69,25 +80,25 @@ test('second shot scores; keeper collapses', () => {
   }
   assert.ok(crossed > 0, 'the robbery completes');
   assert.ok(crossed / 60 > KEEPER_BEATS.clearanceEnd, 'only after the bad clearance');
-  const keeper = actor(desc(compiled, 270), 'Keeper');
+  const keeper = actor(desc(compiled, 580), 'Keeper');
   assert.ok(keeper.bob < -0.2, `keeper kneels (bob=${keeper.bob.toFixed(2)})`);
-  const scorer = actor(desc(compiled, 270), 'Poacher');
+  const scorer = actor(desc(compiled, 580), 'Poacher');
   assert.ok(scorer.armLift > 1.2, 'poacher celebrates the gift');
 });
 
 test('crowd tragedy-comedy: glory tease, groan, eruption, collapse', () => {
   // Home TR attacks (attackIdx 0), away DE defends (defendIdx 1).
-  const glory = evaluateKeeperCrowd(1.5, 11, 0, 1);
+  const glory = evaluateKeeperCrowd(4.2, 11, 0, 1);
   assert.equal(glory.mood, 'goal');
   assert.equal(glory.scoringTeam, 1, 'keeper section erupts at the save');
-  const goal = evaluateKeeperCrowd(3.5, 11, 0, 1);
+  const goal = evaluateKeeperCrowd(8.8, 11, 0, 1);
   assert.equal(goal.mood, 'goal');
   assert.equal(goal.scoringTeam, 0, 'attackers erupt at the robbery');
 });
 
 test('continuity: actors glide, facings never snap', () => {
   const compiled = std();
-  for (let f = 1; f < 330; f++) {
+  for (let f = 1; f < 630; f++) {
     const a = desc(compiled, f - 1), b = desc(compiled, f);
     for (let i = 0; i < a.actors.length; i++) {
       const m = Math.hypot(b.actors[i].x - a.actors[i].x, b.actors[i].z - a.actors[i].z);
@@ -101,16 +112,16 @@ test('continuity: actors glide, facings never snap', () => {
 
 test('determinism + random access + seed variation completes the robbery', () => {
   const a = std(), b = std();
-  for (const frame of [0, 69, 150, 182, 250, 329]) {
+  for (const frame of [0, 150, 300, 450, 550, 629]) {
     assert.deepEqual(evaluateFrame(a, frame), evaluateFrame(b, frame));
   }
-  const direct = evaluateFrame(a, 182);
-  for (const f of [0, 100, 300]) evaluateFrame(a, f);
-  assert.deepEqual(evaluateFrame(a, 182), direct);
+  const direct = evaluateFrame(a, 300);
+  for (const f of [0, 100, 600]) evaluateFrame(a, f);
+  assert.deepEqual(evaluateFrame(a, 300), direct);
   for (const seed of [12, 33]) {
     const compiled = std({ seed });
     let scored = false;
-    for (let f = 150; f <= 220; f++) {
+    for (let f = 480; f <= 540; f++) {
       const ball = desc(compiled, f).ball;
       if (ball.x > FIELD.halfLength && Math.abs(ball.z) < FIELD.goalHalfWidth && ball.y < FIELD.goalHeight) {
         scored = true;

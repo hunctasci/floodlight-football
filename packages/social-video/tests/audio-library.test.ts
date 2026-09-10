@@ -4,9 +4,10 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  loadAudioManifest, validateAudioManifest, selectVariantId, preferredAssetId,
+  validateAudioManifest, selectVariantId, preferredAssetId,
   VARIANT_POOLS,
 } from '../src/audio/library.ts';
+import { loadAudioManifest, resolveAssetFile } from '../src/audio/manifest-fs.ts';
 import { compileAudioPlan } from '../src/audio/compile.ts';
 import { renderStereoMix, encodeStereoWav, stereoPeak, MIX_SAMPLE_RATE } from '../src/audio/mix.ts';
 

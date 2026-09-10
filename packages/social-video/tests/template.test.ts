@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { ATTACK_GOAL_BEATS } from '../src/scenes/attack-goal.ts';
+import { GOAL_ROAR_DELAY } from '../src/audio/compile.ts';
 import { evaluateAttackGoalFrame } from '../src/scenes/attack-goal.ts';
 import { evaluateFaceoffFrame } from '../src/scenes/faceoff.ts';
 import { compileVideo, evaluateFrame, sceneFrameToRenderInput } from '../src/timeline.ts';
@@ -38,21 +39,21 @@ function dryRunFails(args: string[]): string {
 // Compilation
 // ---------------------------------------------------------------------------
 
-test('template default compilation: 11s, 330 frames, three segments', () => {
+test('template default compilation: 15.5s, 465 frames, three segments', () => {
   const t = tpl();
   assert.equal(t.template, 'country-rivalry-reel');
-  assert.equal(t.duration, 11);
+  assert.equal(t.duration, 15.5);
   assert.equal(t.fps, 30);
-  assert.equal(t.totalFrames, 330);
+  assert.equal(t.totalFrames, 465);
   assert.equal(t.width, 1080);
   assert.equal(t.height, 1920);
   assert.equal(t.segments.length, 3);
   assert.deepEqual(
     t.segments.map((s) => [s.kind, s.scene, s.start, s.duration]),
     [
-      ['scene', 'faceoff', 0, 2.4],
-      ['scene', 'attack-goal', 2.4, 6.0],
-      ['outro', 'attack-goal', 8.4, 2.6],
+      ['scene', 'faceoff', 0, 3.0],
+      ['scene', 'attack-goal', 3.0, 9.5],
+      ['outro', 'attack-goal', 12.5, 3.0],
     ],
   );
 });
@@ -77,8 +78,8 @@ test('spec validation: exactly one of scene / template', () => {
   // Template spec resolves with template duration, not a scene default.
   const spec = resolveVideoSpec({ template: 'country-rivalry-reel', home: 'TR', away: 'GR' });
   assert.equal(spec.template, 'country-rivalry-reel');
-  assert.equal(spec.duration, 11);
-  assert.equal(spec.totalFrames, 330);
+  assert.equal(spec.duration, 15.5);
+  assert.equal(spec.totalFrames, 465);
 });
 
 // ---------------------------------------------------------------------------
@@ -92,26 +93,26 @@ test('segment boundaries resolve the active segment', () => {
     return `${s.kind}:${s.scene}@${s.start}`;
   };
   assert.equal(at(0.0), 'scene:faceoff@0');
-  assert.equal(at(2.3), 'scene:faceoff@0');
-  assert.equal(at(2.4), 'scene:attack-goal@2.4', '2.4 is the hard cut: attack owns it');
-  assert.equal(at(5.0), 'scene:attack-goal@2.4');
-  assert.equal(at(8.39), 'scene:attack-goal@2.4');
-  assert.equal(at(8.4), 'outro:attack-goal@8.4', '8.4 hands off to the outro');
-  assert.equal(at(10.9), 'outro:attack-goal@8.4');
-  assert.equal(at(11.0), 'outro:attack-goal@8.4', 'endpoint belongs to the last segment');
+  assert.equal(at(2.9), 'scene:faceoff@0');
+  assert.equal(at(3.0), 'scene:attack-goal@3', '3.0 is the hard cut: attack owns it');
+  assert.equal(at(5.0), 'scene:attack-goal@3');
+  assert.equal(at(12.4), 'scene:attack-goal@3');
+  assert.equal(at(12.5), 'outro:attack-goal@12.5', '12.5 hands off to the outro');
+  assert.equal(at(15.4), 'outro:attack-goal@12.5');
+  assert.equal(at(15.5), 'outro:attack-goal@12.5', 'endpoint belongs to the last segment');
 });
 
 test('global → local frame mapping', () => {
   const t = tpl();
   const attack = t.segments[1];
-  // Global 5.4s inside the attack segment (start 2.4) → local 3.0s → frame 90.
-  assert.equal(templateLocalFrame(t, attack, 162), 90);
+  // Global 8.4s inside the attack segment (start 3.0) → local 5.4s → frame 162.
+  assert.equal(templateLocalFrame(t, attack, 252), 162);
   const faceoff = t.segments[0];
   assert.equal(templateLocalFrame(t, faceoff, 30), 30);
-  // Outro continues the attack clock past 6s: global 8.4 → attack local 6.0.
+  // Outro continues the attack clock past 9.5s: global 12.5 → attack local 9.5.
   const outro = t.segments[2];
-  assert.equal(templateLocalFrame(t, outro, 252), 180);
-  assert.equal(templateLocalFrame(t, outro, 329), 257);
+  assert.equal(templateLocalFrame(t, outro, 375), 285);
+  assert.equal(templateLocalFrame(t, outro, 464), 374);
 });
 
 // ---------------------------------------------------------------------------
@@ -121,18 +122,18 @@ test('global → local frame mapping', () => {
 test('template attack frames deep-equal standalone attack-goal evaluation', () => {
   const t = tpl();
   const attackSeg = t.segments[1];
-  const standalone = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 6, overlays: 'none' });
-  for (const [global, local] of [[150, 78], [100, 28], [200, 128]] as const) {
+  const standalone = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 9.5, overlays: 'none' });
+  for (const [global, local] of [[150, 60], [100, 10], [240, 150]] as const) {
     const result = evaluateTemplateFrame(t, global);
     const expected = evaluateFrame(standalone, local);
     assert.deepEqual(result.input, sceneFrameToRenderInput(standalone, expected), `global ${global} ≡ attack local ${local}`);
   }
 });
 
-test('template faceoff frames deep-equal a 2.4s standalone faceoff slice', () => {
+test('template faceoff frames deep-equal a 3.0s standalone faceoff slice', () => {
   const t = tpl();
-  const standalone = compileVideo({ scene: 'faceoff', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 2.4, overlays: 'none' });
-  for (const frame of [0, 30, 60, 71]) {
+  const standalone = compileVideo({ scene: 'faceoff', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 3.0, overlays: 'none' });
+  for (const frame of [0, 30, 60, 89]) {
     const result = evaluateTemplateFrame(t, frame);
     const expected = evaluateFrame(standalone, frame);
     assert.deepEqual(result.input, sceneFrameToRenderInput(standalone, expected), `faceoff frame ${frame} identical`);
@@ -141,20 +142,20 @@ test('template faceoff frames deep-equal a 2.4s standalone faceoff slice', () =>
 
 test('outro boundary is continuous: outro start === attack end state (push 0)', () => {
   const t = tpl();
-  const atCut = evaluateTemplateFrame(t, 252); // global 8.4 → attack local 6.0
+  const atCut = evaluateTemplateFrame(t, 375); // global 12.5 → attack local 9.5
   const attackSeg = t.segments[1];
   assert.ok(attackSeg.video.attackGoal, 'attack staging compiled');
   const endState = evaluateAttackGoalFrame({
     data: attackSeg.video.attackGoal,
-    home: 'TR', away: 'GR', seed: 42, frame: 180, fps: 30, duration: 6,
+    home: 'TR', away: 'GR', seed: 42, frame: 285, fps: 30, duration: 9.5,
   });
   assert.deepEqual(atCut.input, sceneFrameToRenderInput(attackSeg.video, endState));
 });
 
 test('outro camera pushes in deterministically while celebration stays alive', () => {
   const t = tpl();
-  const early = evaluateTemplateFrame(t, 253).input.camera;
-  const late = evaluateTemplateFrame(t, 329).input.camera;
+  const early = evaluateTemplateFrame(t, 376).input.camera;
+  const late = evaluateTemplateFrame(t, 464).input.camera;
   assert.ok(late.fov < early.fov, `fov narrows ${early.fov} → ${late.fov}`);
   const dist = (c: typeof early): number => Math.hypot(c.pos.x - c.look.x, c.pos.y - c.look.y, c.pos.z - c.look.z);
   assert.ok(dist(late) < dist(early), 'camera dollies toward the celebration');
@@ -167,16 +168,16 @@ test('outro camera pushes in deterministically while celebration stays alive', (
 test('template overlay ownership across the global timeline', () => {
   const t = tpl();
   assert.deepEqual(kindsAt(t, 10), ['versus'], 'intro rivalry title');
-  assert.deepEqual(kindsAt(t, 60), ['headline'], 'intro closes on PICK A SIDE');
-  const final = evaluateTemplateFrame(t, 71).overlays.overlays.find((o) => o.kind === 'headline');
+  assert.deepEqual(kindsAt(t, 75), ['headline'], 'intro closes on PICK A SIDE');
+  const final = evaluateTemplateFrame(t, 89).overlays.overlays.find((o) => o.kind === 'headline');
   assert.ok(final && final.opacity > 0.9, `final intro frame holds full headline (opacity=${final?.opacity})`);
   assert.deepEqual(kindsAt(t, 100).sort(), ['versus'], 'attack context strip after the cut');
-  assert.deepEqual(kindsAt(t, 192), ['goal'], 'goal punch belongs to the attack scene');
-  assert.deepEqual(kindsAt(t, 230), ['headline'], 'celebration headline');
-  assert.deepEqual(kindsAt(t, 300), ['brand', 'cta'], 'template owns the outro end card');
-  assert.deepEqual(kindsAt(t, 329), ['brand', 'cta'], 'end card holds on the final frame');
+  assert.deepEqual(kindsAt(t, 270), ['goal'], 'goal punch belongs to the attack scene');
+  assert.deepEqual(kindsAt(t, 320), ['headline'], 'celebration headline');
+  assert.deepEqual(kindsAt(t, 390), ['brand', 'cta'], 'template owns the outro end card');
+  assert.deepEqual(kindsAt(t, 464), ['brand', 'cta'], 'end card holds on the final frame');
   // No scene CTA/brand leaks before the outro.
-  for (const frame of [100, 192, 230, 250]) {
+  for (const frame of [100, 270, 320, 370]) {
     const kinds = kindsAt(t, frame);
     assert.ok(!kinds.includes('cta') && !kinds.includes('brand'), `frame ${frame} has no end-card layers`);
   }
@@ -184,18 +185,18 @@ test('template overlay ownership across the global timeline', () => {
 
 test('custom headline reaches the attack celebration, not the intro title', () => {
   const t = tpl({ headline: 'ONE WIN FROM #1', cta: 'PLAY FOR TÜRKİYE' });
-  const intro = evaluateTemplateFrame(t, 60).overlays.overlays.find((o) => o.kind === 'headline');
+  const intro = evaluateTemplateFrame(t, 75).overlays.overlays.find((o) => o.kind === 'headline');
   assert.equal(intro?.text, 'PICK A SIDE', 'intro keeps the default rivalry line');
-  const celeb = evaluateTemplateFrame(t, 230).overlays.overlays.find((o) => o.kind === 'headline');
+  const celeb = evaluateTemplateFrame(t, 320).overlays.overlays.find((o) => o.kind === 'headline');
   assert.equal(celeb?.text, 'ONE WIN FROM #1');
-  const cta = evaluateTemplateFrame(t, 300).overlays.overlays.find((o) => o.kind === 'cta');
+  const cta = evaluateTemplateFrame(t, 390).overlays.overlays.find((o) => o.kind === 'cta');
   assert.equal(cta?.text, 'PLAY FOR TÜRKİYE');
 });
 
 test('--no-overlays disables the whole template overlay plan', () => {
   const t = tpl({ overlays: 'none' });
   assert.deepEqual(t.overlayPlan, []);
-  assert.deepEqual(evaluateTemplateFrame(t, 300).overlays.overlays, []);
+  assert.deepEqual(evaluateTemplateFrame(t, 390).overlays.overlays, []);
 });
 
 // ---------------------------------------------------------------------------
@@ -204,19 +205,20 @@ test('--no-overlays disables the whole template overlay plan', () => {
 
 test('template audio: one ambience bed, shifted scene events, outro tail', () => {
   const audio = tpl().audio;
-  assert.equal(audio.duration, 11);
+  assert.equal(audio.duration, 15.5);
   const ambience = audio.events.filter((e) => e.type === 'ambience');
   assert.equal(ambience.length, 1, 'a single continuous ambience bed');
-  assert.deepEqual([ambience[0].time, ambience[0].duration], [0, 11]);
+  assert.deepEqual([ambience[0].time, ambience[0].duration], [0, 15.5]);
   const at = (type: string) => audio.events.filter((e) => e.type === type).map((e) => e.time);
   assert.ok(at('whistle').some((t) => Math.abs(t - 0.15) < 1e-9), 'faceoff whistle stays global');
-  assert.ok(at('kick').some((t) => Math.abs(t - (2.4 + 0.7)) < 1e-9), 'pass kick shifted +2.4');
-  assert.ok(at('kick').some((t) => Math.abs(t - (2.4 + 2.1)) < 1e-9), 'final-pass kick shifted +2.4');
-  assert.ok(at('shot').some((t) => Math.abs(t - (2.4 + ATTACK_GOAL_BEATS.shotStart)) < 1e-9), 'shot at 5.55 global');
-  assert.ok(at('goal').some((t) => Math.abs(t - (2.4 + ATTACK_GOAL_BEATS.shotEnd)) < 1e-9), 'goal at 6.05 global');
-  const tail = audio.events.find((e) => e.type === 'crowd' && e.time >= 8.4);
+  assert.ok(at('kick').some((t) => Math.abs(t - (3.0 + ATTACK_GOAL_BEATS.pass1Start)) < 1e-9), 'pass kick shifted +3.0');
+  assert.ok(at('kick').some((t) => Math.abs(t - (3.0 + ATTACK_GOAL_BEATS.carryEnd)) < 1e-9), 'final-pass kick shifted +3.0');
+  assert.ok(at('shot').some((t) => Math.abs(t - (3.0 + ATTACK_GOAL_BEATS.shotStart)) < 1e-9), `shot at ${(3.0 + ATTACK_GOAL_BEATS.shotStart).toFixed(2)} global`);
+  // Human reaction delay: the real roar starts 80 ms after the ball crosses.
+  assert.ok(at('goal').some((t) => Math.abs(t - (3.0 + ATTACK_GOAL_BEATS.shotEnd + GOAL_ROAR_DELAY)) < 1e-9), `goal roar at ${(3.0 + ATTACK_GOAL_BEATS.shotEnd + GOAL_ROAR_DELAY).toFixed(2)} global`);
+  const tail = audio.events.find((e) => e.type === 'crowd' && e.time >= 12.5);
   assert.ok(tail, 'crowd tail carries into the outro');
-  assert.ok(tail.time + tail.duration > 9.5, 'tail decays through the CTA, never cuts at 8.4');
+  assert.ok(tail.time + tail.duration > 13.5, 'tail decays through the CTA, never cuts at 12.5');
 });
 
 // ---------------------------------------------------------------------------
@@ -227,65 +229,65 @@ test('template determinism across representative frames', () => {
   const a = tpl();
   const b = tpl();
   assert.deepEqual(a.segments.map((s) => s.video.faceoff ?? s.video.attackGoal), b.segments.map((s) => s.video.faceoff ?? s.video.attackGoal));
-  for (const frame of [0, 30, 70, 90, 150, 200, 250, 300, 329]) {
+  for (const frame of [0, 30, 89, 100, 240, 320, 390, 464]) {
     assert.deepEqual(evaluateTemplateFrame(a, frame), evaluateTemplateFrame(b, frame), `frame ${frame} deterministic`);
   }
 });
 
 test('template random access: last frame deep-equals after other evaluations', () => {
   const t = tpl();
-  const direct = evaluateTemplateFrame(t, 329);
-  for (const f of [0, 150, 72, 252, 300, 10, 200]) evaluateTemplateFrame(t, f);
-  assert.deepEqual(evaluateTemplateFrame(t, 329), direct);
+  const direct = evaluateTemplateFrame(t, 464);
+  for (const f of [0, 150, 100, 375, 390, 10, 240]) evaluateTemplateFrame(t, f);
+  assert.deepEqual(evaluateTemplateFrame(t, 464), direct);
 });
 
 test('out-of-range template frames fail clearly', () => {
   const t = tpl();
   assert.throws(() => evaluateTemplateFrame(t, -1), /Invalid frame: -1/);
-  assert.throws(() => evaluateTemplateFrame(t, 330), /Invalid frame: 330/);
+  assert.throws(() => evaluateTemplateFrame(t, 465), /Invalid frame: 465/);
 });
 
-test('outro end-card choreography: CTA settles first, badge punches 8.8–9.25 then holds', () => {
+test('outro end-card choreography: CTA settles first, badge punches 12.9–13.35 then holds', () => {
   const t = tpl();
   const plan = t.overlayPlan.filter((e) => e.kind === 'cta' || e.kind === 'brand');
   const cta = plan.find((e) => e.kind === 'cta');
   const brand = plan.find((e) => e.kind === 'brand');
   assert.ok(cta && brand);
-  assert.equal(cta.start, 8.6, 'CTA begins settling while celebration is still visible');
-  assert.equal(brand.start, 8.8, 'badge never covers the player immediately');
-  // Frame 252 (8.4s): clean celebration, no end-card layers.
-  assert.deepEqual(kindsAt(t, 252), [], 'outro opens on the celebration');
-  // Frame 264 (8.8s): CTA nearly settled, badge at punch start (opacity 0, scale 0.75).
-  const at264 = evaluateTemplateFrame(t, 264).overlays.overlays;
-  const cta264 = at264.find((o) => o.kind === 'cta');
-  const brand264 = at264.find((o) => o.kind === 'brand');
-  assert.ok(cta264 && cta264.opacity > 0.8, `CTA settling (opacity=${cta264?.opacity})`);
-  assert.ok(brand264 && Math.abs(brand264.opacity) < 1e-9, 'badge not yet visible at 8.8');
-  assert.ok(brand264 && Math.abs(brand264.scale - 0.75) < 1e-9, 'badge punch starts at 0.75');
-  // Frame 270 (9.0s): badge mid-punch near the 1.06 peak, CTA held.
-  const at270 = evaluateTemplateFrame(t, 270).overlays.overlays;
-  const brand270 = at270.find((o) => o.kind === 'brand');
-  assert.ok(brand270 && brand270.opacity > 0.8, 'badge fading in');
-  assert.ok(brand270 && brand270.scale > 1.05 && brand270.scale <= 1.061, `badge peaks ~1.06 (got ${brand270?.scale})`);
-  // Frame 273 (9.1s): both held, badge settling toward 1.0.
-  const at273 = evaluateTemplateFrame(t, 273).overlays.overlays;
-  assert.ok(at273.find((o) => o.kind === 'cta')?.opacity === 1, 'CTA held');
-  assert.ok(at273.find((o) => o.kind === 'brand')?.opacity === 1, 'badge held');
+  assert.equal(cta.start, 12.7, 'CTA begins settling while celebration is still visible');
+  assert.equal(brand.start, 12.9, 'badge never covers the player immediately');
+  // Frame 375 (12.5s): clean celebration, no end-card layers.
+  assert.deepEqual(kindsAt(t, 375), [], 'outro opens on the celebration');
+  // Frame 387 (12.9s): CTA nearly settled, badge at punch start (opacity 0, scale 0.75).
+  const at387 = evaluateTemplateFrame(t, 387).overlays.overlays;
+  const cta387 = at387.find((o) => o.kind === 'cta');
+  const brand387 = at387.find((o) => o.kind === 'brand');
+  assert.ok(cta387 && cta387.opacity > 0.8, `CTA settling (opacity=${cta387?.opacity})`);
+  assert.ok(brand387 && Math.abs(brand387.opacity) < 1e-9, 'badge not yet visible at 12.9');
+  assert.ok(brand387 && Math.abs(brand387.scale - 0.75) < 1e-9, 'badge punch starts at 0.75');
+  // Frame 393 (13.1s): badge mid-punch near the 1.06 peak, CTA held.
+  const at393 = evaluateTemplateFrame(t, 393).overlays.overlays;
+  const brand393 = at393.find((o) => o.kind === 'brand');
+  assert.ok(brand393 && brand393.opacity > 0.8, 'badge fading in');
+  assert.ok(brand393 && brand393.scale > 1.05 && brand393.scale <= 1.061, `badge peaks ~1.06 (got ${brand393?.scale})`);
+  // Frame 396 (13.2s): both held, badge settling toward 1.0.
+  const at396 = evaluateTemplateFrame(t, 396).overlays.overlays;
+  assert.ok(at396.find((o) => o.kind === 'cta')?.opacity === 1, 'CTA held');
+  assert.ok(at396.find((o) => o.kind === 'brand')?.opacity === 1, 'badge held');
   // Final frame holds at scale 1.0 for a thumbnail-strong end card.
-  const at329 = evaluateTemplateFrame(t, 329).overlays.overlays;
-  assert.equal(at329.find((o) => o.kind === 'brand')?.scale, 1.0);
-  assert.ok((at329.find((o) => o.kind === 'brand')?.opacity ?? 0) > 0.9);
+  const at464 = evaluateTemplateFrame(t, 464).overlays.overlays;
+  assert.equal(at464.find((o) => o.kind === 'brand')?.scale, 1.0);
+  assert.ok((at464.find((o) => o.kind === 'brand')?.opacity ?? 0) > 0.9);
 });
 
-test('scene end-card choreography is unchanged (attack-goal CTA/brand together)', () => {
-  const scene = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 6 });
+test('scene end-card choreography is unchanged in shape (attack-goal CTA/brand together)', () => {
+  const scene = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 9.5 });
   const cta = scene.overlayPlan.find((e) => e.kind === 'cta');
   const brand = scene.overlayPlan.find((e) => e.kind === 'brand');
   assert.ok(cta && brand);
-  assert.equal(cta.start, 5.35, 'scene CTA timing untouched');
-  assert.equal(brand.start, 5.35, 'scene brand timing untouched');
-  assert.equal(scene.duration, 6, 'scene duration untouched');
-  assert.equal(tpl().duration, 11, 'template duration untouched');
+  assert.equal(cta.start, 8.7, 'scene CTA timing');
+  assert.equal(brand.start, 8.7, 'scene brand timing');
+  assert.equal(scene.duration, 9.5, 'scene duration');
+  assert.equal(tpl().duration, 15.5, 'template duration');
 });
 
 // ---------------------------------------------------------------------------
@@ -318,7 +320,7 @@ test('template browser frames render 1080x1920 (title/cut/goal/celebration/CTA)'
   mkdirSync(dir, { recursive: true });
   const session = await SocialRenderSession.openTemplate(compiled);
   try {
-    for (const frame of [10, 71, 100, 192, 240, 300]) {
+    for (const frame of [10, 75, 100, 270, 320, 390]) {
       const out = path.join(dir, `tpl-${String(frame).padStart(6, '0')}.png`);
       const rendered = await session.screenshotFrame(frame, out);
       assert.deepEqual({ width: rendered.width, height: rendered.height }, { width: 1080, height: 1920 });
