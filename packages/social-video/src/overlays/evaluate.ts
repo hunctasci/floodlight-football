@@ -39,6 +39,20 @@ export function punchScale(elapsed: number): number {
   return 1.0;
 }
 
+/**
+ * Brand badge entrance: deterministic scale punch 0.75 → 1.06 → 1.0.
+ * Window 8.8–9.25 in the production outro (0.45s): fast punch to 1.06
+ * over 0.2s, then settle to 1.0 over the next 0.25s and hold. Pure
+ * function of elapsed time since the brand entry start — no CSS
+ * animations, no wall clocks, random-access safe.
+ */
+export function brandPunchScale(elapsed: number): number {
+  if (elapsed < 0) return 0.75;
+  if (elapsed < 0.2) return lerp(0.75, 1.06, smoothstep(elapsed / 0.2));
+  if (elapsed < 0.45) return lerp(1.06, 1.0, smoothstep((elapsed - 0.2) / 0.25));
+  return 1.0;
+}
+
 function evaluateEntry(entry: OverlayPlanEntry, time: number): EvaluatedOverlay | null {
   if (time < entry.start || time >= entry.end) return null;
   const fade = KIND_FADE[entry.kind];
@@ -52,6 +66,25 @@ function evaluateEntry(entry: OverlayPlanEntry, time: number): EvaluatedOverlay 
       scale,
       translateX: 0,
       translateY: slideIn(time, entry.start, fade.in, 18),
+      emphasis: Math.max(0, scale - 1),
+    };
+  }
+  if (entry.kind === 'brand') {
+    // End-card badge: scale punch + opacity only (no slide — the badge
+    // punches in place over the cinematic background). The DOM renderer
+    // applies this scale to the inner badge stack so the full-frame scrim
+    // only fades and never scales.
+    const elapsed = time - entry.start;
+    const scale = brandPunchScale(elapsed);
+    return {
+      kind: entry.kind,
+      ...(entry.text !== undefined ? { text: entry.text } : {}),
+      ...(entry.secondary !== undefined ? { secondary: entry.secondary } : {}),
+      ...(entry.versus !== undefined ? { versus: entry.versus } : {}),
+      opacity: fadeInOut(time, entry.start, entry.end, fade.in, fade.out),
+      scale,
+      translateX: 0,
+      translateY: 0,
       emphasis: Math.max(0, scale - 1),
     };
   }

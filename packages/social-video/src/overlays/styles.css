@@ -137,19 +137,38 @@
   text-shadow: 2px 2px 0 #101b31;
 }
 
-/* End card: CTA above the brand lockup, both inside safe zones. */
-.hnc-ov-cta { top: auto; bottom: 430px; }
+/* End card: trailer-style badge + CTA + domain over the living
+   celebration. The circular badge is the primary branding object —
+   transparent, no card/box/plate/border. Hierarchy: logo (largest) →
+   CTA (headline) → domain (monospace support). */
+.hnc-ov-cta { top: 1210px; bottom: auto; z-index: 3; }
 
 .hnc-ov-cta .hnc-ov-main {
   font-family: Impact, 'Arial Black', sans-serif;
-  font-size: 72px;
-  line-height: 1.05;
+  font-size: 80px;
+  line-height: 1.02;
   letter-spacing: 0.03em;
   color: #f7bf30;
   text-shadow: 5px 5px 0 #101b31;
 }
 
-.hnc-ov-brand { top: auto; bottom: 235px; }
+.hnc-ov-brand { left: 0; right: 0; top: 0; bottom: 0; z-index: 2; }
+
+.hnc-ov-scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 760px 640px at 50% 46%, rgba(16, 27, 49, 0.52) 0%, rgba(16, 27, 49, 0.30) 48%, rgba(16, 27, 49, 0) 72%),
+    linear-gradient(to bottom, rgba(16, 27, 49, 0) 0%, rgba(16, 27, 49, 0.16) 36%, rgba(16, 27, 49, 0.38) 66%, rgba(16, 27, 49, 0.50) 100%);
+}
+
+.hnc-ov-brand-stack {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 640px;
+  text-align: center;
+}
 
 .hnc-ov-wordmark {
   font-family: Impact, 'Arial Black', sans-serif;
@@ -166,18 +185,20 @@
 }
 
 .hnc-ov-logo {
-  width: 136px;
-  height: 136px;
-  border: 4px solid #f8efdb;
-  box-shadow: 4px 4px 0 #101b31;
-  background: #101b31;
+  display: inline-block;
+  width: 500px;
+  height: 500px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  filter: drop-shadow(10px 10px 0 rgba(16, 27, 49, 0.95)) drop-shadow(0 0 72px rgba(16, 27, 49, 0.45));
 }
 
 .hnc-ov-domain {
-  margin-top: 10px;
+  margin-top: 16px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-weight: 700;
-  font-size: 28px;
+  font-size: 30px;
   letter-spacing: 0.18em;
   text-indent: 0.18em;
   color: #f8efdb;

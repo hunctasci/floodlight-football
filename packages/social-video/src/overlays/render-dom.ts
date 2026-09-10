@@ -66,7 +66,7 @@ export async function ensureBrandLogoReady(host: HTMLElement): Promise<void> {
   try {
     await done.decode();
   } catch {
-    /* brand falls back to the domain text */
+    /* brand falls back to the wordmark lockup */
   }
 }
 
@@ -157,13 +157,21 @@ function buildHeadline(doc: Document, ov: EvaluatedOverlay): HTMLElement {
 function buildBrand(doc: Document): HTMLElement {
   const box = doc.createElement('div');
   box.className = 'hnc-ov hnc-ov-brand';
+  // Deterministic cinematic separation: full-frame navy scrim (fades with
+  // the overlay opacity, never scales) behind the badge. No boxes, no
+  // borders, no plates — the circular badge is the branding object.
+  const scrim = doc.createElement('div');
+  scrim.className = 'hnc-ov-scrim';
+  box.appendChild(scrim);
+  const stack = doc.createElement('div');
+  stack.className = 'hnc-ov-brand-stack';
   if (isLogoAvailable()) {
     const img = doc.createElement('img');
     img.className = 'hnc-ov-logo';
     img.src = logoUrl;
     img.alt = 'HNC League';
     img.draggable = false;
-    box.appendChild(img);
+    stack.appendChild(img);
   } else {
     // Canonical logo file unreadable: deterministic styled-text lockup in
     // the same HNC voice. Dropping a valid PNG at the logo path upgrades
@@ -171,8 +179,19 @@ function buildBrand(doc: Document): HTMLElement {
     const wordmark = doc.createElement('div');
     wordmark.className = 'hnc-ov-wordmark';
     wordmark.textContent = 'HNC LEAGUE';
-    box.appendChild(wordmark);
+    stack.appendChild(wordmark);
   }
+  box.appendChild(stack);
+  return box;
+}
+
+function buildCta(doc: Document, ov: EvaluatedOverlay): HTMLElement {
+  const box = doc.createElement('div');
+  box.className = 'hnc-ov hnc-ov-cta';
+  const main = doc.createElement('div');
+  main.className = 'hnc-ov-main';
+  main.textContent = ov.text ?? '';
+  box.appendChild(main);
   const domain = doc.createElement('div');
   domain.className = 'hnc-ov-domain';
   domain.textContent = BRAND_DOMAIN;
@@ -189,7 +208,7 @@ function buildOverlay(doc: Document, ov: EvaluatedOverlay): HTMLElement {
     case 'goal':
       return buildText(doc, 'hnc-ov hnc-ov-goal', ov.text);
     case 'cta':
-      return buildText(doc, 'hnc-ov hnc-ov-cta', ov.text);
+      return buildCta(doc, ov);
     case 'brand':
       return buildBrand(doc);
   }
@@ -212,7 +231,20 @@ export function renderOverlays(desc: OverlayFrameDescription, host?: HTMLElement
   const doc = root.ownerDocument;
   for (const ov of desc.overlays) {
     const node = buildOverlay(doc, ov);
-    styleNode(node, ov);
+    if (ov.kind === 'brand') {
+      // Badge punch applies to the inner stack only: the full-frame scrim
+      // fades (root opacity) but never scales or slides, so the darkening
+      // stays edge-to-edge while the badge punches in place.
+      node.style.opacity = String(ov.opacity);
+      node.style.transform = 'none';
+      const stack = node.querySelector('.hnc-ov-brand-stack');
+      if (stack instanceof HTMLElement) {
+        stack.style.opacity = '1';
+        stack.style.transform = `translate(${ov.translateX}px, ${ov.translateY}px) scale(${ov.scale})`;
+      }
+    } else {
+      styleNode(node, ov);
+    }
     root.appendChild(node);
   }
 }

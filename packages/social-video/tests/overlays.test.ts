@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { compileVideo, evaluateOverlays } from '../src/timeline.ts';
-import { evaluateOverlayFrame, fadeInOut, punchScale, slideIn } from '../src/overlays/evaluate.ts';
+import { evaluateOverlayFrame, brandPunchScale, fadeInOut, punchScale, slideIn } from '../src/overlays/evaluate.ts';
 import { DEFAULT_ATTACK_HEADLINE, DEFAULT_CTA, DEFAULT_FACEOFF_HEADLINE } from '../src/overlays/presets.ts';
 import { resolveVideoSpec } from '../src/schema.ts';
 
@@ -254,4 +254,62 @@ test('overlay evaluation needs no browser: evaluateOverlayFrame is pure', () => 
   assert.equal(a.frame, 170);
   assert.equal(a.time, 170 / 30);
   assert.deepEqual(a, evaluateOverlayFrame(compiled.overlayPlan, 170, compiled.fps));
+});
+
+test('brand punch is deterministic: 0.75 → 1.06 → 1.0 with opacity, no CSS', () => {
+  assert.ok(Math.abs(brandPunchScale(-0.1) - 0.75) < 1e-9, 'pre-entry rests at 0.75');
+  assert.ok(Math.abs(brandPunchScale(0) - 0.75) < 1e-9, 'entry starts at 0.75');
+  assert.ok(brandPunchScale(0.2) > 1.05 && brandPunchScale(0.2) <= 1.061, `punch peaks ~1.06 (got ${brandPunchScale(0.2)})`);
+  assert.equal(brandPunchScale(0.45), 1.0, 'settles at 1.0 by 0.45s');
+  assert.equal(brandPunchScale(1.5), 1.0, 'holds at 1.0');
+  // Brand entries evaluate with punch scale, zero slide, bounded opacity.
+  const compiled = attackGoal();
+  const brandAt = (frame: number) => evaluateOverlays(compiled, frame).overlays.find((o) => o.kind === 'brand');
+  const early = brandAt(162); // 5.4s, just after 5.35 start → entering
+  assert.ok(early, 'brand active just after entry');
+  assert.ok(early.scale >= 0.74 && early.scale <= 1.07, `punch scale bounded (got ${early.scale})`);
+  assert.equal(early.translateX, 0);
+  assert.equal(early.translateY, 0, 'badge punches in place, no slide');
+  const held = brandAt(179);
+  assert.ok(held && Math.abs(held.scale - 1.0) < 1e-9, 'brand holds at 1.0');
+  assert.ok(held.opacity > 0.9, 'brand holds opacity');
+});
+
+test('brand badge is large, transparent, and box-free (trailer end card)', () => {
+  const css = readFileSync(path.join(HERE, '../src/overlays/styles.css'), 'utf8');
+  const logoBlock = css.slice(css.indexOf('.hnc-ov-logo'));
+  assert.ok(logoBlock.includes('width: 500px'), 'badge visual width ~500px');
+  assert.ok(logoBlock.includes('height: 500px'), 'badge square holds details');
+  assert.ok(logoBlock.includes('background: transparent'), 'no background plate behind the badge');
+  assert.ok(logoBlock.includes('border: none'), 'no bordered card around the badge');
+  assert.ok(logoBlock.includes('box-shadow: none'), 'no SaaS panel shadow on the image element');
+  assert.ok(logoBlock.includes('drop-shadow'), 'subtle drop/block shadow for separation');
+  assert.ok(css.includes('.hnc-ov-scrim'), 'cinematic separation uses a scrim, not a box');
+  assert.ok(css.includes('radial-gradient'), 'radial darkening behind the logo');
+  // The badge element itself must not draw a visible box.
+  const brandRule = css.slice(css.indexOf('.hnc-ov-brand {'), css.indexOf('.hnc-ov-brand {') + 400);
+  assert.ok(!brandRule.includes('border:'), 'brand container draws no border');
+  assert.ok(!brandRule.includes('background: #'), 'brand container draws no solid plate');
+});
+
+test('brand DOM owns scrim + badge, CTA owns headline + domain (badge/CTA/domain hierarchy)', () => {
+  const domSrc = readFileSync(path.join(HERE, '../src/overlays/render-dom.ts'), 'utf8');
+  assert.ok(domSrc.includes('hnc-ov-scrim'), 'full-frame cinematic scrim exists');
+  assert.ok(domSrc.includes('hnc-ov-brand-stack'), 'badge punch targets an inner stack so the scrim never scales');
+  assert.ok(domSrc.includes('querySelector'), 'brand transform is split: scrim fades, stack punches');
+  // CTA carries the support line so the small domain text never scales with the badge punch.
+  const ctaIdx = domSrc.indexOf('function buildCta');
+  assert.ok(ctaIdx >= 0, 'CTA builder exists');
+  const ctaBlock = domSrc.slice(ctaIdx, ctaIdx + 800);
+  assert.ok(ctaBlock.includes('hnc-ov-domain'), 'domain renders with the CTA, below the headline');
+  assert.ok(ctaBlock.includes('BRAND_DOMAIN'), 'domain stays canonical hncleague.com');
+});
+
+test('no raw layout controls leak into the AI-facing public spec', () => {
+  const schemaSrc = readFileSync(path.join(HERE, '../src/schema.ts'), 'utf8');
+  for (const banned of ['logoWidth', 'logoTop', 'logoSize', 'brandScale', 'logoLeft']) {
+    assert.ok(!schemaSrc.includes(banned), `public spec exposes no ${banned}`);
+  }
+  const spec = resolveVideoSpec({ scene: 'attack-goal', home: 'TR', away: 'GR' });
+  assert.ok(!('logoWidth' in spec) && !('logoTop' in spec), 'resolved spec carries copy only');
 });

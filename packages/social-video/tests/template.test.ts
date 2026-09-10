@@ -245,6 +245,49 @@ test('out-of-range template frames fail clearly', () => {
   assert.throws(() => evaluateTemplateFrame(t, 330), /Invalid frame: 330/);
 });
 
+test('outro end-card choreography: CTA settles first, badge punches 8.8–9.25 then holds', () => {
+  const t = tpl();
+  const plan = t.overlayPlan.filter((e) => e.kind === 'cta' || e.kind === 'brand');
+  const cta = plan.find((e) => e.kind === 'cta');
+  const brand = plan.find((e) => e.kind === 'brand');
+  assert.ok(cta && brand);
+  assert.equal(cta.start, 8.6, 'CTA begins settling while celebration is still visible');
+  assert.equal(brand.start, 8.8, 'badge never covers the player immediately');
+  // Frame 252 (8.4s): clean celebration, no end-card layers.
+  assert.deepEqual(kindsAt(t, 252), [], 'outro opens on the celebration');
+  // Frame 264 (8.8s): CTA nearly settled, badge at punch start (opacity 0, scale 0.75).
+  const at264 = evaluateTemplateFrame(t, 264).overlays.overlays;
+  const cta264 = at264.find((o) => o.kind === 'cta');
+  const brand264 = at264.find((o) => o.kind === 'brand');
+  assert.ok(cta264 && cta264.opacity > 0.8, `CTA settling (opacity=${cta264?.opacity})`);
+  assert.ok(brand264 && Math.abs(brand264.opacity) < 1e-9, 'badge not yet visible at 8.8');
+  assert.ok(brand264 && Math.abs(brand264.scale - 0.75) < 1e-9, 'badge punch starts at 0.75');
+  // Frame 270 (9.0s): badge mid-punch near the 1.06 peak, CTA held.
+  const at270 = evaluateTemplateFrame(t, 270).overlays.overlays;
+  const brand270 = at270.find((o) => o.kind === 'brand');
+  assert.ok(brand270 && brand270.opacity > 0.8, 'badge fading in');
+  assert.ok(brand270 && brand270.scale > 1.05 && brand270.scale <= 1.061, `badge peaks ~1.06 (got ${brand270?.scale})`);
+  // Frame 273 (9.1s): both held, badge settling toward 1.0.
+  const at273 = evaluateTemplateFrame(t, 273).overlays.overlays;
+  assert.ok(at273.find((o) => o.kind === 'cta')?.opacity === 1, 'CTA held');
+  assert.ok(at273.find((o) => o.kind === 'brand')?.opacity === 1, 'badge held');
+  // Final frame holds at scale 1.0 for a thumbnail-strong end card.
+  const at329 = evaluateTemplateFrame(t, 329).overlays.overlays;
+  assert.equal(at329.find((o) => o.kind === 'brand')?.scale, 1.0);
+  assert.ok((at329.find((o) => o.kind === 'brand')?.opacity ?? 0) > 0.9);
+});
+
+test('scene end-card choreography is unchanged (attack-goal CTA/brand together)', () => {
+  const scene = compileVideo({ scene: 'attack-goal', home: 'TR', away: 'GR', seed: 42, fps: 30, duration: 6 });
+  const cta = scene.overlayPlan.find((e) => e.kind === 'cta');
+  const brand = scene.overlayPlan.find((e) => e.kind === 'brand');
+  assert.ok(cta && brand);
+  assert.equal(cta.start, 5.35, 'scene CTA timing untouched');
+  assert.equal(brand.start, 5.35, 'scene brand timing untouched');
+  assert.equal(scene.duration, 6, 'scene duration untouched');
+  assert.equal(tpl().duration, 11, 'template duration untouched');
+});
+
 // ---------------------------------------------------------------------------
 // Browser integration (selected frames only — never the full Reel in tests)
 // ---------------------------------------------------------------------------

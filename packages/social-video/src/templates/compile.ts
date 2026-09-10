@@ -46,7 +46,10 @@ function compileSegmentVideo(
  * timing/copy, shifted into place: faceoff versus as-is, its headline
  * retimed for the short intro cut (hold resolves into the cut); attack-goal
  * content-only (goal + headline, scene CTA/brand filtered); template owns
- * the outro CTA + brand hold.
+ * the outro CTA + brand hold. Outro choreography: CTA settles from
+ * outro+0.2 while the celebration is still visible; the badge punches in
+ * from outro+0.4 (8.8s in production) so it never covers the player
+ * immediately, then holds prominently to the end.
  */
 function templateOverlayPlan(
   resolved: ResolvedVideoSpec,
@@ -82,8 +85,9 @@ function templateOverlayPlan(
     entries.push({ ...e, start: e.start + attack.start, end: e.end + attack.start });
   }
   const ctaStart = outro.start + 0.2;
+  const brandStart = outro.start + 0.4;
   entries.push({ kind: 'cta', start: ctaStart, end: 99, text: resolved.cta ?? DEFAULT_CTA });
-  entries.push({ kind: 'brand', start: ctaStart, end: 99 });
+  entries.push({ kind: 'brand', start: brandStart, end: 99 });
   return Object.freeze(entries.map((entry) => Object.freeze(entry))) as OverlayPlanEntry[];
 }
 
