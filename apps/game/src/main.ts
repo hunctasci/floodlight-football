@@ -1,3 +1,4 @@
+import { escapeHtml, onboardingView, lobbyView, leaderboardView, filterStandings, standingsRows, menuHeader, menuFooter } from './ui/menu-views';
 import { renderShareCard, type ShareCardData, type CardFormat } from './share/card';
 import type { BotAssignment } from './city-league/bot-match';
 import { encodeInput, decodeInput } from './net/codec';
@@ -5,6 +6,7 @@ import { RoomTransport } from './net/room-transport';
 import { queueRequest, type MatchAssignment } from './net/matchmaking';
 import { countryTeams } from './city-league/kits';
 import './style.css';
+import './ui/menu.css';
 import { MatchEngine } from './engine';
 import { AI_LEVELS, type AiLevel } from './engine';
 import { GameRenderer } from './renderer';
@@ -193,6 +195,8 @@ function autoReadyRanked() {
 }
 
 let onboardName = '', onboardCity = 'TR', onboardMsg = '';
+let countrySearch = '', joinCodeDraft = '';
+const leagueViewState = () => ({ table: cityTable, profile: cityProfile, busy: cityBusy, error: cityMsg });
 let pendingInviteCode: string | null = null;
 let autoJoinAttempted = false;
 let cityTable: CityLeagueResponse | null = null, cityMsg = '', cityBusy = false;
@@ -222,7 +226,7 @@ async function refreshCityTable(silent = false) {
     } catch { /* ignore */ }
     cityMsg = '';
   } catch {
-    if (!silent) cityMsg = 'TABLE UNAVAILABLE — CHECK CONNECTION';
+    cityMsg = 'TABLE UNAVAILABLE — CHECK CONNECTION';
   }
   cityBusy = false; menuDirty = true;
 }
@@ -512,7 +516,37 @@ function onlineCityShorts(): { my: string; opp: string } | null {
   return null;
 }
 function hud(s:MatchState){const portrait=isTouchDevice&&innerHeight>innerWidth;const vt=net?viewTeam:s.humanTeam,ctl=net?engine.controlOf(vt):s.controlled;const me=s.players[ctl];const cityShorts=onlineCityShorts();const myDisp=cityShorts?{...s.teams[vt],short:cityShorts.my}:s.teams[vt];const awayDisp=cityShorts?{...s.teams[1-vt],short:cityShorts.opp}:s.teams[1-vt];const my=myDisp,away=awayDisp;const how=s.phase==='corner'?'AIM · LONG CROSS · PASS SHORT':s.phase==='throwin'?'AIM · PASS THROW':s.phase==='goalkick'?'PASS SHORT · LONG CLEAR': 'PASS KICK OFF · LONG BALL';const restart=s.restart?`${s.teams[s.restart.team].name.toUpperCase()} ${s.phase==='throwin'?'THROW-IN':s.phase==='corner'?'CORNER':s.phase==='goalkick'?'GOAL KICK':'KICKOFF'}${s.restart.team===vt?`<small>${how}</small>`:'<small>OPPONENT TAKING RESTART</small>'}`:'';const toast=performance.now()-camNoteAt<1600?`<div class="camtoast">📷 ${camNote}</div>`:'';const holder=s.ball.owner===null?null:s.players[s.ball.owner];const keeperHint=holder&&holder.keeper&&holder.team===vt?`<div class="keeper-hint">🧤 KEEPER<small>PASS SHORT · LONG CLEAR</small></div>`:holder&&holder.keeper?`<div class="keeper-hint">🧤 OPPONENT KEEPER HAS IT<small>SHAPE UP — PRESSURE AFTER RELEASE</small></div>`:'';touchControls.updateOffense((holder !== null && holder.team === vt) || s.restart?.team === vt);const aimU=mouseAim.down?mouseAim.aimU:(touch.aimU||0),aimV=mouseAim.down?mouseAim.aimV:(touch.aimV||0);const reticle=s.charge>0?`<div class="reticle"><div class="rgoal"><div class="rposts"></div><i class="raim" style="left:${(50+aimU*46).toFixed(1)}%;bottom:${(8+aimV*80).toFixed(1)}%"></i></div><small>AIM ${aimU===0&&aimV===0?'LOW FINISH':'PLACED'} · POWER ${Math.min(100,s.charge/.45*100).toFixed(0)}%</small></div>`:'';ui.innerHTML=`<div class="scoreboard"><div class="club">${my.short}</div><div class="score">${s.score[vt]} – ${s.score[1-vt]}</div><div class="club">${away.short}</div><div class="clock">${s.half===1?'1ST':'2ND'} ${clock(s)}</div></div>${portrait&&s.phase==='playing'&&s.messageTime<=0&&s.elapsed<8?`<div class="rotate-hint">\u27F3 ROTATE FOR THE FULL PITCH</div>`:''}<div class="attack">YOU: ${my.name.toUpperCase()}<br>ATTACK ${s.attack[vt]>0?'→':'←'}</div><div class="camchip">📷 ${renderer.cameraLabel()}</div><div class="player-info">▲ ${me?.name||'PLAYER'}</div>${s.charge>0?`<div class="charge"><i style="width:${Math.min(100,s.charge/.45*100)}%"></i></div>`:''}${reticle}<div class="strip">${isTouchDevice ? 'STICK MOVE · RIM SPRINT<br>PASS/TACKLE · LONG/SLIDE · SHOOT/TACKLE · SWITCH' : 'ARROWS MOVE · S PASS · W/A LONG · D SHOOT · SPACE SWITCH<br>E/SHIFT SPRINT · C CAMERA · ESC PAUSE · M ' + (muted ? 'UNMUTE' : 'MUTE')}</div>${toast}${keeperHint}${!restart&&s.messageTime>0?`<div class="message">${s.message}<small>${s.phase==='goal'?'KICKOFF IN A MOMENT':''}</small></div>`:''}${restart?`<div class="message">${restart}</div>`:''}`;ui.append(barTop,barBottom,radar);drawRadar(s,vt,ctl);}
-function panel(content:string){ui.innerHTML=`<div class="screen"><div class="panel">${content}</div></div>`;wireMenuItems();}
+function panel(content: string) {
+  const previous = ui.querySelector<HTMLElement>('.screen');
+  const sameScreen = previous?.dataset.screen === screen;
+  const scrollTop = sameScreen ? ui.querySelector('.panel')?.scrollTop ?? 0 : 0;
+  const tableScroll = sameScreen ? ui.querySelector('.standings-scroll')?.scrollTop ?? 0 : 0;
+  const active = document.activeElement as HTMLElement | null;
+  const selection = sameScreen && (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement)
+    ? [active.selectionStart, active.selectionEnd] : null;
+  const focusId = sameScreen && active && ui.contains(active) ? active.id : '';
+  const focusTest = sameScreen && active && ui.contains(active) ? active.dataset.testid : undefined;
+  const focusAction = sameScreen && active && ui.contains(active) ? active.dataset.act : undefined;
+  const helpOpen = sameScreen && ui.querySelector<HTMLDetailsElement>('.lobby-help')?.open;
+  const hub = ['onboard', 'title', 'city', 'online', 'host', 'join', 'netready', 'search'].includes(screen);
+  const wide = ['onboard', 'title', 'city'].includes(screen);
+  ui.innerHTML = `<div class="screen${hub ? ' stadium-screen' : ''}" data-screen="${screen}"><div class="panel${hub ? ' stadium-panel' : ''}${wide ? ' stadium-wide' : ''}">${content}</div></div>`;
+  wireMenuItems();
+  if (sameScreen) {
+    const next = focusId ? document.getElementById(focusId)
+      : focusTest ? [...ui.querySelectorAll<HTMLElement>('[data-testid]')].find(el => el.dataset.testid === focusTest)
+      : focusAction ? [...ui.querySelectorAll<HTMLElement>('[data-act]')].find(el => el.dataset.act === focusAction) : null;
+    next?.focus({ preventScroll: true });
+    if (selection && selection[0] !== null && selection[1] !== null && (next instanceof HTMLInputElement || next instanceof HTMLTextAreaElement)) {
+      next.setSelectionRange(selection[0], selection[1]);
+    }
+    const help = ui.querySelector<HTMLDetailsElement>('.lobby-help');
+    if (help && helpOpen) help.open = true;
+    ui.querySelector('.panel')!.scrollTop = scrollTop;
+    const table = ui.querySelector('.standings-scroll');
+    if (table) table.scrollTop = tableScroll;
+  }
+}
 /** Touch/mouse: tapping a menu item selects it (keyboard flow unchanged).
  *  Team-setup rows carry data-act="cycle-N": tapping cycles that row's value
  *  instead of kicking off. */
@@ -551,42 +585,21 @@ function waitSteps(): string {
 }
 function menu(){ if(!menuDirty)return; menuDirty=false;
   if(screen==='onboard') {
-    panel(`<div class="eyebrow">HNC LEAGUE</div><div class="title tlg">PLAY FOR<br>YOUR COUNTRY.</div>`
-      + `<label class="hint" for="onboard-name">YOUR NAME</label>`
-      + `<textarea class="netpaste netcode" id="onboard-name" data-testid="onboard-name" rows="1" maxlength="16" placeholder="HUNÇ" autocapitalize="words" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>`
-      + `<label class="hint" for="onboard-country">CHOOSE YOUR COUNTRY</label>`
-      + `<select class="netcode" id="onboard-country" data-testid="onboard-country">${CITIES.map(c => `<option value="${c.code}" ${c.code === onboardCity ? 'selected' : ''}>${c.flag} ${c.name}</option>`).join('')}</select>`
-      + `${onboardMsg?`<div class="subtitle" data-testid="onboard-msg">${onboardMsg}</div>`:''}`
-      + `<button class="menu-item netbtn" data-act="onboard-continue" data-testid="onboard-continue">▶ CONTINUE</button>`
-      + `<div class="hint">NO SIGNUP · ONE COUNTRY PER WEEK<br>WIN +3 · DRAW +1 · PLAY FOR NATIONAL PRIDE</div>`);
-    const nameInput = ui.querySelector<HTMLTextAreaElement>('#onboard-name')!;
-    nameInput.value = onboardName;
+    panel(onboardingView(onboardName, onboardCity, onboardMsg, Boolean(pendingInviteCode)));
+    const nameInput = ui.querySelector<HTMLInputElement>('#onboard-name')!;
     nameInput.oninput = () => { onboardName = nameInput.value; };
-    nameInput.onkeydown = (event) => {
-      if (event.key === 'Enter' && !event.isComposing) {
-        event.preventDefault(); doOnboardContinue();
-      }
+    ui.querySelector<HTMLFormElement>('#onboard-form')!.onsubmit = event => {
+      event.preventDefault(); doOnboardContinue();
     };
-    ui.querySelector<HTMLSelectElement>('#onboard-country')!.onchange = (event) => {
+    ui.querySelector<HTMLSelectElement>('#onboard-country')!.onchange = event => {
       onboardCity = (event.target as HTMLSelectElement).value;
-      onboardMsg = '';
     };
-    wireMenuItems();
     return;
   }
   if(screen==='title') {
     const country = cityProfile ? getCity(cityProfile.cityCode) : null;
     if (country) engine.state.teams = countryTeams(country.code, country.code === 'BR' ? 'TR' : 'BR');
-    const mine = cityTable?.standings.find(r => r.cityCode === cityProfile?.cityCode);
-    const ends = cityTable ? seasonCountdown(Date.now(), cityTable.season.endsAt) : '';
-    panel(`<div class="eyebrow">HNC LEAGUE · WORLD LOBBY</div>
-      <div class="country-hero"><span class="country-flag">${country?.flag ?? '⚽'}</span><h1>${country?.name ?? 'Your country'}</h1><p>${cityProfile?.displayName ?? ''}, your country needs you.</p></div>
-      <div class="country-stats"><div><strong>${mine ? '#' + mine.rank : '—'}</strong><span>WORLD RANK</span></div><div><strong>${mine?.points ?? '—'}</strong><span>COUNTRY POINTS</span></div><div><strong>${ends || 'WEEKLY'}</strong><span>SEASON ENDS</span></div></div>
-      <button class="menu-item lobby-play ${menuIndex === 0 ? 'selected' : ''}" data-mi="0" data-testid="find-match">PLAY FOR ${country?.name.toUpperCase() ?? 'YOUR COUNTRY'} <span>FIND A 1V1 OPPONENT →</span></button>
-      <div class="lobby-friend"><button class="menu-item ${menuIndex === 1 ? 'selected' : ''}" data-mi="1" data-testid="challenge-friend">PLAY WITH A FRIEND <span>CREATE A LINK · SHARE · KICK OFF →</span></button></div><div class="lobby-secondary"><button class="menu-item netbtn" data-act="join-friend">JOIN WITH CODE</button><button class="menu-item ${menuIndex === 2 ? 'selected' : ''}" data-mi="2" data-testid="world-table">WORLD TABLE</button></div>
-      ${netStatus ? `<div class="subtitle" role="status">${netStatus.replace(/[<>&]/g, '')}</div>` : ''}
-      <div class="hint">COUNTRY VS COUNTRY · NATIONAL TEAMS<br>WIN +3 · DRAW +1 · EVERY CONFIRMED RESULT COUNTS</div>
-      <p class="matchmaking-info">Computer-controlled opponents may fill empty slots. These matches also count toward country standings.</p><a class="rules-link" href="/how-to-play.html" target="_blank" rel="noopener">RULES & HOW TO PLAY ↗</a><details class="lobby-help"><summary>HOW IT WORKS & CONTROLS</summary><p>We find an opponent representing another country. Control your full national team. Play two 60-second halves and climb the weekly world table together.</p><p>Your country stays locked for the week. Matches between the same country are friendlies. Points count after the result is verified.</p><p>${isTouchDevice ? 'STICK: MOVE · PASS · LONG · SHOOT · SWITCH' : 'ARROWS: MOVE · S: PASS · W/A: LONG · D: SHOOT · SPACE: SWITCH · SHIFT: SPRINT'}</p></details>`);
+    panel(lobbyView(leagueViewState(), menuIndex, netStatus, isTouchDevice));
     return;
   }
   if(screen==='search') {
@@ -600,56 +613,40 @@ function menu(){ if(!menuDirty)return; menuDirty=false;
   }
   if(screen==='team') { const t=TEAMS[teamIndex],o=TEAMS[(teamIndex+1)%TEAMS.length]; const lvl=AI_LEVELS.find((l)=>l.id===aiLevel)?.label ?? 'PRO'; const rows=[`CLUB · ${t.name.toUpperCase()}`, `LENGTH · ${duration/60} MIN HALVES`, `CPU · ${lvl}`]; panel(`<div class="eyebrow">CHOOSE YOUR CLUB</div><div class="title tmd">SATURDAY CUP</div><div class="team-row"><div class="team-card active"><div class="team-swatch" style="background:${t.color}"></div>${t.name}<br><small>${t.city}</small></div><div class="team-card"><div class="team-swatch" style="background:${o.color}"></div>${o.name}<br><small>OPPONENT</small></div></div>${rows.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-act="cycle-${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="menu-item ${menuIndex===3?'selected':''}" data-mi="3" data-act="kickoff">${menuIndex===3?'▶ ':''}★ KICK OFF</div><div class="hint">${isTouchDevice ? 'TAP A ROW TO CHANGE IT · TAP ★ KICK OFF' : '↑ / ↓ PICK ROW · ← / → CHANGE · ENTER KICK OFF · ESC BACK'}</div>`); return; }
   if(screen==='pause') { const items=['RESUME',botMatch?'FIND NEW MATCH':'RESTART MATCH','MAIN MENU']; panel(`<div class="eyebrow">MATCH PAUSED</div><div class="title tlg">PAUSE</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">${isTouchDevice ? 'STICK MOVE · RIM SPRINT · SWITCH NEAREST<br>PASS: TAP TO FEET, HOLD INTO SPACE<br>SHOOT: HOLD & DRAG TO AIM · LONG: LOFT / SLIDE<br>TAP RESUME TO PLAY' : `ARROWS MOVE · S PASS/TACKLE · D/MOUSE SHOOT/TACKLE · LONG CROSS & SLIDE<br>SPACE SWITCH (AUTO-SWITCH ON) · E/SHIFT SPRINT · C CAMERA (${renderer.cameraLabel()}) · ↑ / ↓ SELECT · ENTER CONFIRM · ESC RESUME`}</div>`); return; }
-  if(screen==='online') { const items=['PLAY WITH A FRIEND','JOIN WITH CODE','BACK']; panel(`<div class="eyebrow">CHALLENGE A FRIEND · ONLINE</div><div class="title tlg" data-testid="online-title">ONLINE</div><div class="subtitle">${myCityName().toUpperCase()} · 1V1 · 2 MIN MATCH</div>${netStatus?`<div class="subtitle" data-testid="online-status">${netStatus}</div><div class="menu-item netbtn" data-act="copylog" data-testid="copy-debug-log">▶ COPY DEBUG LOG</div>`:''}${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-testid="online-${x.toLowerCase().replace(/[^a-z]+/g, '-')}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
-  if(screen==='host') {
-    const url = roomCode ? inviteUrlFor(roomCode) : '';
-    const city = myCityName().toUpperCase() || 'YOUR COUNTRY';
-    panel(`<div class="eyebrow">YOUR CHALLENGE IS READY · YOU ARE TEAM 1</div>`
-      + `<div class="title room-code txl" data-testid="room-code">${roomCode ? formatRoomCode(roomCode) : '···'}</div>`
-      + `<div class="subtitle">${city} · WAITING FOR OPPONENT…</div>`
-      + `<div class="subtitle" data-testid="host-status">${netStatus || '…'}</div>${waitSteps()}`
-      + (url?`<textarea class="netpaste netcode" readonly data-testid="invite-url" rows="2">${url}</textarea>`:'')
-      + `<button class="menu-item netbtn lobby-play" data-act="share-invite">SHARE INVITE LINK →</button>`
-      + `<div class="menu-item netbtn" data-act="whatsapp" data-testid="host-whatsapp">▶ CHALLENGE ON WHATSAPP</div>`
-      + `<div class="menu-item netbtn" data-act="copy-invite" data-testid="host-copy">▶ COPY CHALLENGE</div>`
-      + `${copyNote?`<div class="hint">${copyNote}</div>`:''}<div class="menu-item netbtn" data-act="copylog" data-testid="copy-debug-log">▶ COPY DEBUG LOG</div><div class="menu-item netbtn" data-act="cancel" data-testid="host-cancel">▶ CANCEL</div>`);
+  if(screen==='online') {
+    const items = ['PLAY WITH A FRIEND', 'JOIN WITH CODE', 'BACK'];
+    panel(`${menuHeader('FRIEND MATCH · ONLINE 1V1')}<div class="room-heading"><div class="eyebrow">GOOD FRIENDS. GREAT RIVALS.</div><h1 class="stadium-title" data-testid="online-title">MEET ON<br><em>THE PITCH.</em></h1><p class="stadium-intro">Create an invite or join your friend’s room.<br>Two players. Two teams. One winner.</p></div>${netStatus ? `<div class="form-feedback" role="status" data-testid="online-status">${escapeHtml(netStatus)}</div>` : ''}<div class="friend-menu-options">${items.map((label, i) => `<button type="button" class="menu-item ${i === 0 ? 'entry-submit' : ''} ${menuIndex === i ? 'selected' : ''}" data-mi="${i}" data-testid="online-${label.toLowerCase().replace(/[^a-z]+/g, '-')}">${label}${i < 2 ? ' →' : ''}</button>`).join('')}</div>${netStatus ? '<details class="lobby-help"><summary>CONNECTION HELP</summary><p>Ask your friend for a fresh invite, or create a new room.</p><button type="button" class="menu-item netbtn text-button" data-act="copylog" data-testid="copy-debug-log">COPY DEBUG LOG</button></details>' : ''}${menuFooter()}`);
     return;
   }
-  if(screen==='join') { panel(`<div class="eyebrow">ENTER THE FRIEND CODE</div><div class="title tlg">JOIN</div><div class="subtitle" data-testid="join-status">${netStatus || 'TYPE THE 6-LETTER CODE'}</div><div class="hint">READ IT OFF YOUR FRIEND\u2019S SCREEN · DASHES OK</div>${roomCode ? '' : `<textarea class="netpaste netcode" id="netcode" data-testid="join-code-input" rows="1" maxlength="7" placeholder="ABC DEF" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"></textarea><div class="menu-item netbtn" data-act="join" data-testid="join-submit">▶ JOIN</div>`}<div class="menu-item netbtn" data-act="cancel">▶ CANCEL</div>`); return; }
+  if(screen==='host') {
+    const url = roomCode ? inviteUrlFor(roomCode) : '';
+    panel(`${menuHeader('FRIEND MATCH · ONLINE 1V1')}<div class="room-heading"><div class="eyebrow">A LITTLE FRIENDLY COMPETITION.</div><h1 class="stadium-title">CHALLENGE<br><em>ACCEPTED?</em></h1><p class="stadium-intro">Send your invite. Get your friend on the pitch.</p></div><div class="invite-ticket"><span class="field-label">${roomCode ? 'YOUR CHALLENGE IS READY' : 'CREATING YOUR ROOM'}</span><div class="title room-code txl" data-testid="room-code">${roomCode ? formatRoomCode(roomCode) : '···'}</div><span class="field-help">SHARE THIS CODE OR SEND THE LINK BELOW</span></div><div class="room-status" role="status" data-testid="host-status">${escapeHtml(netStatus || 'Waiting for your friend…')}</div>${waitSteps()}${url ? `<label class="sr-only" for="invite-link">Friend invite link</label><textarea id="invite-link" class="netpaste netcode" readonly data-testid="invite-url" rows="2">${escapeHtml(url)}</textarea>` : ''}<button type="button" class="menu-item netbtn entry-submit" data-act="share-invite" ${url ? '' : 'disabled'}>SHARE INVITE LINK →</button><div class="invite-actions"><button type="button" class="menu-item netbtn" data-act="copy-invite" data-testid="host-copy" ${url ? '' : 'disabled'}>COPY INVITE</button><button type="button" class="menu-item netbtn" data-act="whatsapp" data-testid="host-whatsapp" ${url ? '' : 'disabled'}>WHATSAPP ↗</button></div><div class="field-help" role="status">${escapeHtml(copyNote)}</div><p class="field-help">Keep this page open. You’ll both press ready before the match starts. Same-country games are friendlies.</p><button type="button" class="menu-item netbtn text-button" data-act="cancel" data-testid="host-cancel">← CANCEL INVITE</button><details class="lobby-help"><summary>CONNECTION HELP</summary><p>If your friend can’t connect, try creating a new invite.</p><button type="button" class="menu-item netbtn text-button" data-act="copylog" data-testid="copy-debug-log">COPY CONNECTION LOG</button></details>${menuFooter()}`);
+    return;
+  }
+  if(screen==='join') {
+    panel(`${menuHeader('FRIEND MATCH · 1V1')}<div class="room-heading"><div class="eyebrow">YOUR FRIEND. YOUR NEXT RIVAL.</div><h1 class="stadium-title">GOT A<br><em>MATCH CODE?</em></h1><p class="stadium-intro">Enter your friend’s six-character code.<br>You’ll both ready up before kick-off.</p></div><div class="form-feedback" role="status" data-testid="join-status">${escapeHtml(netStatus)}</div>${roomCode ? waitSteps() : `<form id="join-form" novalidate><label class="field-label" for="netcode">FRIEND’S ROOM CODE</label><input type="text" class="netcode" id="netcode" data-testid="join-code-input" maxlength="7" placeholder="ABC DEF" value="${escapeHtml(joinCodeDraft)}" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"><p class="field-help">Letters and numbers. Spaces or dashes are fine.</p><button type="submit" class="menu-item entry-submit" data-testid="join-submit">JOIN MATCH →</button></form>`}<button type="button" class="menu-item netbtn text-button" data-act="cancel">← BACK</button>${menuFooter()}`);
+    const form = ui.querySelector<HTMLFormElement>('#join-form');
+    if (form) {
+      ui.querySelector<HTMLInputElement>('#netcode')!.oninput = event => { joinCodeDraft = (event.target as HTMLInputElement).value; };
+      form.onsubmit = event => { event.preventDefault(); doJoin(); };
+    }
+    return;
+  }
   if(screen==='netready') {
-    const items=["I'M READY",'CANCEL'];
-    let vs = '';
-    try {
-      const remote = (net as unknown as { remoteProfile?: { displayName: string; cityCode: string } } | null)?.remoteProfile;
-      if (cityProfile) {
-        const myC = cityName(cityProfile.cityCode).toUpperCase();
-        if (remote) {
-          const opC = cityName(remote.cityCode).toUpperCase();
-          vs = `<div class="subtitle">${myC} · ${cityProfile.displayName.toUpperCase()} VS ${opC} · ${remote.displayName.toUpperCase()}</div>`;
-        } else {
-          vs = `<div class="subtitle">${myC} · ${cityProfile.displayName.toUpperCase()} VS …</div>`;
-        }
-      }
-    } catch { /* display only */ }
-    panel(`<div class="eyebrow" data-testid="ready-room">${rankedMode ? 'COUNTRY MATCH' : 'FRIEND MATCH'} · 1V1</div><div class="title tlg">READY?</div>${vs}<div class="subtitle" data-testid="ready-status">YOU ${iAmReady ? 'READY ✓' : '…'} · OPPONENT ${peerReady ? 'READY ✓' : '…'}</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}" data-testid="ready-${x.toLowerCase().replace(/[^a-z]+/g, '-')}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">${rankedMode ? 'YOUR MATCH STARTS AUTOMATICALLY WHEN CONNECTED' : 'BOTH SIDES PRESS READY — THEN KICK OFF'}</div>`); return;
+    const remote = (net as unknown as { remoteProfile?: { displayName: string; cityCode: string } } | null)?.remoteProfile;
+    const playerCard = (profile: { displayName: string; cityCode: string } | null | undefined, me: boolean) => {
+      const country = profile ? getCity(profile.cityCode) : null;
+      return `<div class="ready-player"><span class="eyebrow">${me ? 'YOU' : 'OPPONENT'}</span><span class="nation-flag nation-flag-large" aria-hidden="true">${country?.flag ?? ''}</span><h2>${escapeHtml(country?.name ?? 'Connecting…')}</h2><p>${escapeHtml(profile?.displayName ?? 'Waiting for player')}</p></div>`;
+    };
+    panel(`${menuHeader('MATCH LOBBY')}<div class="room-heading"><div class="eyebrow" data-testid="ready-room">${rankedMode ? 'COUNTRY MATCH' : 'FRIEND MATCH'} · 1V1</div><h1 class="stadium-title">READY FOR<br><em>KICK-OFF?</em></h1></div><div class="ready-matchup">${playerCard(cityProfile, true)}<span class="ready-vs">VS</span>${playerCard(remote, false)}</div><div class="room-status" role="status" data-testid="ready-status">YOU ${iAmReady ? 'READY ✓' : 'NOT READY'} · OPPONENT ${peerReady ? 'READY ✓' : 'NOT READY'}</div><button type="button" class="menu-item entry-submit ${menuIndex === 0 ? 'selected' : ''}" data-mi="0" data-testid="ready-i-m-ready" ${iAmReady || (rankedMode && !cityMatch) ? 'disabled' : ''}>${iAmReady ? 'YOU’RE READY ✓' : "I'M READY"}</button><button type="button" class="menu-item text-button ${menuIndex === 1 ? 'selected' : ''}" data-mi="1" data-testid="ready-cancel">CANCEL</button><p class="field-help">${rankedMode ? 'Your match starts automatically when both players are connected.' : 'Both players press ready, then it’s game on. Two 60-second halves.'}</p>${menuFooter()}`);
+    return;
   }
   if(screen==='city') {
-    const rows = cityTable?.standings ?? [];
-    const ends = cityTable ? seasonCountdown(Date.now(), cityTable.season.endsAt) : '';
-    const top3 = rows.slice(0, 3).map((r, i) => {
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
-      const mine = cityProfile && r.cityCode === cityProfile.cityCode ? ' ← YOU' : '';
-      return `<div class="statline"><span>${medal} ${r.cityName.toUpperCase()} ${r.points}${mine}</span></div>`;
-    }).join('');
-    const table = rows.map((r) => {
-      const mine = cityProfile && r.cityCode === cityProfile.cityCode ? ' ← YOU' : '';
-      const gd = r.goalDifference >= 0 ? `+${r.goalDifference}` : `${r.goalDifference}`;
-      return `<div class="statline"><span>${r.rank} ${r.cityName.toUpperCase()} ${r.played}P ${gd} ${r.points} PTS${mine}</span></div>`;
-    }).join('');
-    panel(`<div class="eyebrow">COUNTRY LEAGUE · ${cityTable?.season.key ?? '…'}</div><div class="title tlg">WORLD TABLE</div><button class="menu-item netbtn" data-act="city-back">← LOBBY</button>`
-      + (cityTable ? `<div class="hint">SEASON ENDS IN ${ends}</div>${top3}${table}` : `<div class="subtitle">${cityBusy ? 'LOADING…' : (cityMsg || 'TABLE UNAVAILABLE')}</div>`)
-      + `<div class="menu-item netbtn" data-act="city-refresh">▶ REFRESH</div><div class="menu-item netbtn" data-act="city-back">▶ BACK</div>`
-      + `<div class="hint"># COUNTRY P GD PTS · FULL STATS ON WIDE SCREENS</div>`);
+    panel(leaderboardView(leagueViewState(), countrySearch));
+    ui.querySelector<HTMLInputElement>('#country-search')!.oninput = event => {
+      countrySearch = (event.target as HTMLInputElement).value;
+      updateStandingsSearch();
+    };
     return;
   }
   if(screen==='league') { const items=['OPEN LEAGUE','CREATE LEAGUE','JOIN LEAGUE','SERVER','BACK']; const saved=getLeagueCode(); panel(`<div class="eyebrow">FRIEND LEAGUES · ROUND ROBIN</div><div class="title tlg">LEAGUE</div><div class="subtitle">${saved ? 'SAVED CODE ' + saved : getServerUrl()}</div>${items.map((x,i)=>`<div class="menu-item ${menuIndex===i?'selected':''}" data-mi="${i}">${menuIndex===i?'▶ ':''}${x}</div>`).join('')}<div class="hint">↑ / ↓ SELECT · ENTER CONFIRM · ESC BACK</div>`); return; }
@@ -1216,7 +1213,7 @@ function cycleTeamRow(row: number, dir: 1 | -1) {
   menuDirty = true;
 }
 function doOnboardContinue() {
-  const raw = ui.querySelector<HTMLTextAreaElement>('#onboard-name')?.value ?? onboardName;
+  const raw = ui.querySelector<HTMLInputElement>('#onboard-name')?.value ?? onboardName;
   onboardName = raw;
   try {
     const seasonKey = getCurrentSeasonKey();
@@ -1238,7 +1235,8 @@ function doOnboardContinue() {
     }
   } catch (e) {
     onboardMsg = e instanceof Error ? e.message : 'NAME MUST BE 3–16 CHARACTERS';
-    menuDirty = true;
+    menuDirty = true; menu();
+    ui.querySelector<HTMLInputElement>('#onboard-name')?.focus();
   }
 }
 async function doShareInvite() {
@@ -1373,6 +1371,13 @@ async function submitCityResult() {
   }
   menuDirty = true;
 }
+function updateStandingsSearch() {
+  const body = ui.querySelector('#standings-body');
+  const count = ui.querySelector('#standings-count');
+  const rows = filterStandings(cityTable?.standings ?? [], countrySearch);
+  if (body) body.innerHTML = standingsRows(rows, cityProfile?.cityCode);
+  if (count) count.textContent = `${rows.length} COUNTRIES`;
+}
 function handleMenuEnter(act?: string) {
   if (screen === 'full') {
     if (act === 'share-result') { shareResult(); return; }
@@ -1381,8 +1386,21 @@ function handleMenuEnter(act?: string) {
     if (act === 'result-card') { shareResult(); return; }
     if (act === 'result-whatsapp') { window.open(buildWhatsAppUrl(resultShareText() + '\n' + publicGameUrl), '_blank', 'noopener,noreferrer'); return; }
   }
+  if (act === 'city-refresh') { void refreshCityTable(); return; }
+  if (act === 'country-play') { void findCountryMatch(); return; }
+  if (act === 'city-back') { screen = 'title'; menuIndex = 0; menuDirty = true; return; }
+  if (act === 'find-my-country') {
+    countrySearch = '';
+    const input = ui.querySelector<HTMLInputElement>('#country-search');
+    if (input) input.value = '';
+    updateStandingsSearch();
+    const row = document.getElementById(`standing-${cityProfile?.cityCode}`);
+    row?.scrollIntoView({ block: 'center', behavior: 'instant' });
+    row?.focus({ preventScroll: true });
+    return;
+  }
   if (act === 'retry-result') { void submitCityResult(); return; }
-  if (act === 'join-friend') { closeNet(); screen = 'join'; menuIndex = 0; menuDirty = true; return; }
+  if (act === 'join-friend') { joinCodeDraft = ''; closeNet(); screen = 'join'; menuIndex = 0; menuDirty = true; return; }
   if (screen === 'onboard') {
     if (act === 'onboard-continue') { doOnboardContinue(); return; }
     doOnboardContinue(); return;
@@ -1404,7 +1422,7 @@ function handleMenuEnter(act?: string) {
   else if (screen === 'online') {
     if (act === 'copylog') { doCopyLog(); return; }
     if (menuIndex === 0) { screen = 'host'; menuIndex = 0; roomCode = ''; netStatus = ''; copyNote = ''; startHost(); }
-    else if (menuIndex === 1) { screen = 'join'; menuIndex = 0; roomCode = ''; netStatus = ''; }
+    else if (menuIndex === 1) { screen = 'join'; menuIndex = 0; roomCode = ''; joinCodeDraft = ''; netStatus = ''; }
     else { screen = 'title'; menuIndex = 0; netStatus = ''; }
   }
   else if (screen === 'host') {
