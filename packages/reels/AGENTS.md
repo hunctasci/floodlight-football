@@ -1,78 +1,58 @@
-# AGENTS.md — Reel Factory agent interface
+# AGENTS.md — authoring HNC social content
 
-Think **semantically**. The factory owns coordinates, cameras, asset paths,
-frame math, CSS and FFmpeg. You own story, countries, seed and copy.
+You write a **ContentSpec** (story intent). The engine owns coordinates,
+cameras, frame math, CSS, assets, audio files and encoding. Full vocabulary:
+`docs/VOCABULARY.md` (generated — `npm run reels:vocab`). Architecture:
+`docs/ARCHITECTURE.md`. Concept bank: `docs/CONCEPTS.md`.
 
-## DO
+## Workflow (do not skip steps)
 
-- Use templates: `office-rivalry`, `country-rivalry`, `hnc-hero` (60fps hero trailer).
-- Use named actors from `ReelSpec.cast` (`home-worker`, `away-worker`...).
-- Use named anchors (`desk-left`, `desk-right`, `coffee-machine`, `faceoff-home`...).
-- Use animation ids (`typing`, `celebrate`, `side-eye`, `angry`, `goal-celebration`...).
-- Use camera presets (`wide-establish`, `close-reaction`, `dramatic-push`, `football-broadcast`, `celebration-close`...) and anchored moves (`faceoff-depth-push`, `runner-lead`, `striker-windup`, `net-reverse`, `crane-out`...).
-- Use moment clocks (`momentClock: { from, to, length, ramp }`) to cut inside one continuous football action; keep `to` == next `from`.
-- Portrait framing: stage duels in DEPTH (leading / following cameras), never side-by-side from a lateral lens — a 9:16 frame is only ~29° wide.
-- Use transition ids (`cloud-puff`, `cut`, `fade`, `whip-pan`...) and effect ids (`screen-shake`, `confetti`, `speed-lines`...).
-- Use football moments (`faceoff`, `attack-goal`, `crossbar-chaos`, `keeper-disaster`, `cross-header-goal`, `hero-attack`).
-- Use audio cues (`typing`, `tension-rise`, `poof`, `whoosh`, `goal-roar`, `brand-sting`...).
-- Derive all variation from `rng(seed, '<stable-key>')`.
-- Derive all motion from `useCurrentFrame()` / absolute `frame`.
-- Validate before rendering: `npm run reels:validate -- --template ...`.
+1. Write a spec: `specs/<id>.json` (no code, no registration) or a TS module in `src/content/`.
+2. `npm run reels:validate -- --content specs/<id>.json` — vocabulary (did-you-mean), timing, creative lint, framing + motion QA for every format. Fix every error; read every warning.
+3. `npm run reels:qa -- --content <id> --sheet --cuts` — contact sheets of every beat (15/55/92%) and 6 frames around every cut. **Look at them.** Renders successfully ≠ looks good.
+4. `npm run reels:render -- --content <id> --scale 0.5` — preview; pull frames from the MP4 and check motion.
+5. Fix weak beats, then `npm run reels:render -- --content <id> --format all`.
+6. Key art: `npm run reels:still -- --content <id> --key thumb --format square`.
 
-## DO NOT
+## A spec in one screen
 
-- Hand-author camera coordinates/FOV in prompts.
-- Expose GLB paths to callers (use asset ids like `office-modern-01`).
-- Duplicate country data (import from the canonical game source via `src/football/data/countries.ts`).
-- Use unseeded randomness (`Math.random`), wall clocks (`Date.now()`), or previous-frame state.
-- Bypass the asset registry or the animation/camera/transition registries.
-- Create one-off scene architecture when reusable vocabulary solves it.
-- Commit binaries without `assets/SOURCES.md` provenance (source/author/license).
-
-## Example: funny office rivalry
-
-```bash
-npm run reels:render -- \
-  --template office-rivalry \
-  --home TR \
-  --away GR \
-  --seed 42 \
-  --football-moment crossbar-chaos \
-  --output social/output/tr-gr-office.mp4
+```json
+{
+  "id": "coffee-standoff", "title": "Coffee Standoff", "fps": 30, "formats": ["reel", "square"],
+  "cast": { "hero": { "country": "TR", "number": 9, "name": "Emre" }, "rival": { "country": "GR", "number": 4, "name": "Nikos" } },
+  "scenes": [
+    { "id": "office", "world": "office", "beats": [
+      { "id": "hook", "purpose": "hook", "duration": 1.4, "camera": "over-shoulder:hero>rival push-in",
+        "cast": { "hero": { "at": "desk-a", "do": "typing" }, "rival": { "at": "desk-b", "do": "typing" } },
+        "text": [{ "say": "POV: your new coworker supports Greece", "style": "pov" }] },
+      { "id": "look", "duration": 1.2, "camera": "close:hero",
+        "cast": { "hero": { "do": { "do": "side-eye", "lookAt": "desk-b-flag" } } },
+        "sound": ["record-scratch", { "cue": "hush", "duration": 1 }] }
+    ]},
+    { "id": "match", "world": "football", "set": { "moment": "hero-attack", "roles": { "striker": "hero", "rival": "rival" } },
+      "enter": { "type": "light-bloom", "from": "ceiling-light", "to": "floodlight" },
+      "beats": [{ "id": "faceoff", "duration": 1.3, "clock": { "from": 1.2, "to": 2.5 }, "camera": "faceoff-depth-push" }] }
+  ]
+}
 ```
 
-Custom copy only (never CSS):
+## Rules
 
-```bash
-npm run reels:render -- \
-  --template office-rivalry \
-  --home TR --away GR --seed 42 \
-  --headline "WHEN YOUR COWORKER SUPPORTS THE WRONG COUNTRY" \
-  --cta "YOUR COUNTRY NEEDS YOU" \
-  --output social/output/tr-gr-office.mp4
-```
+- **Cast is identity.** `country` + `number` drive skin, kit, back number and flag in every world. Keep the same person across worlds; change their `looks`, not their identity. Match a football role's choreographed number (validator warns).
+- **Camera = intent.** `lens:subject[>subject] move move`. Never write coordinates or FOVs. Portrait is ~29° wide: stage two people in depth (`over-shoulder`, `two-shot`), not side by side.
+- **Staging persists** within a scene: a cast member keeps their mark and current action across beats until told otherwise (loops don't restart on a cut). Place everyone the first time they appear (`at`).
+- **Time with the grammar**, never frame math: `0.4`, `'60%'`, `'end-0.2'`, `'3f'`, `'faceoff.end-3f'`, `'moment:contact'`.
+- **Football beats carry clocks** (moment seconds). Unset clocks chain. Keep screen time ≈ clock time unless you mean a speed ramp — QA flags sprints faster than a human.
+- **Transitions connect ideas**: `light-bloom` (light → light), `zoom-through` (into a screen / notification), `whip-pan`, `wipe`, `match-cut`, `cloud-puff`, `glitch`, `flash`, `dip`. Avoid `dip` as a default.
+- **Sound is semantic**: cue ids only. World ambience beds are automatic; `hush` makes a comedic silence.
+- **Brand arrives at the payoff**, not before it: end on `brand-reveal` in the `title` world.
+- Determinism: never `Math.random`, `Date.now`, or accumulated state. Variation comes from `seed`.
 
-## Example: HNC hero trailer
+## Adding capability
 
-```bash
-npm run reels:validate -- --template hnc-hero --home TR --away GR --seed 42
-npm run reels:still -- --composition HncHeroReel --frame 398 --output social/output/hero-shot.png
-npm run reels:render -- --template hnc-hero --home TR --away GR --seed 42 --output social/output/hnc-hero.mp4
-```
-
-## Example: country rivalry (migration proof)
-
-```bash
-npm run reels:render -- \
-  --template country-rivalry \
-  --home TR --away GR --seed 42 \
-  --football-moment attack-goal \
-  --output social/output/tr-gr.mp4
-```
-
-## Workflow
-
-1. `npm run reels:validate` (fast, no browser).
-2. `npm run reels:still` on hook / side-eye / cloud-mid / reveal / payoff / CTA frames.
-3. `npm run reels:render` once.
-4. `ffprobe` the MP4 (1080x1920, H.264 + AAC).
+- **World**: `src/worlds/<id>/<id>.world.ts` (marks, props, lights, surfaces, lenses, params) + a scene component, registered in `src/worlds/registry.ts` and `src/render/worlds.tsx`. Share layout constants between both halves.
+- **Action**: `src/cast/actions.ts` (pure pose function + gaze weights + posture).
+- **Look**: `src/cast/looks.ts` → a wardrobe in `@floodlight/hnc-visuals` (`player/wardrobe.ts`). Base body/head never changes.
+- **Lens / move**: generic in `src/camera/lenses.ts` / `moves.ts`; world-specific in the world file.
+- **Transition / effect / graphic / cue**: its registry + renderer; then `npm run reels:vocab`.
+- Never author HNC character, ball or stadium geometry outside `@floodlight/hnc-visuals` (guard test).

@@ -1,50 +1,42 @@
 import React from 'react';
-import { Audio, Sequence, staticFile, useCurrentFrame } from 'remotion';
-import { compileCues } from './cues';
-import type { AudioCueSpec } from '../reel/types';
+import { Audio, Sequence, staticFile } from 'remotion';
+import type { Timeline } from '../engine/timeline/types';
+import { duckGain } from './mix';
+import { getCue } from './registry';
 
 /**
- * Remotion audio composition: semantic cues become timed <Sequence>+<Audio>.
- * Procedural-only cues render silence (their synth lives in the offline
- * FFmpeg mix, mirroring social-video); bundled crowd files play when present.
- * Missing files never break a render.
+ * Remotion audio: file cues (CC0 stadium recordings) as positioned <Audio>,
+ * beds looped over their span with short fades, `hush` ducks on the bed
+ * buses; every synthesised cue arrives pre-mixed in the `sfx` stem
+ * (scripts/render.ts renders it offline, deterministically).
  */
-export const AudioTrack: React.FC<{
-  cues?: AudioCueSpec[];
-  fps: number;
-  totalFrames: number;
-  music?: string;
-  musicVolume?: number;
-  /** Pre-rendered procedural SFX stem (public-relative), see audio/sfx.ts. */
-  sfx?: string;
-}> = ({ cues, fps, totalFrames, music, musicVolume = 0.25, sfx }) => {
-  const frame = useCurrentFrame();
-  void frame;
-  const compiled = compileCues(cues, fps);
+export const AudioTrack: React.FC<{ tl: Timeline; sfx?: string }> = ({ tl, sfx }) => {
+  const files = tl.sounds.filter((s) => getCue(s.cue).source === 'file');
   return (
     <>
-      {music ? (
-        <Sequence from={0} durationInFrames={totalFrames}>
-          <Audio src={music} volume={musicVolume} />
-        </Sequence>
-      ) : null}
       {sfx ? (
-        <Sequence from={0} durationInFrames={totalFrames}>
+        <Sequence from={0} durationInFrames={tl.totalFrames} name="sfx-stem">
           <Audio src={staticFile(sfx)} volume={0.85} />
         </Sequence>
       ) : null}
-      {compiled.map((c, i) => {
-        if (c.procedural || !c.file) return null;
-        const duration = c.durationInFrames ?? totalFrames - c.startFrame;
-        let src: string;
-        try {
-          src = staticFile(`assets/audio/${c.file}`);
-        } catch {
-          return null;
-        }
+      {files.map((s, i) => {
+        const def = getCue(s.cue);
+        const span = s.duration ?? tl.totalFrames - s.frame;
+        const dur = Math.max(1, Math.min(span, tl.totalFrames - s.frame));
+        const base = Math.min(1, Math.max(0, s.volume));
+        const fadeIn = s.duration !== undefined ? 8 : 0;
+        const fadeOut = s.duration !== undefined ? 10 : 0;
         return (
-          <Sequence key={`${c.cue}-${i}`} from={c.startFrame} durationInFrames={Math.max(1, duration)}>
-            <Audio src={src} volume={Math.min(1, Math.max(0, c.volume ?? 1))} />
+          <Sequence key={`${s.cue}-${i}`} from={s.frame} durationInFrames={dur} name={`sound:${s.cue}`}>
+            <Audio
+              src={staticFile(def.file!)}
+              loop={!!def.bed && s.duration !== undefined}
+              volume={(f) => {
+                const env = Math.min(1, fadeIn ? f / fadeIn : 1, fadeOut ? (dur - f) / fadeOut : 1);
+                const duck = def.bus === 'foreground' ? 1 : duckGain(tl, s.frame + f);
+                return base * Math.max(0, env) * duck;
+              }}
+            />
           </Sequence>
         );
       })}

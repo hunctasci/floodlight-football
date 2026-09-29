@@ -9,10 +9,11 @@
     "studio": "remotion studio",
     "render": "tsx scripts/render.ts",
     "still": "tsx scripts/still.ts",
-    "preview": "tsx scripts/preview.ts",
     "validate": "tsx scripts/validate.ts",
     "asset:import": "tsx scripts/import-glb.ts",
-    "asset:validate": "tsx scripts/validate-assets.ts"
+    "asset:validate": "tsx scripts/validate-assets.ts",
+    "qa": "tsx scripts/qa.ts",
+    "vocab": "tsx scripts/vocab.ts"
   },
   "dependencies": {
     "@floodlight/hnc-visuals": "1.0.0",
@@ -39,6 +40,7 @@
     "@gltf-transform/extensions": "^4.5.0",
     "@gltf-transform/functions": "^4.5.0",
     "tsx": "4.23.13",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "sharp": "^0.35.2"
   }
 }

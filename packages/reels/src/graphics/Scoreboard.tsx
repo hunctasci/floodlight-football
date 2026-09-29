@@ -1,6 +1,7 @@
 import React from 'react';
 import { interpolate, spring } from 'remotion';
-import { HNC_UI, SAFE } from './hnc-ui';
+import { HNC_UI } from './hnc-ui';
+import { useLayout } from '../render/layout';
 
 /**
  * The in-game HUD scoreboard (style.css .scoreboard: cream box, navy border,
@@ -19,6 +20,7 @@ export const Scoreboard: React.FC<{
   enterAt?: number;
   flipAt?: number;
 }> = ({ frame, fps, home, away, before, after, clock, enterAt, flipAt }) => {
+  const { safe: SAFE } = useLayout();
   const enter = enterAt === undefined ? 1 : spring({ frame: frame - enterAt, fps, config: { damping: 16, stiffness: 180 } });
   const flipped = after !== undefined && flipAt !== undefined && frame >= flipAt;
   const score = flipped ? after! : before;

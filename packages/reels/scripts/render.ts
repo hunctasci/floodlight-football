@@ -1,95 +1,41 @@
 #!/usr/bin/env tsx
 /**
- * reels:render — semantic CLI. Agents pass template + countries + seed;
- * the compiler owns cameras/anchors/transitions. Renders 1080x1920 MP4
- * (H.264 + AAC) via the Remotion CLI (which owns FFmpeg/encoding).
- *
- * Examples:
- *   npm run reels:render -- --template office-rivalry --home TR --away GR --seed 42 --football-moment crossbar-chaos --output social/output/tr-gr-office.mp4
- *   npm run reels:render -- --template country-rivalry --home TR --away GR --seed 42 --output social/output/tr-gr.mp4
- *   npm run reels:render -- --template hnc-hero --home TR --away GR --seed 42 --output social/output/hnc-hero.mp4
+ * reels:render — validate, synthesise the SFX stem, render MP4 (H.264 + AAC).
+ *   npm run reels:render -- --content office-rivalry                    (primary format)
+ *   npm run reels:render -- --content office-rivalry --format all       (every declared format)
+ *   npm run reels:render -- --content ./my-idea.json --format square --output social/output/x.mp4
+ *   [--scale 0.5] (fast preview)  [--frames 0-120]
  */
-import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { parseTemplateInput } from '../src/reel/schema';
-import { compileStory } from '../src/director/compile-story';
-import { assertValidProductionReel } from '../src/reel/validate';
-import { compileSfxEvents, sfxStemPath } from '../src/audio/sfx';
-import { renderSfxStem } from '../src/audio/sfx-stem';
+import { compileContent } from '../src/engine/director/compile';
+import { assertValidContent } from '../src/engine/director/validate';
+import { isFormatId, type FormatId } from '../src/engine/formats';
+import { renderStemWav, stemPath } from '../src/audio/stem';
+import { arg } from './lib/args';
+import { loadContent } from './lib/content';
+import { master } from './lib/master';
+import { REELS_ROOT, video } from './lib/remotion';
 
-const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-
-function arg(name: string, fallback?: string): string | undefined {
-  const i = process.argv.indexOf(`--${name}`);
-  if (i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--')) return process.argv[i + 1];
-  const eq = process.argv.find((a) => a.startsWith(`--${name}=`));
-  if (eq) return eq.slice(name.length + 3);
-  return fallback;
+const spec = await loadContent(arg('content'));
+assertValidContent(spec);
+const want = arg('format');
+const formats: FormatId[] = want === 'all' ? spec.formats ?? ['reel'] : [(want ?? spec.formats?.[0] ?? 'reel') as FormatId];
+const scale = Number(arg('scale', '1'));
+const range = arg('frames')?.split('-').map(Number) as [number, number] | undefined;
+// Stems first: the bundle snapshots public/, so every file must exist before it.
+const first = compileContent(spec, { format: formats[0] });
+const sfx = stemPath(first);
+const file = path.join(REELS_ROOT, 'public', sfx);
+mkdirSync(path.dirname(file), { recursive: true });
+writeFileSync(file, renderStemWav(first));
+for (const format of formats) {
+  if (!isFormatId(format)) throw new Error(`Unknown format ${format}`);
+  const tl = compileContent(spec, { format });
+  const output = path.resolve(arg('output') && formats.length === 1 ? arg('output')! : `social/output/${spec.id}-${format}${scale !== 1 ? '-preview' : ''}.mp4`);
+  console.log(`Rendering ${spec.id} [${format} ${tl.width}x${tl.height}, ${tl.totalFrames}f @ ${tl.fps}] → ${output}`);
+  await video('Content', { spec, format, sfx }, output, { scale, frameRange: range });
+  const m = master(output);
+  console.log(`  audio: ${m.lufs} LUFS, true peak ${m.truePeak} dBTP → gain ${m.gainDb.toFixed(2)} dB (ceiling -1 dBTP)`);
 }
-
-function main(): void {
-  const template = arg('template', 'office-rivalry');
-  const home = arg('home', 'TR');
-  const away = arg('away', 'GR');
-  const seed = arg('seed', '42');
-  const fps = arg('fps');
-  const footballMoment = arg('football-moment') ?? arg('footballMoment', 'crossbar-chaos');
-  const headline = arg('headline');
-  const cta = arg('cta');
-  const output = arg('output', `social/output/reel-${Date.now()}.mp4`);
-  const compOverride = arg('composition');
-
-  const input = parseTemplateInput({
-    template,
-    home,
-    away,
-    seed: Number(seed),
-    fps: fps === undefined ? undefined : Number(fps),
-    footballMoment,
-    headline,
-    cta,
-  });
-  const { spec, plan } = compileStory(input);
-  assertValidProductionReel(spec, plan);
-
-  const COMPOSITIONS: Record<string, string> = {
-    'office-rivalry': 'OfficeRivalry',
-    'country-rivalry': 'CountryRivalry',
-    'hnc-hero': 'HncHeroReel',
-  };
-  const composition = compOverride ?? COMPOSITIONS[input.template];
-  // Procedural cues -> one deterministic SFX stem (game arcade synth recipes).
-  let sfx: string | undefined;
-  if (spec.audio?.sfxStem) {
-    sfx = sfxStemPath(spec.id);
-    const file = path.join(root, 'public', sfx);
-    mkdirSync(path.dirname(file), { recursive: true });
-    writeFileSync(file, renderSfxStem(plan, spec.seed));
-    // eslint-disable-next-line no-console
-    console.log(`SFX stem: ${compileSfxEvents(plan).length} events -> public/${sfx}`);
-  }
-  const props = JSON.stringify({
-    ...(sfx ? { sfx } : {}),
-    home: input.home,
-    away: input.away,
-    seed: input.seed,
-    footballMoment: input.footballMoment,
-    ...(headline ? { headline } : {}),
-    ...(cta ? { cta } : {}),
-  });
-  const entry = path.join(root, 'src/entry.tsx');
-  // eslint-disable-next-line no-console
-  console.log(`Rendering ${composition} ${home} vs ${away} (seed ${input.seed}) -> ${output}`);
-  // eslint-disable-next-line no-console
-  console.log(`Spec: ${spec.id} | ${plan.totalFrames} frames @ ${spec.fps}fps | ${spec.durationInSeconds}s`);
-  const res = spawnSync(
-    'npx',
-    ['remotion', 'render', entry, composition, path.resolve(String(output)), '--props', props, '--codec', 'h264', '--audio-codec', 'aac'],
-    { stdio: 'inherit', cwd: root },
-  );
-  if (res.status !== 0) process.exit(res.status ?? 1);
-}
-
-main();
+process.exit(0);

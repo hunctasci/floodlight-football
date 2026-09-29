@@ -1,32 +1,55 @@
 #!/usr/bin/env tsx
-/** reels:still — render one deterministic frame (default: hero/payoff frame). */
-import { spawnSync } from 'node:child_process';
+/**
+ * reels:still — deterministic PNG stills.
+ *   --content office-rivalry --frame 120
+ *   --content office-rivalry --at faceoff@55%        (timing grammar, any beat)
+ *   --content office-rivalry --key thumb             (spec keyArt marker)
+ *   --content office-rivalry --beats                 (contact sheet: every beat)
+ *   [--format reel|story|portrait|square] [--output file.png]
+ */
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { compileContent } from '../src/engine/director/compile';
+import { isFormatId, type FormatId } from '../src/engine/formats';
+import { resolveAt } from '../src/engine/spec/timing';
+import { compositionId } from '../src/content';
+import { arg, flag } from './lib/args';
+import { loadContent } from './lib/content';
+import { contactSheet, stills } from './lib/remotion';
 
-const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const spec = await loadContent(arg('content'));
+const format = (arg('format') ?? spec.formats?.[0] ?? 'reel') as FormatId;
+if (!isFormatId(format)) throw new Error(`Unknown format ${format}`);
+const tl = compileContent(spec, { format });
+const outDir = arg('out-dir', path.resolve('social/output/stills'))!;
+const props = { spec, format };
 
-function arg(name: string, fallback?: string): string | undefined {
-  const i = process.argv.indexOf(`--${name}`);
-  if (i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--')) return process.argv[i + 1];
-  const eq = process.argv.find((a) => a.startsWith(`--${name}=`));
-  if (eq) return eq.slice(name.length + 3);
-  return fallback;
+function frameOf(at: string): number {
+  const beats = new Map(tl.shots.map((s) => [s.beat, { id: s.beat, start: s.start, duration: s.duration }]));
+  return resolveAt(at, { fps: tl.fps, beat: { id: '_', start: 0, duration: tl.totalFrames }, beats });
 }
 
-const composition = arg('composition', 'OfficeRivalry');
-const frame = arg('frame', '200');
-const output = arg('output', 'social/output/still.png');
-const home = arg('home', 'TR');
-const away = arg('away', 'GR');
-const seed = Number(arg('seed', '42'));
-const footballMoment = arg('football-moment') ?? arg('footballMoment', 'crossbar-chaos');
-const props = JSON.stringify({ home, away, seed, footballMoment });
-const entry = path.join(root, 'src/entry.tsx');
-
-const res = spawnSync(
-  'npx',
-  ['remotion', 'still', entry, String(composition), path.resolve(String(output)), '--frame', String(frame), '--props', props],
-  { stdio: 'inherit', cwd: root },
-);
-if (res.status !== 0) process.exit(res.status ?? 1);
+let frames: { frame: number; label: string }[];
+if (flag('beats')) {
+  frames = tl.shots.flatMap((s) => [0.15, 0.55, 0.92].map((k) => ({ frame: s.start + Math.min(s.duration - 1, Math.round(s.duration * k)), label: `${s.beat}@${Math.round(k * 100)}` })));
+} else if (arg('key')) {
+  const f = tl.markers[`key:${arg('key')}`];
+  if (f === undefined) throw new Error(`No keyArt "${arg('key')}" (have: ${Object.keys(tl.markers).filter((m) => m.startsWith('key:')).join(', ')})`);
+  frames = [{ frame: f, label: `key-${arg('key')}` }];
+} else if (arg('at')) {
+  frames = [{ frame: frameOf(arg('at')!), label: arg('at')!.replace(/[@%]/g, '_') }];
+} else {
+  frames = (arg('frame', '0') ?? '0').split(',').map((f) => ({ frame: Number(f), label: `f${f}` }));
+}
+const single = arg('output');
+const files = await stills(compositionId('content'), props, frames.map((f) => f.frame), (f) => {
+  if (single && frames.length === 1) return path.resolve(single);
+  const lbl = frames.find((x) => x.frame === f)?.label ?? `f${f}`;
+  return path.join(outDir, `${spec.id}-${format}`, `${String(f).padStart(4, '0')}-${lbl}.png`);
+});
+if (files.length > 1) {
+  const sheet = path.join(outDir, `${spec.id}-${format}`, 'sheet.png');
+  await contactSheet(files.map((file, i) => ({ file, label: `${frames[i].frame} ${frames[i].label}` })), sheet, flag('beats') ? 6 : Math.min(5, files.length), flag('beats') ? 180 : 240);
+  console.log(`sheet → ${sheet}`);
+}
+for (const f of files) console.log(f);
+process.exit(0);

@@ -1,7 +1,8 @@
 import React from 'react';
 import { interpolate, spring } from 'remotion';
-import { HNC_UI, SAFE } from './hnc-ui';
-import { countryFlag, countryName } from '../football/data/countries';
+import { HNC_UI } from './hnc-ui';
+import { useLayout } from '../render/layout';
+import { countryFlag, countryName } from '../cast/countries';
 
 export interface WorldTableRow {
   code: string;
@@ -28,16 +29,19 @@ export const WorldTable: React.FC<{
   exitAt?: number;
   lines: [string, string];
 }> = ({ frame, fps, rows, hero, gain, enterAt, climbAt, exitAt, lines }) => {
-  const since = frame - enterAt;
+  const { safe: SAFE } = useLayout();
+  // Designed on a 60fps clock: frames below are 1/60 s at any output rate.
+  const k = 60 / fps;
+  const since = (frame - enterAt) * k;
   if (since < 0) return null;
   // Lift away before the end card so the cut never pops a panel.
-  const out = exitAt === undefined ? 0 : interpolate(frame, [exitAt - 10, exitAt], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
-  const line = (i: number) => spring({ frame: since - i * 5, fps, config: { damping: 18, stiffness: 170 } });
-  const panel = spring({ frame: since - 10, fps, config: { damping: 17, stiffness: 150 } });
-  const climb = spring({ frame: frame - climbAt, fps, config: { damping: 14, stiffness: 140 } });
+  const out = exitAt === undefined ? 0 : interpolate(frame, [exitAt - 10 / k, exitAt], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const line = (i: number) => spring({ frame: since - i * 5, fps: 60, config: { damping: 18, stiffness: 170 } });
+  const panel = spring({ frame: since - 10, fps: 60, config: { damping: 17, stiffness: 150 } });
+  const climb = spring({ frame: (frame - climbAt) * k, fps: 60, config: { damping: 14, stiffness: 140 } });
   const heroIdx = rows.findIndex((r) => r.code === hero);
   const points = (r: WorldTableRow) =>
-    r.code === hero ? Math.round(r.points + gain * interpolate(frame - climbAt, [0, 18], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })) : r.points;
+    r.code === hero ? Math.round(r.points + gain * interpolate((frame - climbAt) * k, [0, 18], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })) : r.points;
   // Final order after the win (points desc, stable).
   const finalOrder = rows
     .map((r, i) => ({ r, i, p: r.code === hero ? r.points + gain : r.points }))
@@ -47,7 +51,7 @@ export const WorldTable: React.FC<{
     const to = finalOrder.indexOf(i);
     return i + (to - i) * climb;
   };
-  const chip = frame >= climbAt ? spring({ frame: frame - climbAt - 4, fps, config: { damping: 10, stiffness: 220 } }) : 0;
+  const chip = frame >= climbAt ? spring({ frame: (frame - climbAt) * k - 4, fps: 60, config: { damping: 10, stiffness: 220 } }) : 0;
 
   return (
     <div style={{ position: 'absolute', inset: 0, opacity: 1 - out, transform: `translateY(${-out * 120}px)` }}>
@@ -103,7 +107,7 @@ export const WorldTable: React.FC<{
           {rows.map((r, i) => {
             const isHero = i === heroIdx;
             const slot = slotOf(i);
-            const rowIn = spring({ frame: since - 16 - i * 3, fps, config: { damping: 18, stiffness: 190 } });
+            const rowIn = spring({ frame: since - 16 - i * 3, fps: 60, config: { damping: 18, stiffness: 190 } });
             const rank = String(Math.round(slot) + 1).padStart(2, '0');
             return (
               <div

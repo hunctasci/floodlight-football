@@ -221,3 +221,30 @@ describe('hnc-visuals: camera parity', () => {
     assert.notDeepEqual(hncFaceoffCameraAt(0, 4.0), hncFaceoffCameraAt(4.0, 4.0));
   });
 });
+
+describe('hnc-visuals: head rig (hair + eyes ride on the head)', () => {
+  it('keeps the game world positions at rest', () => {
+    const v = createHncPlayerVisual({ id: 9, number: 9, primary: '#ff0000', secondary: '#ffffff' });
+    v.root.updateMatrixWorld(true);
+    const world = (o: THREE.Object3D) => new THREE.Vector3().setFromMatrixPosition(o.matrixWorld);
+    const hair = v.head.children.find((c) => ((c as THREE.Mesh).geometry as THREE.SphereGeometry).parameters.radius === 0.325)!;
+    assert.ok(Math.abs(world(hair).y - 1.81) < 1e-9);
+    assert.ok(v.eyes);
+    const [l, r] = v.eyes!.map(world);
+    assert.deepEqual([l.x, l.y, l.z].map((n) => +n.toFixed(9)), [-0.11, 1.72, 0.3]);
+    assert.deepEqual([r.x, r.y, r.z].map((n) => +n.toFixed(9)), [0.11, 1.72, 0.3]);
+  });
+  it('turning the head carries hair and eyes; body pose round-trips at neutral', async () => {
+    const { applyHncBodyPose, neutralHncBodyPose } = await import('../src/index.ts');
+    const v = createHncPlayerVisual({ id: 4, number: 4, primary: '#0d5eaf', secondary: '#ffffff' });
+    applyHncBodyPose(v, neutralHncBodyPose());
+    v.root.updateMatrixWorld(true);
+    const eye = new THREE.Vector3().setFromMatrixPosition(v.eyes![1].matrixWorld);
+    assert.ok(Math.abs(eye.x - 0.11) < 1e-9 && Math.abs(eye.z - 0.3) < 1e-9, 'neutral gaze keeps rest eyes');
+    assert.equal(v.legL.position.y, 0.38);
+    applyHncBodyPose(v, { ...neutralHncBodyPose(), headYaw: 0.8 });
+    v.root.updateMatrixWorld(true);
+    const turned = new THREE.Vector3().setFromMatrixPosition(v.eyes![1].matrixWorld);
+    assert.ok(turned.x > 0.25, 'eye swings with the head');
+  });
+});

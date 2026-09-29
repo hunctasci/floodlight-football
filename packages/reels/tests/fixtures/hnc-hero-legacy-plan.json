@@ -1,0 +1,525 @@
+{
+ "totalFrames": 720,
+ "fps": 60,
+ "shots": [
+  {
+   "start": 0,
+   "duration": 60,
+   "camera": "ball-rise-reveal",
+   "clock": {
+    "from": 0,
+    "to": 1,
+    "length": 12
+   },
+   "effects": [
+    {
+     "type": "lights-on",
+     "start": 0,
+     "duration": 60,
+     "intensity": null
+    }
+   ],
+   "audio": [
+    {
+     "cue": "crowd-bed",
+     "frame": 0,
+     "volume": 0.55
+    },
+    {
+     "cue": "impact",
+     "frame": 10,
+     "volume": 3.4
+    },
+    {
+     "cue": "impact",
+     "frame": 22,
+     "volume": 3.4
+    },
+    {
+     "cue": "impact",
+     "frame": 34,
+     "volume": 3.4
+    }
+   ],
+   "overlays": [
+    {
+     "kind": "eyebrow",
+     "data": {
+      "at": 34,
+      "exitAt": 105
+     },
+     "text": "HNC LEAGUE"
+    }
+   ]
+  },
+  {
+   "start": 60,
+   "duration": 90,
+   "camera": "faceoff-depth-push",
+   "clock": {
+    "from": 1,
+    "to": 2.5,
+    "length": 12
+   },
+   "effects": [
+    {
+     "type": "cinebars",
+     "start": 60,
+     "duration": 90,
+     "intensity": null
+    }
+   ],
+   "audio": [],
+   "overlays": [
+    {
+     "kind": "eyebrow",
+     "data": {
+      "at": 34,
+      "exitAt": 105
+     },
+     "text": "HNC LEAGUE"
+    },
+    {
+     "kind": "scoreboard",
+     "data": {
+      "before": [
+       0,
+       0
+      ],
+      "after": [
+       1,
+       0
+      ],
+      "clock": "2ND 89'",
+      "flipAt": 413,
+      "enterAt": 78
+     },
+     "text": null
+    }
+   ]
+  },
+  {
+   "start": 150,
+   "duration": 63,
+   "camera": "runner-burst",
+   "clock": {
+    "from": 2.5,
+    "to": 3.55,
+    "length": 12
+   },
+   "effects": [],
+   "audio": [
+    {
+     "cue": "kick",
+     "frame": 162,
+     "volume": 1.6
+    },
+    {
+     "cue": "kick",
+     "frame": 187,
+     "volume": 1.6
+    },
+    {
+     "cue": "whoosh",
+     "frame": 211,
+     "volume": 2
+    }
+   ],
+   "overlays": [
+    {
+     "kind": "scoreboard",
+     "data": {
+      "before": [
+       0,
+       0
+      ],
+      "after": [
+       1,
+       0
+      ],
+      "clock": "2ND 89'",
+      "flipAt": 413
+     },
+     "text": null
+    }
+   ]
+  },
+  {
+   "start": 213,
+   "duration": 72,
+   "camera": "runner-lead",
+   "clock": {
+    "from": 3.55,
+    "to": 4.75,
+    "length": 12
+   },
+   "effects": [],
+   "audio": [
+    {
+     "cue": "kick",
+     "frame": 213,
+     "volume": 1.6
+    },
+    {
+     "cue": "kick",
+     "frame": 251,
+     "volume": 1.6
+    },
+    {
+     "cue": "whoosh",
+     "frame": 257,
+     "volume": 1.4
+    },
+    {
+     "cue": "whoosh",
+     "frame": 283,
+     "volume": 2
+    }
+   ],
+   "overlays": [
+    {
+     "kind": "scoreboard",
+     "data": {
+      "before": [
+       0,
+       0
+      ],
+      "after": [
+       1,
+       0
+      ],
+      "clock": "2ND 89'",
+      "flipAt": 413
+     },
+     "text": null
+    }
+   ]
+  },
+  {
+   "start": 285,
+   "duration": 45,
+   "camera": "runner-approach",
+   "clock": {
+    "from": 4.75,
+    "to": 5.5,
+    "length": 12
+   },
+   "effects": [],
+   "audio": [
+    {
+     "cue": "kick",
+     "frame": 292,
+     "volume": 1.6
+    },
+    {
+     "cue": "kick",
+     "frame": 319,
+     "volume": 1.6
+    }
+   ],
+   "overlays": [
+    {
+     "kind": "scoreboard",
+     "data": {
+      "before": [
+       0,
+       0
+      ],
+      "after": [
+       1,
+       0
+      ],
+      "clock": "2ND 89'",
+      "flipAt": 413
+     },
+     "text": null
+    }
+   ]
+  },
+  {
+   "start": 330,
+   "duration": 78,
+   "camera": "striker-windup",
+   "clock": {
+    "from": 5.5,
+    "to": 6.5,
+    "length": 12,
+    "ramp": "anticipation-snap"
+   },
+   "effects": [
+    {
+     "type": "impact-burst",
+     "start": 388,
+     "duration": null,
+     "intensity": 1
+    },
+    {
+     "type": "impact-shake",
+     "start": 388,
+     "duration": 20,
+     "intensity": 0.9
+    },
+    {
+     "type": "zoom-punch",
+     "start": 388,
+     "duration": 20,
+     "intensity": 0.8
+    },
+    {
+     "type": "ball-trail",
+     "start": 389,
+     "duration": 19,
+     "intensity": null
+    }
+   ],
+   "audio": [
+    {
+     "cue": "crowd-gasp",
+     "frame": 277,
+     "volume": 0.8
+    },
+    {
+     "cue": "shot",
+     "frame": 388,
+     "volume": 3
+    },
+    {
+     "cue": "impact",
+     "frame": 388,
+     "volume": 3.5
+    },
+    {
+     "cue": "whoosh",
+     "frame": 406,
+     "volume": 2.2
+    }
+   ],
+   "overlays": [
+    {
+     "kind": "scoreboard",
+     "data": {
+      "before": [
+       0,
+       0
+      ],
+      "after": [
+       1,
+       0
+      ],
+      "clock": "2ND 89'",
+      "flipAt": 413
+     },
+     "text": null
+    }
+   ]
+  },
+  {
+   "start": 408,
+   "duration": 24,
+   "camera": "net-reverse",
+   "clock": {
+    "from": 6.5,
+    "to": 6.9,
+    "length": 12
+   },
+   "effects": [
+    {
+     "type": "ball-trail",
+     "start": 408,
+     "duration": 6,
+     "intensity": null
+    },
+    {
+     "type": "impact-shake",
+     "start": 413,
+     "duration": null,
+     "intensity": 1.3
+    },
+    {
+     "type": "zoom-punch",
+     "start": 413,
+     "duration": null,
+     "intensity": 1
+    }
+   ],
+   "audio": [
+    {
+     "cue": "goal-roar",
+     "frame": 413,
+     "volume": 0.8
+    },
+    {
+     "cue": "impact",
+     "frame": 413,
+     "volume": 4
+    },
+    {
+     "cue": "goal-sting",
+     "frame": 413,
+     "volume": 2.2
+    }
+   ],
+   "overlays": [
+    {
+     "kind": "scoreboard",
+     "data": {
+      "before": [
+       0,
+       0
+      ],
+      "after": [
+       1,
+       0
+      ],
+      "clock": "2ND 89'",
+      "flipAt": 413
+     },
+     "text": null
+    },
+    {
+     "kind": "goal-call",
+     "data": {
+      "at": 413,
+      "exitAt": 465,
+      "sub": "89' · LATE WINNER"
+     },
+     "text": "GOAL!"
+    }
+   ]
+  },
+  {
+   "start": 432,
+   "duration": 84,
+   "camera": "scorer-push",
+   "clock": {
+    "from": 6.9,
+    "to": 8.3,
+    "length": 12
+   },
+   "effects": [],
+   "audio": [
+    {
+     "cue": "celebration",
+     "frame": 468,
+     "volume": 0.4
+    }
+   ],
+   "overlays": [
+    {
+     "kind": "goal-call",
+     "data": {
+      "at": 413,
+      "exitAt": 465,
+      "sub": "89' · LATE WINNER"
+     },
+     "text": "GOAL!"
+    }
+   ]
+  },
+  {
+   "start": 516,
+   "duration": 96,
+   "camera": "crane-out",
+   "clock": {
+    "from": 8.3,
+    "to": 9.9,
+    "length": 12
+   },
+   "effects": [
+    {
+     "type": "stadium-grade",
+     "start": 516,
+     "duration": null,
+     "intensity": 0.9
+    }
+   ],
+   "audio": [
+    {
+     "cue": "whoosh",
+     "frame": 522,
+     "volume": 1.2
+    }
+   ],
+   "overlays": [
+    {
+     "kind": "world-table",
+     "data": {
+      "rows": [
+       {
+        "code": "GR",
+        "points": 41
+       },
+       {
+        "code": "TR",
+        "points": 39
+       },
+       {
+        "code": "BR",
+        "points": 37
+       },
+       {
+        "code": "DE",
+        "points": 36
+       },
+       {
+        "code": "JP",
+        "points": 34
+       }
+      ],
+      "hero": "TR",
+      "gain": 3,
+      "enterAt": 522,
+      "climbAt": 567,
+      "exitAt": 612,
+      "lines": [
+       "YOUR COUNTRY.",
+       "YOUR LEAGUE."
+      ]
+     },
+     "text": null
+    }
+   ]
+  },
+  {
+   "start": 612,
+   "duration": 108,
+   "camera": "stadium-drift",
+   "clock": {
+    "from": 9.9,
+    "to": 11.7,
+    "length": 12
+   },
+   "effects": [
+    {
+     "type": "stadium-grade",
+     "start": 588,
+     "duration": 132,
+     "intensity": 1
+    }
+   ],
+   "audio": [
+    {
+     "cue": "brand-sting",
+     "frame": 627,
+     "volume": 3
+    }
+   ],
+   "overlays": [
+    {
+     "kind": "brand-reveal",
+     "data": {
+      "at": 609,
+      "words": [
+       "PLAY.",
+       "WIN.",
+       "CLIMB."
+      ],
+      "site": "hncleague.com",
+      "footer": "RETRO FOOTBALL. REAL RIVALRIES."
+     },
+     "text": null
+    }
+   ]
+  }
+ ]
+}

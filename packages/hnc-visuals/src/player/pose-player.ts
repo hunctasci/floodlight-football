@@ -374,3 +374,98 @@ export function applyHncProceduralPose(visual: HncPlayerVisual, animationId: str
   }
   visual.head.rotation.y = pose.headYaw;
 }
+
+// ---------------------------------------------------------------------------
+// Body pose: the full set of rig channels social content animates. Same
+// joints the game drives (root, arms, legs) plus the head group (hair + eyes
+// ride on the head) and eye gaze. Geometry and proportions never change.
+// ---------------------------------------------------------------------------
+
+export interface HncBodyPose {
+  /** Root vertical offset (bob / jump). */
+  y: number;
+  /** Root pitch: + leans forward. */
+  pitch: number;
+  /** Root roll. */
+  roll: number;
+  /** Extra body yaw on top of the caller's facing. */
+  yaw: number;
+  /** 0 standing .. 1 seated (hips at chair height, thighs forward). */
+  sit: number;
+  headYaw: number;
+  /** + looks down. */
+  headPitch: number;
+  headRoll: number;
+  /** Eye gaze -1..1 (x: toward the character's left, y: up). */
+  gazeX: number;
+  gazeY: number;
+  /** Eye openness: 1 normal, <1 squint, >1 wide. */
+  eyeOpen: number;
+  /** Arm stick rotations (game convention: negative x swings forward/up). */
+  armLX: number;
+  armLZ: number;
+  armRX: number;
+  armRZ: number;
+  legLX: number;
+  legRX: number;
+}
+
+export function neutralHncBodyPose(): HncBodyPose {
+  return {
+    y: 0, pitch: 0, roll: 0, yaw: 0, sit: 0,
+    headYaw: 0, headPitch: 0, headRoll: 0,
+    gazeX: 0, gazeY: 0, eyeOpen: 1,
+    armLX: 0, armLZ: 0.12, armRX: 0, armRZ: -0.12,
+    legLX: 0, legRX: 0,
+  };
+}
+
+/** Linear blend of two body poses (w = 0 → a, 1 → b). */
+export function blendHncBodyPose(a: HncBodyPose, b: HncBodyPose, w: number): HncBodyPose {
+  const out = { ...a };
+  for (const k of Object.keys(a) as (keyof HncBodyPose)[]) out[k] = a[k] + (b[k] - a[k]) * w;
+  return out;
+}
+
+/** Seated hip drop: hips (0.715 above the root) land on a ~0.49 m seat. */
+export const HNC_SIT_DROP = 0.225;
+const LEG_HALF = 0.335;
+const HIP_Y = 0.38 + LEG_HALF;
+const SIT_THIGH = -1.25;
+
+/**
+ * Apply a body pose. Root x/z and facing stay with the caller (mount the
+ * visual in a positioned group). Seated legs pivot at the hip, not the stick
+ * centre, so thighs sit forward on the chair.
+ */
+export function applyHncBodyPose(visual: HncPlayerVisual, p: HncBodyPose): void {
+  visual.root.position.y = p.y - HNC_SIT_DROP * p.sit;
+  visual.root.rotation.set(p.pitch, p.yaw, p.roll);
+
+  visual.head.rotation.order = 'YXZ';
+  visual.head.rotation.set(p.headPitch, p.headYaw, p.headRoll);
+  if (visual.eyes) {
+    const yaw = p.gazeX * 0.32;
+    const pitch = -p.gazeY * 0.22;
+    for (const eye of visual.eyes) {
+      const bx: number = eye.userData.baseX ?? (eye.userData.baseX = eye.position.x);
+      const bz: number = eye.userData.baseZ ?? (eye.userData.baseZ = eye.position.z);
+      // Slide over the face (head-centre sphere through the rest position).
+      const r = Math.hypot(bx, bz);
+      const ax = Math.atan2(bx, bz) + yaw;
+      eye.position.set(Math.sin(ax) * r * Math.cos(pitch), 0.02 + Math.sin(-pitch) * r, Math.cos(ax) * r * Math.cos(pitch));
+      eye.scale.set(1, Math.max(0.2, p.eyeOpen), 1);
+    }
+  }
+
+  visual.armL.rotation.set(p.armLX, 0, p.armLZ);
+  visual.armR.rotation.set(p.armRX, 0, p.armRZ);
+  for (const [leg, swing] of [[visual.legL, p.legLX], [visual.legR, p.legRX]] as const) {
+    const theta = swing + SIT_THIGH * p.sit;
+    leg.rotation.set(theta, 0, 0);
+    // Keep the top of the stick at the hip while seated.
+    const pivot = p.sit;
+    leg.position.y = 0.38 + pivot * (HIP_Y - LEG_HALF * Math.cos(theta) - 0.38);
+    leg.position.z = pivot * (-LEG_HALF * Math.sin(theta));
+  }
+}

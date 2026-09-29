@@ -1,77 +1,37 @@
 import React from 'react';
 import { Composition } from 'remotion';
-import { ReelComposition } from './compositions/ReelComposition';
-import { OfficeRivalry } from './compositions/OfficeRivalry';
-import { CountryRivalry } from './compositions/CountryRivalry';
-import { HncHeroReel } from './compositions/HncHeroReel';
-import { compileCountryRivalry, compileHncHero, compileOfficeRivalry } from './reel/compile';
+import { CONTENT, compositionId } from './content';
+import { ContentComposition, contentMetadata } from './render/ContentComposition';
 
-const officeSpec = compileOfficeRivalry({
-  template: 'office-rivalry',
-  home: 'TR',
-  away: 'GR',
-  seed: 42,
-  fps: 30,
-  footballMoment: 'crossbar-chaos',
-});
-
-const countrySpec = compileCountryRivalry({
-  template: 'country-rivalry',
-  home: 'TR',
-  away: 'GR',
-  seed: 42,
-  fps: 30,
-  footballMoment: 'attack-goal',
-});
-
-const heroSpec = compileHncHero({ template: 'hnc-hero', home: 'TR', away: 'GR', seed: 42, fps: 60 });
-
+/**
+ * One composition per registered piece (Studio browsing) plus `Content`,
+ * which renders any spec passed as props. Duration / fps / size come from
+ * the compiled timeline (calculateMetadata), so props pick the format.
+ */
 export const RemotionRoot: React.FC = () => (
   <>
+    {Object.values(CONTENT).map((spec) => (
+      <Composition
+        key={spec.id}
+        id={compositionId(spec.id)}
+        component={ContentComposition}
+        defaultProps={{ spec, format: spec.formats?.[0] ?? 'reel' }}
+        calculateMetadata={contentMetadata}
+        durationInFrames={1}
+        fps={spec.fps ?? 30}
+        width={1080}
+        height={1920}
+      />
+    ))}
     <Composition
-      id="HncHeroReel"
-      component={HncHeroReel}
-      durationInFrames={Math.round(heroSpec.durationInSeconds * heroSpec.fps)}
-      fps={60}
-      width={1080}
-      height={1920}
-      defaultProps={{ home: 'TR', away: 'GR', seed: 42 }}
-    />
-    <Composition
-      id="OfficeRivalry"
-      component={OfficeRivalry}
-      durationInFrames={Math.round(16 * 30)}
+      id="Content"
+      component={ContentComposition}
+      defaultProps={{ spec: Object.values(CONTENT)[0], format: 'reel' }}
+      calculateMetadata={contentMetadata}
+      durationInFrames={1}
       fps={30}
       width={1080}
       height={1920}
-      defaultProps={{ home: 'TR', away: 'GR', seed: 42, footballMoment: 'crossbar-chaos' }}
-    />
-    <Composition
-      id="CountryRivalry"
-      component={CountryRivalry}
-      durationInFrames={Math.round(15.5 * 30)}
-      fps={30}
-      width={1080}
-      height={1920}
-      defaultProps={{ home: 'TR', away: 'GR', seed: 42, footballMoment: 'attack-goal' }}
-    />
-    <Composition
-      id="Reel"
-      component={ReelComposition}
-      durationInFrames={Math.round(officeSpec.durationInSeconds * officeSpec.fps)}
-      fps={30}
-      width={1080}
-      height={1920}
-      defaultProps={{ spec: officeSpec }}
-    />
-    <Composition
-      id="CountryReel"
-      component={ReelComposition}
-      durationInFrames={Math.round(countrySpec.durationInSeconds * countrySpec.fps)}
-      fps={30}
-      width={1080}
-      height={1920}
-      defaultProps={{ spec: countrySpec }}
     />
   </>
 );

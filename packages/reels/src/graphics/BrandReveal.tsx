@@ -1,7 +1,8 @@
 import React from 'react';
 import { Img, interpolate, spring, staticFile } from 'remotion';
 import { getAsset } from '../assets/registry';
-import { HNC_UI, SAFE } from './hnc-ui';
+import { HNC_UI } from './hnc-ui';
+import { useLayout } from '../render/layout';
 
 /**
  * End card: the real HNC League badge (asset `hnc-logo`, single-sourced from
@@ -17,12 +18,14 @@ export const BrandReveal: React.FC<{
   site: string;
   footer?: string;
 }> = ({ frame, fps, at, words, site, footer }) => {
-  const since = frame - at;
+  const { safe: SAFE } = useLayout();
+  // Designed on a 60fps clock: frames below are 1/60 s at any output rate.
+  const since = (frame - at) * (60 / fps);
   if (since < 0) return null;
-  const badge = spring({ frame: since, fps, config: { damping: 12, stiffness: 150, mass: 0.9 } });
+  const badge = spring({ frame: since, fps: 60, config: { damping: 12, stiffness: 150, mass: 0.9 } });
   const glintX = interpolate(since, [14, 40], [-120, 220], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const wordAt = (i: number) => 18 + i * 9;
-  const button = spring({ frame: since - wordAt(words.length) - 2, fps, config: { damping: 15, stiffness: 170 } });
+  const button = spring({ frame: since - wordAt(words.length) - 2, fps: 60, config: { damping: 15, stiffness: 170 } });
   const footerIn = interpolate(since, [wordAt(words.length) + 10, wordAt(words.length) + 24], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const logo = staticFile(`assets/${getAsset('hnc-logo').file}`);
   const size = 470;
@@ -56,7 +59,7 @@ export const BrandReveal: React.FC<{
       </div>
       <div style={{ marginTop: 34, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         {words.map((w, i) => {
-          const s = spring({ frame: since - wordAt(i), fps, config: { damping: 11, stiffness: 240, mass: 0.7 } });
+          const s = spring({ frame: since - wordAt(i), fps: 60, config: { damping: 11, stiffness: 240, mass: 0.7 } });
           const last = i === words.length - 1;
           return (
             <div

@@ -6,29 +6,9 @@ import type { AssetManifestEntry } from './types';
  * Procedural placeholders keep every template renderable before binaries land.
  */
 export const ASSET_MANIFEST: AssetManifestEntry[] = [
-  // Characters (procedural until licensed GLBs land — see assets/SOURCES.md)
-  { id: 'office-worker-male-01', type: 'character', file: 'characters/office-worker-male-01.glb', bundled: false, proceduralFallback: 'procedural-office-worker', license: 'TBD (do not ship yet)', tags: ['office', 'male'] },
-  { id: 'office-worker-male-02', type: 'character', file: 'characters/office-worker-male-02.glb', bundled: false, proceduralFallback: 'procedural-office-worker', license: 'TBD (do not ship yet)', tags: ['office', 'male'] },
-  { id: 'office-worker-female-01', type: 'character', file: 'characters/office-worker-female-01.glb', bundled: false, proceduralFallback: 'procedural-office-worker', license: 'TBD (do not ship yet)', tags: ['office', 'female'] },
-  { id: 'office-worker-female-02', type: 'character', file: 'characters/office-worker-female-02.glb', bundled: false, proceduralFallback: 'procedural-office-worker', license: 'TBD (do not ship yet)', tags: ['office', 'female'] },
-  { id: 'hnc-footballer', type: 'character', file: 'characters/hnc-footballer.glb', bundled: false, proceduralFallback: 'procedural-hnc-footballer', tags: ['football'] },
-  // Environments
-  { id: 'office-modern-01', type: 'environment', file: 'environments/office-modern-01.glb', bundled: false, proceduralFallback: 'procedural-office', tags: ['office'], anchors: ['desk-left', 'desk-right', 'coffee-machine', 'meeting-table', 'door', 'manager', 'window'] },
-  { id: 'hnc-stadium', type: 'environment', file: 'environments/hnc-stadium.glb', bundled: false, proceduralFallback: 'procedural-hnc-stadium', tags: ['football', 'stadium'] },
-  // Props
-  { id: 'office-desk-01', type: 'prop', file: 'props/office-desk-01.glb', bundled: false, proceduralFallback: 'procedural-desk', tags: ['office'] },
-  { id: 'office-chair-01', type: 'prop', file: 'props/office-chair-01.glb', bundled: false, proceduralFallback: 'procedural-chair', tags: ['office'] },
-  { id: 'office-monitor-01', type: 'prop', file: 'props/office-monitor-01.glb', bundled: false, proceduralFallback: 'procedural-monitor', tags: ['office'] },
-  { id: 'office-laptop-01', type: 'prop', file: 'props/office-laptop-01.glb', bundled: false, proceduralFallback: 'procedural-laptop', tags: ['office'] },
-  { id: 'coffee-cup-01', type: 'prop', file: 'props/coffee-cup-01.glb', bundled: false, proceduralFallback: 'procedural-mug', tags: ['office'] },
-  { id: 'coffee-machine-01', type: 'prop', file: 'props/coffee-machine-01.glb', bundled: false, proceduralFallback: 'procedural-coffee-machine', tags: ['office'] },
-  // Animations (semantic ids; files land with Mixamo-compatible GLBs)
-  { id: 'anim-idle', type: 'animation', file: 'animations/idle.glb', bundled: false, tags: ['loop'] },
-  { id: 'anim-typing', type: 'animation', file: 'animations/typing.glb', bundled: false, tags: ['office', 'loop'] },
-  { id: 'anim-sitting-idle', type: 'animation', file: 'animations/sitting-idle.glb', bundled: false, tags: ['office', 'loop'] },
-  { id: 'anim-celebrate', type: 'animation', file: 'animations/celebrate.glb', bundled: false, tags: ['emotion'] },
-  { id: 'anim-side-eye', type: 'animation', file: 'animations/side-eye.glb', bundled: false, tags: ['emotion', 'comedy'] },
-  { id: 'anim-angry', type: 'animation', file: 'animations/angry.glb', bundled: false, tags: ['emotion'] },
+  // Characters, worlds and props are procedural HNC geometry (hnc-visuals +
+  // worlds/*): no third-party 3D binaries. Licensed props slot in here with
+  // provenance (scripts/import-glb.ts, assets/SOURCES.md).
   // Brand
   { id: 'hnc-logo', type: 'image', file: 'brand/hnc-retro-v2.png', bundled: true, proceduralFallback: 'procedural-hnc-logo', source: 'apps/game/public/icons/hnc-retro-v2.png', license: 'HNC internal', tags: ['brand'] },
   // Audio: real Freesound CC0 crowd recordings, single-sourced from

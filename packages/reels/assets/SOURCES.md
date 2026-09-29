@@ -42,21 +42,19 @@ requested path and 404s any file that is itself a symlink.
 
 ## Generated SFX stems (not committed)
 
-`public/generated/<spec-id>-sfx.wav` is rebuilt by `reels:render` for specs
-with `audio.sfxStem`. Sound = the game's own arcade synth recipes
+`public/generated/<content-id>-sfx.wav` is rebuilt by `reels:render` for every piece. Sound = the game's own arcade synth recipes
 (`apps/game/src/audio/audio.ts`) replayed offline by
 `packages/social-video/src/audio/render.ts`; seeded, byte-deterministic.
 Internal, no third-party material.
 
-## 3D placeholders (no binaries committed yet)
+## Procedural (internal, no third-party material)
 
-| Asset id | Wanted | Suggested source | License rule |
-|---|---|---|---|
-| office-worker-male-01/02, female-01/02 | Rigged low-poly office characters (Mixamo-compatible) | Sketchfab Store / CGTrader commercial, or Quaternius CC0 base + office attire | Commercial-use allowed; record author + license; attribution if required |
-| office-modern-01 | Modern low-poly office environment | Sketchfab Store office pack / KayKit office | Same as above |
-| office-desk/chair/monitor/laptop, coffee-cup/machine | Office props | KayKit / Quaternius CC0 props | CC0 preferred |
-| anim idle/typing/sitting-idle/celebrate/side-eye/angry etc. | Mixamo-compatible skeletal clips | Mixamo (Adobe account) or CC0 motion packs | Verify redistribution; never commit NC clips |
-| hnc-stadium | HNC stadium GLB (future) | Derived from in-repo procedural stadium (internal) | Internal |
+* Characters, office, studio, phone UI, title plates: HNC low-poly geometry
+  (`@floodlight/hnc-visuals` + `src/worlds/*`), canvas-painted textures
+  (flags use the platform's emoji font).
+* Social sketch sounds (room tones, typing, UI pings, risers, record
+  scratch, flicker, bloom, zip, news stinger): synthesised in
+  `src/audio/social-synth.ts`, seeded and byte-deterministic.
 
 ## Import recipe
 

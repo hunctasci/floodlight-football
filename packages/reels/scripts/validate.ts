@@ -1,31 +1,27 @@
 #!/usr/bin/env tsx
-/** reels:validate — compile + production-validate a Reel without rendering. */
-import { parseTemplateInput } from '../src/reel/schema';
-import { compileStory } from '../src/director/compile-story';
-import { validateProductionReel } from '../src/reel/validate';
+/**
+ * reels:validate — spec validation (vocabulary, timing, creative lint) +
+ * framing/motion QA for every format. No browser; fast.
+ *   npm run reels:validate -- --content office-rivalry [--format reel] [--quiet]
+ */
+import { compileContent } from '../src/engine/director/compile';
+import { validateContent } from '../src/engine/director/validate';
+import type { FormatId } from '../src/engine/formats';
+import { qaTimeline } from '../src/engine/qa';
+import { arg, flag } from './lib/args';
+import { loadContent } from './lib/content';
 
-function arg(name: string, fallback?: string): string | undefined {
-  const i = process.argv.indexOf(`--${name}`);
-  if (i >= 0 && process.argv[i + 1] && !process.argv[i + 1].startsWith('--')) return process.argv[i + 1];
-  return fallback;
-}
-
-const input = parseTemplateInput({
-  template: arg('template', 'office-rivalry'),
-  home: arg('home', 'TR'),
-  away: arg('away', 'GR'),
-  seed: Number(arg('seed', '42')),
-  fps: arg('fps') === undefined ? undefined : Number(arg('fps')),
-  footballMoment: arg('football-moment') ?? arg('footballMoment', 'crossbar-chaos'),
-  headline: arg('headline'),
-  cta: arg('cta'),
-});
-const { spec, plan } = compileStory(input);
-const issues = validateProductionReel(spec, plan);
-for (const issue of issues) {
-  // eslint-disable-next-line no-console
-  console.log(`[${issue.level}] ${issue.message}`);
-}
+const spec = await loadContent(arg('content'));
+const issues = validateContent(spec);
+for (const i of issues) console.log(`[${i.level}] ${i.path}: ${i.message}`);
 if (issues.some((i) => i.level === 'error')) process.exit(1);
-// eslint-disable-next-line no-console
-console.log(`OK: ${spec.id} | ${plan.totalFrames} frames @ ${spec.fps}fps | ${plan.shots.length} shots`);
+const formats = (arg('format') ? [arg('format')] : spec.formats ?? ['reel']) as FormatId[];
+let errors = 0;
+for (const format of formats) {
+  const tl = compileContent(spec, { format });
+  const qa = qaTimeline(tl);
+  errors += qa.filter((q) => q.level === 'error').length;
+  if (!flag('quiet')) for (const q of qa) console.log(`[qa:${q.level}] ${format} ${q.shot} @${q.frame}: ${q.message}`);
+  console.log(`${format}: ${tl.width}x${tl.height} | ${tl.totalFrames} frames @ ${tl.fps}fps (${(tl.totalFrames / tl.fps).toFixed(2)}s) | ${tl.shots.length} shots | ${tl.sounds.length} sounds | QA ${qa.filter((q) => q.level === 'error').length} errors, ${qa.filter((q) => q.level === 'warn').length} warnings`);
+}
+process.exit(errors ? 1 : 0);

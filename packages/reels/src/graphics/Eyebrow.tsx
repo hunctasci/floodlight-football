@@ -1,12 +1,14 @@
 import React from 'react';
 import { interpolate } from 'remotion';
-import { HNC_UI, SAFE } from './hnc-ui';
+import { HNC_UI } from './hnc-ui';
+import { useLayout } from '../render/layout';
 
 /**
  * Minimal brand mark (game `.eyebrow`: gold mono, wide tracking). Tracking
  * tightens as it fades in — a quiet "lights on" signature, not a logo intro.
  */
 export const Eyebrow: React.FC<{ frame: number; text: string; at: number; exitAt: number }> = ({ frame, text, at, exitAt }) => {
+  const { safe: SAFE } = useLayout();
   const fadeIn = interpolate(frame, [at, at + 14], [0, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const fadeOut = interpolate(frame, [exitAt - 10, exitAt], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
   const opacity = fadeIn * fadeOut;

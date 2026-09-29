@@ -1,9 +1,15 @@
 /** Semantic easing library. Pure functions of t in [0,1]. */
 
-export type EasingId = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'back-out' | 'bounce-out' | 'punch';
+export const EASING_IDS = ['linear', 'ease-in', 'ease-out', 'ease-in-out', 'back-out', 'bounce-out', 'punch'] as const;
+export type EasingId = (typeof EASING_IDS)[number];
+
+export function isEasingId(v: string): v is EasingId {
+  return (EASING_IDS as readonly string[]).includes(v);
+}
 
 export function applyEasing(id: EasingId, t: number): number {
-  const x = Math.min(1, Math.max(0, t));  switch (id) {
+  const x = Math.min(1, Math.max(0, t));
+  switch (id) {
     case 'linear':
       return x;
     case 'ease-in':

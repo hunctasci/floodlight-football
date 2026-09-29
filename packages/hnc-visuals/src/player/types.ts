@@ -5,6 +5,8 @@ export interface HncPlayerVisual {
   root: THREE.Group;
   body: THREE.Mesh;
   head: THREE.Mesh;
+  /** Eye meshes (children of head) for gaze / squint. Absent on hand-built visuals. */
+  eyes?: [THREE.Mesh, THREE.Mesh];
   legL: THREE.Mesh;
   legR: THREE.Mesh;
   armL: THREE.Mesh;
@@ -35,6 +37,13 @@ export interface CreateHncPlayerOptions {
 /** Exact game skin palette, indexed by id % 4. */
 export const HNC_SKIN_PALETTE = ['#f0b68c', '#985c3c', '#d78f65', '#6d422f'] as const;
 
+/** Head-local hair / eye offsets (head centre at y=1.7; world = game layout). */
+export const HNC_HAIR_OFFSET_Y = 0.11;
+export const HNC_EYE_OFFSETS: readonly (readonly [number, number, number])[] = [
+  [-0.11, 0.02, 0.3],
+  [0.11, 0.02, 0.3],
+];
+
 /** Keeper shirt colour (game constant). */
 export const HNC_KEEPER_COLOR = '#6b64d9';
 
@@ -45,4 +54,9 @@ export type HncWardrobeId =
   | 'office-worker'
   | 'office-worker-formal'
   | 'office-worker-casual'
-  | 'manager';
+  | 'manager'
+  | 'suit'
+  | 'commentator'
+  | 'fan'
+  | 'referee'
+  | 'hoodie';

@@ -1,10 +1,12 @@
 import React from 'react';
 import { interpolate } from 'remotion';
-import { projectToScreen } from '../cameras/project';
-import type { CameraPose } from '../cameras/registry';
+import { projectToScreen } from '../camera/project';
 import { HNC_UI } from '../graphics/hnc-ui';
-import { sampleShotChoreo, sampleShotChoreoAt, shotMomentTime } from '../reel/shot-clock';
-import type { ShotSpec } from '../reel/types';
+import type { Shot } from '../engine/timeline/types';
+import { useLayout } from '../render/layout';
+import { sampleFootballMoment } from '../worlds/football/choreography';
+import { footballMoment, shotMomentTime } from '../worlds/football/football.world';
+import type { Lens } from '../worlds/types';
 
 /**
  * Trailer-grade 2D layer. Everything here either covers the frame (grades,
@@ -13,8 +15,6 @@ import type { ShotSpec } from '../reel/types';
  * All functions of (frame, fps, props).
  */
 
-const W = 1080;
-const H = 1920;
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 
 /**
@@ -57,6 +57,7 @@ export const LightsOn: React.FC<{ local: number; durationInFrames: number }> = (
 
 /** The game's cinematic bars (style.css .cinebar, 7vh): ease in, snap out. */
 export const Cinebars: React.FC<{ local: number; durationInFrames: number; fps: number }> = ({ local, durationInFrames, fps }) => {
+  const { height: H } = useLayout();
   const inFrames = Math.round(0.45 * fps);
   // Linear over 0.45s mirrors the CSS `transition: height .45s`.
   const h = Math.round(H * 0.07) * interpolate(local, [0, inFrames, durationInFrames - 4, durationInFrames], [0, 1, 1, 0], clamp);
@@ -74,19 +75,12 @@ export const Cinebars: React.FC<{ local: number; durationInFrames: number; fps: 
  * clock) projected through the current lens, tapering to nothing. Only
  * renders where the ball actually moves fast on screen.
  */
-export const BallTrail: React.FC<{ shot: ShotSpec; frame: number; fps: number; pose: CameraPose; intensity?: number }> = ({
-  shot,
-  frame,
-  fps,
-  pose,
-  intensity = 1,
-}) => {
-  const { time } = shotMomentTime(shot, frame, fps);
+export const BallTrail: React.FC<{ shot: Shot; frame: number; fps: number; lens: Lens; intensity?: number }> = ({ shot, frame, fps, lens, intensity = 1 }) => {
+  const { width: W, height: H } = useLayout();
+  const time = shotMomentTime(shot, frame, fps);
+  const moment = footballMoment(shot.set);
   const N = 12;
-  const pts = Array.from({ length: N }, (_, i) => {
-    const c = sampleShotChoreoAt(shot, time - i * 0.012, fps);
-    return c ? projectToScreen(pose, c.ball, W, H) : undefined;
-  }).filter((p): p is NonNullable<typeof p> => !!p && p.visible);
+  const pts = Array.from({ length: N }, (_, i) => projectToScreen(lens, sampleFootballMoment(moment, time - i * 0.012).ball, W, H)).filter((p) => p.visible);
   if (pts.length < 2) return null;
   const head = pts[0];
   const radius = Math.max(4, Math.min(40, 260 / Math.max(0.5, head.distance)));
@@ -117,20 +111,15 @@ export const BallTrail: React.FC<{ shot: ShotSpec; frame: number; fps: number; p
  * Contact burst at the ball's position on the effect's first frame: 2-frame
  * flash, expanding ring and radial strikes in cream/gold, ~10 frames.
  */
-export const ImpactBurst: React.FC<{ shot: ShotSpec; at: number; frame: number; fps: number; pose: CameraPose; intensity?: number }> = ({
-  shot,
-  at,
-  frame,
-  fps,
-  pose,
-  intensity = 1,
-}) => {
+export const ImpactBurst: React.FC<{ shot: Shot; at: number; frame: number; fps: number; lens: Lens; intensity?: number }> = ({ shot, at, frame, fps, lens, intensity = 1 }) => {
+  const { width: W, height: H } = useLayout();
   const k = frame - at;
   const life = Math.round(fps / 6);
   if (k < 0 || k > life) return null;
-  const c = sampleShotChoreo(shot, at, fps);
-  if (!c) return null;
-  const p = projectToScreen(pose, c.ball, W, H);
+  // Football: burst at the ball at impact; elsewhere at the frame centre.
+  const p = shot.world === 'football'
+    ? projectToScreen(lens, sampleFootballMoment(footballMoment(shot.set), shotMomentTime(shot, at, fps)).ball, W, H)
+    : { x: W / 2, y: H * 0.45, visible: true, distance: 1 };
   const u = k / life;
   const r0 = 40 + 320 * (1 - Math.pow(1 - u, 3));
   const fade = 1 - u;

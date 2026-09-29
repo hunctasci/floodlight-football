@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {
   HNC_KEEPER_COLOR,
+  HNC_EYE_OFFSETS,
+  HNC_HAIR_OFFSET_Y,
   HNC_SKIN_PALETTE,
   type CreateHncPlayerOptions,
   type HncPlayerVisual,
@@ -20,8 +22,8 @@ import { hncNumberTexture } from './number-texture.ts';
  * - stripe: Cylinder(0.425, 0.465, 0.2, 6) @ y=1.28 (trim)
  * - number: Plane(0.52, 0.52) @ (0, 1.04, -0.44), rotY=PI (back)
  * - head: Icosahedron(0.32, 1) @ y=1.7 (skin palette id%4)
- * - hair: Sphere(0.325, 8, 5, 0, 2PI, 0, PI*0.42) @ y=1.81 (#28283b)
- * - eyes: Sphere(0.035, 5, 4) @ (±0.11, 1.72, 0.3) (#182230)
+ * - hair: Sphere(0.325, 8, 5, 0, 2PI, 0, PI*0.42) @ y=1.81 (#28283b), child of head
+ * - eyes: Sphere(0.035, 5, 4) @ (±0.11, 1.72, 0.3) (#182230), children of head
  * - limbs: Cylinder(0.115, 0.13, 0.67, 5); legs trim, arms kit
  *   legL (-0.2, 0.38, 0), legR (0.2, 0.38, 0),
  *   armL (-0.48, 1.08, 0), armR (0.48, 1.08, 0)
@@ -82,19 +84,23 @@ export function createHncPlayerVisual(opts: CreateHncPlayerOptions): HncPlayerVi
   head.position.y = 1.7;
   root.add(head);
 
+  // Hair and eyes ride on the head (head-local offsets; world positions are
+  // the game's 1.81 / (±0.11, 1.72, 0.3) at rest). The game never rotates the
+  // head, so it renders identically; social content can turn heads and eyes.
   const hair = new THREE.Mesh(
     new THREE.SphereGeometry(0.325, 8, 5, 0, Math.PI * 2, 0, Math.PI * 0.42),
     dark,
   );
-  hair.position.y = 1.81;
-  root.add(hair);
+  hair.position.y = HNC_HAIR_OFFSET_Y;
+  head.add(hair);
 
   const eyeMat = new THREE.MeshBasicMaterial({ color: '#182230' });
-  for (const ex of [-0.11, 0.11]) {
+  const eyes = HNC_EYE_OFFSETS.map(([ex, ey, ez]) => {
     const eye = new THREE.Mesh(new THREE.SphereGeometry(0.035, 5, 4), eyeMat);
-    eye.position.set(ex, 1.72, 0.3);
-    root.add(eye);
-  }
+    eye.position.set(ex, ey, ez);
+    head.add(eye);
+    return eye;
+  });
 
   const limb = (mat: THREE.Material): THREE.Mesh =>
     new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.13, 0.67, 5), mat);
@@ -128,6 +134,7 @@ export function createHncPlayerVisual(opts: CreateHncPlayerOptions): HncPlayerVi
     root,
     body,
     head,
+    eyes: [eyes[0], eyes[1]],
     legL,
     legR,
     armL,

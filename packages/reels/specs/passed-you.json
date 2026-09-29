@@ -1,0 +1,72 @@
+{
+  "id": "passed-you",
+  "title": "Greece Just Passed You",
+  "logline": "A World Table push notification ruins a quiet Monday. Authored as JSON: no code, no registration.",
+  "fps": 30,
+  "seed": 3,
+  "formats": ["reel", "square"],
+  "cast": {
+    "hero": { "country": "TR", "number": 9, "name": "Emre" },
+    "rival": { "country": "GR", "number": 4, "name": "Nikos" }
+  },
+  "scenes": [
+    {
+      "id": "desk",
+      "world": "office",
+      "set": { "clock": "09:03", "extras": 4 },
+      "beats": [
+        {
+          "id": "calm",
+          "purpose": "hook",
+          "duration": 1.4,
+          "camera": "medium:hero push-in",
+          "cast": { "hero": { "at": "desk-a", "do": "typing" }, "rival": { "at": "desk-b", "do": "typing" } },
+          "graphics": [{ "kind": "timestamp", "at": 0.1, "props": { "day": "Monday", "time": "09:03" } }],
+          "sound": [{ "cue": "typing", "duration": 1.4 }]
+        },
+        {
+          "id": "ping",
+          "purpose": "reveal",
+          "duration": 1.3,
+          "camera": "medium:hero snap-zoom x0.7",
+          "cast": { "hero": { "hold": "phone", "do": [{ "do": "phone-look" }, { "at": 0.45, "do": "phone-gasp" }] } },
+          "graphics": [{ "kind": "notification", "at": 0.05, "props": { "app": "HNC League", "title": "World Table", "body": "🇬🇷 Greece just passed 🇹🇷 Türkiye" } }],
+          "sound": [{ "cue": "notification", "at": 0.05 }, { "cue": "record-scratch", "at": 0.45 }, { "cue": "hush", "at": 0.45, "duration": 0.8 }]
+        },
+        {
+          "id": "smug",
+          "purpose": "reaction",
+          "duration": 1.3,
+          "camera": "over-shoulder:hero>rival push-in",
+          "cast": { "rival": { "do": [{ "do": "notice", "lookAt": "hero" }, { "at": 0.4, "do": "smug", "lookAt": "hero" }] } },
+          "text": [{ "say": "he got the same notification", "style": "caption", "at": 0.2 }]
+        },
+        {
+          "id": "leave",
+          "purpose": "punchline",
+          "duration": 1.7,
+          "camera": "wide",
+          "cast": { "hero": { "do": [{ "do": "stand-up" }, { "at": 0.5, "do": "storm" }], "move": { "to": "door", "at": 0.5, "duration": 3.2 } } },
+          "fx": [{ "type": "coworkers-look", "at": 0.3 }],
+          "text": [{ "say": "“taking an early lunch”", "style": "subtitle", "at": 0.4 }],
+          "sound": [{ "cue": "chair", "at": 0.05 }, { "cue": "tension-rise", "at": 0.3, "duration": 1.4 }]
+        }
+      ]
+    },
+    {
+      "id": "brand",
+      "world": "title",
+      "enter": { "type": "whip-pan", "direction": "right" },
+      "beats": [
+        {
+          "id": "card",
+          "purpose": "brand",
+          "duration": 1.8,
+          "camera": "static",
+          "graphics": [{ "kind": "brand-reveal", "props": { "words": ["TAKE", "IT", "BACK."], "site": "hncleague.com", "footer": "THE WORLD TABLE MOVES EVERY MATCH." } }],
+          "sound": [{ "cue": "brand-sting", "at": 0.4, "volume": 3 }]
+        }
+      ]
+    }
+  ]
+}
