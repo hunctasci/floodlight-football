@@ -19,6 +19,7 @@ npm run reels:validate -- --template office-rivalry --home TR --away GR --seed 4
 npm run reels:still -- --composition OfficeRivalry --frame 200 --output social/output/still.png
 
 # Full renders (1080x1920 MP4, H.264 + AAC)
+npm run reels:render -- --template hnc-hero --home TR --away GR --seed 42 --output social/output/hnc-hero.mp4
 npm run reels:render -- --template country-rivalry --home TR --away GR --seed 42 --output social/output/tr-gr.mp4
 npm run reels:render -- --template office-rivalry --home TR --away GR --seed 42 --football-moment crossbar-chaos --output social/output/tr-gr-office.mp4
 
@@ -65,6 +66,42 @@ See `src/reel/types.ts`. Key rules:
 
 - `office-rivalry` (16s): hook -> setup -> reveal (leaderboard) -> reaction (side-eye) -> escalation (dramatic-push) -> cloud-puff transition -> football payoff -> punchline -> CTA.
 - `country-rivalry` (15.5s): faceoff hook -> football payoff -> CTA/brand.
+- `hnc-hero` (12s, **60fps**, composition `HncHeroReel`): the HNC League hero trailer.
+  One continuous `hero-attack` choreography covered by ten shots — floodlights
+  hook -> depth-stacked faceoff -> burst -> leading-camera duel + hurdle ->
+  approach -> speed-ramped wind-up + shot -> reverse-angle goal -> celebration ->
+  World Table climb -> brand card. Defined in `src/director/stories/hnc-hero.ts`.
+
+### Trailer building blocks (reusable)
+
+- **Moment clocks** (`momentClock` on a beat): a shot plays a window of one
+  longer choreography, optionally reshaped by a time ramp
+  (`animation/time-ramp.ts`: `linear`, `anticipation-snap`). Shots sharing
+  `to`/`from` boundaries cut inside one continuous action.
+- **Game poses**: choreography actors may carry `pose` — routed through the
+  canonical `applyHncGamePose` (run swing, kick, slide, dive, celebrations) plus
+  small accents on the same joints (`crouch`, `windup`, `hop`, `airplane`,
+  `reach`, `grounded`) in `football/adapter/pose.ts`.
+- **Anchored camera moves** (`cameras/moves.ts`): lenses relative to semantic
+  anchors (hero / rival / keeper / ball), eased between keys, optional anchor
+  lag. Keys may name canonical `hncPresetLens` presets. IDs: `ball-rise-reveal`,
+  `faceoff-depth-push`, `runner-burst`, `runner-lead`, `runner-approach`,
+  `striker-windup`, `net-reverse`, `scorer-push`, `crane-out`, `stadium-drift`.
+  `cameras/shot-camera.ts` is the single per-frame pose for the 3D rig AND 2D
+  projections (`cameras/project.ts`).
+- **Cinematic effects** (`effects/cinematic.tsx` + camera-space presets):
+  `lights-on`, `cinebars` (game .cinebar), `ball-trail`, `impact-burst`,
+  `impact-shake`, `zoom-punch`, `stadium-grade` (game menu backdrop).
+- **Game-UI graphics** (tokens mirrored from the game CSS in `graphics/hnc-ui.ts`):
+  `eyebrow`, `scoreboard` (in-game HUD, score flip), `goal-call` (game goal
+  message), `world-table` (weekly World Table climb), `brand-reveal` (real badge
+  + promise + site). Timings in `data` are global frames so an element can span
+  shot cuts.
+- **SFX stem** (`audio.sfxStem: true`): `reels:render` synthesizes procedural
+  cues (kick, shot, whoosh, impact, goal-sting, brand-sting) with the game's
+  arcade recipes (reused from social-video) into
+  `public/generated/<spec-id>-sfx.wav`. Studio previews play crowd audio only
+  unless a stem was rendered.
 
 ```bash
 npm run reels:render -- --template office-rivalry --home TR --away GR --seed 42 --football-moment crossbar-chaos --output social/output/tr-gr-office.mp4

@@ -3,8 +3,8 @@ import { AbsoluteFill, Sequence, useCurrentFrame, useVideoConfig } from 'remotio
 import { ThreeCanvas } from '@remotion/three';
 import { useThree } from '@react-three/fiber';
 import * as THREE from 'three';
-import { evaluateCamera } from '../cameras/registry';
-import { HNC_REEL_TO_SOCIAL, hncPresetLens } from '@floodlight/hnc-visuals';
+import type { CameraPose } from '../cameras/registry';
+import { shotCameraPose } from '../cameras/shot-camera';
 import { resolveAnchor } from '../stages/registry';
 import { Stage3D } from '../stages/Stage';
 import { Actor } from '../actors/Actor';
@@ -18,43 +18,22 @@ import { CTA } from '../graphics/CTA';
 import { Brand } from '../graphics/Brand';
 import { Transition } from '../transitions/Transition';
 import { transitionCoverage } from '../transitions/registry';
-import { sampleFootballMoment } from '../football/adapter/choreography';
+import { shotMomentTime } from '../reel/shot-clock';
 import { Confetti, ImpactFlash, SpeedLines, Vignette } from '../effects/effects';
+import { BallTrail, Cinebars, ImpactBurst, LightsOn, StadiumGrade } from '../effects/cinematic';
+import { Eyebrow } from '../graphics/Eyebrow';
+import { Scoreboard } from '../graphics/Scoreboard';
+import { GoalCall } from '../graphics/GoalCall';
+import { WorldTable, type WorldTableRow } from '../graphics/WorldTable';
+import { BrandReveal } from '../graphics/BrandReveal';
 import { screenShakeOffset } from '../effects/presets';
 import { AudioTrack } from '../audio/AudioTrack';
 import type { ReelSpec, ShotSpec } from '../reel/types';
 import { compileShotPlan } from '../reel/compile';
 
-/** Deterministic camera: absolute frame -> pose, applied every render. */
-const CameraUpdater: React.FC<{
-  preset?: string;
-  shotStart: number;
-  duration: number;
-  follow?: { x: number; y: number; z: number };
-  globalFrame: number;
-}> = ({ preset, shotStart, duration, follow, globalFrame }) => {
+/** Applies the shot camera pose (computed once per frame in ShotView). */
+const CameraUpdater: React.FC<{ pose: CameraPose }> = ({ pose }) => {
   const { camera } = useThree();
-  const frame = globalFrame;
-  const local = frame - shotStart;
-  const id = preset ?? 'graphics-static';
-  // Football-family presets use the proven HNC social lens evaluated AT the
-  // live ball anchor (ball-anchored tracking is automatic — the ball drives).
-  // football-faceoff keeps its Catmull-Rom dolly (handled in the registry).
-  let pose: { pos: [number, number, number]; look: [number, number, number]; fov: number };
-  if (follow && id !== 'football-faceoff' && HNC_REEL_TO_SOCIAL[id]) {
-    const lens = hncPresetLens(HNC_REEL_TO_SOCIAL[id], {
-      ball: { x: follow.x, y: follow.y, z: follow.z },
-    });
-    pose = {
-      pos: [lens.pos.x, lens.pos.y, lens.pos.z],
-      look: [lens.look.x, lens.look.y, lens.look.z],
-      fov: lens.fov,
-    };
-  } else {
-    pose = evaluateCamera(id, Math.max(0, local), Math.max(1, duration));
-  }
-  const shakeShot = { x: 0, y: 0 };
-  void shakeShot;
   React.useMemo(() => {
     camera.position.set(pose.pos[0], pose.pos[1], pose.pos[2]);
     camera.lookAt(new THREE.Vector3(pose.look[0], pose.look[1], pose.look[2]));
@@ -68,7 +47,7 @@ const CameraUpdater: React.FC<{
   return null;
 };
 
-function OverlayLayer({ shot, frame }: { shot: ShotSpec; frame: number }) {
+function OverlayLayer({ shot, frame, fps }: { shot: ShotSpec; frame: number; fps: number }) {
   return (
     <>
       {(shot.overlays ?? []).map((g, i) => {
@@ -104,6 +83,32 @@ function OverlayLayer({ shot, frame }: { shot: ShotSpec; frame: number }) {
             return <Brand key={key} />;
           case 'chat-bubble':
             return <ChatBubble key={key} text={g.text ?? ''} />;
+          // Trailer graphics: timing anchored to GLOBAL frames in `data`, so
+          // they stay continuous when the same element spans several shots.
+          case 'eyebrow': {
+            const d = (g.data ?? {}) as { at?: number; exitAt?: number };
+            return <Eyebrow key={key} frame={frame} text={g.text ?? ''} at={d.at ?? start} exitAt={d.exitAt ?? start + dur} />;
+          }
+          case 'scoreboard': {
+            const d = (g.data ?? {}) as { before?: [number, number]; after?: [number, number]; clock?: string; enterAt?: number; flipAt?: number };
+            return (
+              <Scoreboard key={key} frame={frame} fps={fps} home={shot.home ?? 'TR'} away={shot.away ?? 'GR'} before={d.before ?? [0, 0]} after={d.after} clock={d.clock ?? ''} enterAt={d.enterAt} flipAt={d.flipAt} />
+            );
+          }
+          case 'goal-call': {
+            const d = (g.data ?? {}) as { at?: number; exitAt?: number; sub?: string };
+            return <GoalCall key={key} frame={frame} fps={fps} text={g.text ?? 'GOAL!'} sub={d.sub} at={d.at ?? start} exitAt={d.exitAt ?? start + dur} />;
+          }
+          case 'world-table': {
+            const d = (g.data ?? {}) as { rows?: WorldTableRow[]; hero?: string; gain?: number; enterAt?: number; climbAt?: number; exitAt?: number; lines?: [string, string] };
+            return (
+              <WorldTable key={key} frame={frame} fps={fps} rows={d.rows ?? []} hero={d.hero ?? shot.home ?? 'TR'} gain={d.gain ?? 3} enterAt={d.enterAt ?? start} climbAt={d.climbAt ?? start + 30} exitAt={d.exitAt} lines={d.lines ?? ['YOUR COUNTRY.', 'YOUR LEAGUE.']} />
+            );
+          }
+          case 'brand-reveal': {
+            const d = (g.data ?? {}) as { at?: number; words?: string[]; site?: string; footer?: string };
+            return <BrandReveal key={key} frame={frame} fps={fps} at={d.at ?? start} words={d.words ?? ['PLAY.', 'WIN.', 'CLIMB.']} site={d.site ?? 'hncleague.com'} footer={d.footer} />;
+          }
           case 'flag':
           case 'badge':
             return <Caption key={key} text={g.text ?? ''} preset="subtitle" startFrame={start} durationInFrames={dur} frame={frame} />;
@@ -133,27 +138,18 @@ const ShotView: React.FC<{ shot: ShotSpec; spec: ReelSpec; fps: number; width: n
   const showSpeed = (shot.effects ?? []).some((e) => e.type === 'speed-lines');
   const showVignette = (shot.effects ?? []).some((e) => e.type === 'vignette');
 
-  // Football information shots track the evaluated ball (deterministic).
-  // Any football-family camera (football-*, ball-*, keeper-*, celebration-*,
-  // reaction-*) follows the ball; the canonical lens is ball-anchored.
-  let follow: { x: number; y: number; z: number } | undefined;
-  if (shot.footballMoment && (shot.camera === undefined || shot.camera.includes('football') || shot.camera.includes('ball') || shot.camera.includes('keeper') || shot.camera.includes('celebration') || shot.camera.includes('reaction'))) {
-    const t = Math.min(
-      shot.durationInFrames / fps,
-      Math.max(0, (frame - shot.startFrame) / fps),
-    );
-    try {
-      const choreo = sampleFootballMoment(
-        shot.footballMoment,
-        t,
-        shot.durationInFrames / fps,
-        shot.attackingTeam !== 'away',
-      );
-      follow = { x: choreo.ball.x, y: choreo.ball.y, z: choreo.ball.z };
-    } catch {
-      follow = undefined;
-    }
-  }
+  // One camera pose per frame: drives the 3D rig AND projected 2D effects.
+  const pose = shotCameraPose(shot, frame, fps, spec.seed);
+  // Clocked shots play a window of one continuous moment timeline.
+  const clock = shot.momentClock ? shotMomentTime(shot, frame, fps) : undefined;
+  const effectOf = (type: string) => (shot.effects ?? []).find((e) => e.type === type);
+  const inWindow = (e: { startFrame?: number; durationInFrames?: number } | undefined) =>
+    !!e && local >= (e.startFrame ?? 0) && local < (e.startFrame ?? 0) + (e.durationInFrames ?? shot.durationInFrames);
+  const lights = effectOf('lights-on');
+  const bars = effectOf('cinebars');
+  const trail = effectOf('ball-trail');
+  const burst = effectOf('impact-burst');
+  const grade = effectOf('stadium-grade');
 
   const actorEls = (shot.actors ?? []).map((a, i) => {
     const actorSpec = (spec.cast ?? []).find((c) => c.id === a.actor);
@@ -202,7 +198,7 @@ const ShotView: React.FC<{ shot: ShotSpec; spec: ReelSpec; fps: number; width: n
           shadow-camera-top={45}
           shadow-camera-bottom={-45}
         />
-        <CameraUpdater preset={shot.camera} shotStart={shot.startFrame} duration={shot.durationInFrames} follow={follow} globalFrame={frame} />
+        <CameraUpdater pose={pose} />
         <group position={[shake.x * 4, shake.y * 4, 0]}>
           <Stage3D
             stageId={shot.stage}
@@ -214,17 +210,27 @@ const ShotView: React.FC<{ shot: ShotSpec; spec: ReelSpec; fps: number; width: n
             attackingTeam={shot.attackingTeam}
             shotStartFrame={shot.startFrame}
             durationInFrames={shot.durationInFrames}
+            momentTime={clock?.time}
+            momentLength={clock?.length}
           />
           {actorEls}
         </group>
       </ThreeCanvas>
+      {/* Cinematic layer: in-world projections, then frame grades. */}
+      {trail && inWindow(trail) ? <BallTrail shot={shot} frame={frame} fps={fps} pose={pose} intensity={trail.intensity ?? 1} /> : null}
+      {burst ? <ImpactBurst shot={shot} at={shot.startFrame + (burst.startFrame ?? 0)} frame={frame} fps={fps} pose={pose} intensity={burst.intensity ?? 1} /> : null}
+      {grade && inWindow(grade) ? <StadiumGrade local={local - (grade.startFrame ?? 0)} fps={fps} intensity={grade.intensity ?? 1} /> : null}
+      {bars && inWindow(bars) ? <Cinebars local={local - (bars.startFrame ?? 0)} durationInFrames={bars.durationInFrames ?? shot.durationInFrames} fps={fps} /> : null}
+      {lights && inWindow(lights) ? <LightsOn local={local - (lights.startFrame ?? 0)} durationInFrames={lights.durationInFrames ?? shot.durationInFrames} /> : null}
       {/* 2D overlays */}
-      <OverlayLayer shot={shot} frame={frame} />
+      <OverlayLayer shot={shot} frame={frame} fps={fps} />
       {showSpeed ? <SpeedLines frame={frame} /> : null}
       {showConfetti ? <Confetti seed={spec.seed} frame={frame} /> : null}
       {showVignette ? <Vignette /> : null}
-      {/* impact flash on football clang/goal (first 6 frames of payoff shots) */}
-      {shot.footballMoment && local < 6 && local >= 0 ? <ImpactFlash progress={local / 6} /> : null}
+      {/* Legacy: impact flash on the first 6 frames of payoff shots. Clocked
+          shots cut mid-action (and the hook opens in darkness), so they place
+          impacts explicitly with impact-burst instead. */}
+      {shot.footballMoment && !shot.momentClock && local < 6 && local >= 0 ? <ImpactFlash progress={local / 6} /> : null}
       {transOut ? (
         <Transition
           type={transOut.type}
@@ -253,7 +259,7 @@ const ShotView: React.FC<{ shot: ShotSpec; spec: ReelSpec; fps: number; width: n
  * Generic Reel composition: ReelSpec -> ShotPlan -> Remotion Sequences.
  * All animation derives from absolute frame; no wall clocks, no useState loops.
  */
-export const ReelComposition: React.FC<{ spec: ReelSpec }> = ({ spec }) => {
+export const ReelComposition: React.FC<{ spec: ReelSpec; sfx?: string }> = ({ spec, sfx }) => {
   const { fps: compFps, width, height } = useVideoConfig();
   void compFps;
   const globalFrame = useCurrentFrame();
@@ -272,7 +278,7 @@ export const ReelComposition: React.FC<{ spec: ReelSpec }> = ({ spec }) => {
       {(spec.captions?.cues ?? []).map((c, i) => (
         <Caption key={`cap-${i}`} text={c.text} preset={c.preset ?? spec.captions?.preset} startFrame={c.startFrame} durationInFrames={c.durationInFrames} />
       ))}
-      <AudioTrack cues={allCues} fps={spec.fps} totalFrames={plan.totalFrames} music={spec.audio?.music} musicVolume={spec.audio?.musicVolume ?? 0.25} />
+      <AudioTrack cues={allCues} fps={spec.fps} totalFrames={plan.totalFrames} music={spec.audio?.music} musicVolume={spec.audio?.musicVolume ?? 0.25} sfx={sfx} />
     </AbsoluteFill>
   );
 };

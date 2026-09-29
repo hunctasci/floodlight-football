@@ -1,3 +1,5 @@
+import type { MomentClockSpec } from '../animation/time-ramp';
+
 /**
  * Semantic Reel DSL. Callers describe WHAT they want (office, side-eye,
  * cloud-puff, crossbar-chaos); presets/components own coordinates, cameras,
@@ -80,7 +82,12 @@ export interface GraphicSpec {
     | 'brand'
     | 'badge'
     | 'flag'
-    | 'chat-bubble';
+    | 'chat-bubble'
+    | 'eyebrow'
+    | 'scoreboard'
+    | 'goal-call'
+    | 'world-table'
+    | 'brand-reveal';
   text?: string;
   preset?: string;
   startFrame?: number;
@@ -100,6 +107,11 @@ export interface ReelAudioSpec {
   music?: string;
   musicVolume?: number;
   ducking?: boolean;
+  /**
+   * Render procedural cues (kick, shot, whoosh, sting...) offline into one
+   * SFX stem with the game's arcade synth recipes. Opt-in per template.
+   */
+  sfxStem?: boolean;
 }
 
 export interface CaptionCue {
@@ -132,6 +144,11 @@ export interface BeatContentSpec {
   camera?: string;
   actors?: Array<{ actor: string; anchor?: string; animation?: string }>;
   footballMoment?: string;
+  /**
+   * Play a window of the moment's own timeline (seconds) instead of
+   * restarting it per shot; shared boundaries make cuts continuous.
+   */
+  momentClock?: MomentClockSpec;
   home?: string;
   away?: string;
   attackingTeam?: 'home' | 'away';
@@ -190,6 +207,7 @@ export interface ShotSpec {
   effects?: EffectSpec[];
   audio?: AudioCueSpec[];
   footballMoment?: string;
+  momentClock?: MomentClockSpec;
   home?: string;
   away?: string;
   attackingTeam?: 'home' | 'away';
@@ -206,7 +224,7 @@ export interface ShotPlan {
 }
 
 export interface TemplateInput {
-  template: 'office-rivalry' | 'country-rivalry';
+  template: 'office-rivalry' | 'country-rivalry' | 'hnc-hero';
   home: string;
   away: string;
   seed?: number;

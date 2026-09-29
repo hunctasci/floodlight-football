@@ -1,5 +1,6 @@
-import React from 'react';
+import type { HncCrowdMood } from '@floodlight/hnc-visuals';
 import { countryColors } from '../../football/data/countries';
+import { sampleHeroAttack } from './moments/hero-attack';
 
 /**
  * Deterministic football choreography adapter.
@@ -8,7 +9,43 @@ import { countryColors } from '../../football/data/countries';
  * (frame, fps, seed) — no coupling to the live game renderer.
  */
 
-export type FootballMomentType = 'faceoff' | 'attack-goal' | 'crossbar-chaos' | 'keeper-disaster' | 'cross-header-goal';
+export type FootballMomentType =
+  | 'faceoff'
+  | 'attack-goal'
+  | 'crossbar-chaos'
+  | 'keeper-disaster'
+  | 'cross-header-goal'
+  | 'hero-attack';
+
+/** Game actions understood by the canonical applyHncGamePose(). */
+export type ChoreoAction = 'idle' | 'run' | 'kick' | 'tackle' | 'dive' | 'slide' | 'fallen';
+
+/**
+ * Canonical game pose request (applyHncGamePose: run swing from speed, kick
+ * snap, slide, dive, celebrations) plus small reel accents layered on the SAME
+ * rig channels. Accents never touch geometry or proportions — only the joint
+ * rotations / root lift the game itself animates.
+ */
+export interface ChoreoPose {
+  action: ChoreoAction;
+  actionTime: number;
+  speed: number;
+  /** Game clock fed to the pose (run swing + celebration phase). */
+  clock: number;
+  celebrating?: boolean;
+  /** 0..1 anticipation dip before a burst / save. */
+  crouch?: number;
+  /** 0..1 kick backswing; with action 'kick' the snap starts from it. */
+  windup?: number;
+  /** 0..1 progress through a hurdle over a slide tackle. */
+  hop?: number;
+  /** 0..1 arms-spread celebration run. */
+  airplane?: number;
+  /** 0..1 keeper arms-overhead reach. */
+  reach?: number;
+  /** 0..1 settle a finished dive onto the grass. */
+  grounded?: number;
+}
 
 export interface ChoreoActor {
   team: 'home' | 'away' | 'keeper-home' | 'keeper-away';
@@ -19,6 +56,20 @@ export interface ChoreoActor {
   despair?: boolean;
   dive?: number;
   run?: boolean;
+  /** Shirt number (canonical identity: skin palette, back number, celebration move). */
+  number?: number;
+  /** Canonical game pose; takes precedence over the legacy flags above. */
+  pose?: ChoreoPose;
+  /** Canonical procedural pose id (hncProceduralPose), e.g. 'facepalm'. */
+  procedural?: string;
+}
+
+export interface ChoreoCrowd {
+  mood: HncCrowdMood;
+  intensity: number;
+  moodTime: number;
+  /** Which stand section (0 = x<0, 1 = x>0) holds the home supporters. */
+  homeSection: 0 | 1;
 }
 
 export interface ChoreoFrame {
@@ -27,6 +78,12 @@ export interface ChoreoFrame {
   crowdIntensity: number;
   impact: number;
   phase: string;
+  /** Semantic camera anchors (hero / rival / keeper) for anchored lenses. */
+  anchors?: { hero: { x: number; z: number }; rival?: { x: number; z: number }; keeper?: { x: number; z: number } };
+  /** Explicit crowd state; legacy moments derive it from phase/intensity. */
+  crowd?: ChoreoCrowd;
+  /** Goal-net pulse (game renderer behaviour) for the goal at `side`. */
+  net?: { side: 1 | -1; phaseTime: number };
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -46,6 +103,10 @@ export function sampleFootballMoment(
   const atk: 'home' | 'away' = attackingHome ? 'home' : 'away';
   const def: 'home' | 'away' = attackingHome ? 'away' : 'home';
   switch (moment) {
+    case 'hero-attack':
+      // Fixed-length trailer choreography driven by a moment clock; the
+      // `duration` / attacking-side arguments do not apply.
+      return sampleHeroAttack(time);
     case 'faceoff': {
       const k = seg(time, 0, duration);
       const spread = lerp(3.2, 1.1, k);

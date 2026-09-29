@@ -5,6 +5,7 @@ import { CAMERA_PRESET_IDS } from '../cameras/registry';
 import { TRANSITION_IDS } from '../transitions/registry';
 import { EFFECT_IDS } from '../effects/presets';
 import { STAGE_IDS } from '../stages/registry';
+import { isTimeRampId } from '../animation/time-ramp';
 import type { ReelSpec, ShotPlan } from './types';
 import { validateReelSpec } from './schema';
 
@@ -72,6 +73,16 @@ export function validateProductionReel(spec: ReelSpec, plan: ShotPlan): Validati
         issues.push({ level: 'warn', message: `Overlay text long in ${shot.id}: "${(g.text ?? '').slice(0, 40)}…"` });
       }
     }
+    const mc = shot.momentClock;
+    if (mc) {
+      if (!shot.footballMoment) issues.push({ level: 'error', message: `momentClock without footballMoment in ${shot.id}` });
+      if (!(mc.from < mc.to) || mc.from < 0 || mc.to > mc.length) {
+        issues.push({ level: 'error', message: `Invalid momentClock ${mc.from}..${mc.to} (length ${mc.length}) in ${shot.id}` });
+      }
+      if (mc.ramp !== undefined && !isTimeRampId(mc.ramp)) {
+        issues.push({ level: 'error', message: `Unknown time ramp: ${mc.ramp} in ${shot.id}` });
+      }
+    }
     for (const c of [shot.home, shot.away]) {
       if (c !== undefined && !isValidCountryCode(c)) {
         issues.push({ level: 'error', message: `Invalid country code: ${c} in ${shot.id}` });
@@ -89,10 +100,19 @@ export function validateProductionReel(spec: ReelSpec, plan: ShotPlan): Validati
   if (cursor !== plan.totalFrames) {
     issues.push({ level: 'error', message: `Plan covers ${cursor} frames but total is ${plan.totalFrames}` });
   }
+  // Clocked shots of one moment should hand over seamlessly (to == next from).
+  for (let i = 1; i < plan.shots.length; i++) {
+    const a = plan.shots[i - 1];
+    const b = plan.shots[i];
+    if (a.momentClock && b.momentClock && a.footballMoment === b.footballMoment && Math.abs(a.momentClock.to - b.momentClock.from) > 1e-6) {
+      issues.push({ level: 'warn', message: `Moment clock jumps ${a.momentClock.to} -> ${b.momentClock.from} between ${a.id} and ${b.id}` });
+    }
+  }
   // Marketing templates must end with a CTA + brand.
   const lastOverlays = plan.shots[plan.shots.length - 1]?.overlays ?? [];
-  const hasCta = lastOverlays.some((g) => g.kind === 'cta' || g.kind === 'headline');
-  const hasBrand = lastOverlays.some((g) => g.kind === 'brand');
+  // brand-reveal is a full end card: badge + promise + site.
+  const hasCta = lastOverlays.some((g) => g.kind === 'cta' || g.kind === 'headline' || g.kind === 'brand-reveal');
+  const hasBrand = lastOverlays.some((g) => g.kind === 'brand' || g.kind === 'brand-reveal');
   if (!hasCta) issues.push({ level: 'warn', message: 'Final shot has no CTA/headline overlay.' });
   if (!hasBrand) issues.push({ level: 'warn', message: 'Final shot has no brand overlay.' });
   // Determinism: total frame count must equal round(duration*fps).

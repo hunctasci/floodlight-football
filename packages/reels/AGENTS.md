@@ -5,13 +5,15 @@ frame math, CSS and FFmpeg. You own story, countries, seed and copy.
 
 ## DO
 
-- Use templates: `office-rivalry`, `country-rivalry`.
+- Use templates: `office-rivalry`, `country-rivalry`, `hnc-hero` (60fps hero trailer).
 - Use named actors from `ReelSpec.cast` (`home-worker`, `away-worker`...).
 - Use named anchors (`desk-left`, `desk-right`, `coffee-machine`, `faceoff-home`...).
 - Use animation ids (`typing`, `celebrate`, `side-eye`, `angry`, `goal-celebration`...).
-- Use camera presets (`wide-establish`, `close-reaction`, `dramatic-push`, `football-broadcast`, `celebration-close`...).
+- Use camera presets (`wide-establish`, `close-reaction`, `dramatic-push`, `football-broadcast`, `celebration-close`...) and anchored moves (`faceoff-depth-push`, `runner-lead`, `striker-windup`, `net-reverse`, `crane-out`...).
+- Use moment clocks (`momentClock: { from, to, length, ramp }`) to cut inside one continuous football action; keep `to` == next `from`.
+- Portrait framing: stage duels in DEPTH (leading / following cameras), never side-by-side from a lateral lens — a 9:16 frame is only ~29° wide.
 - Use transition ids (`cloud-puff`, `cut`, `fade`, `whip-pan`...) and effect ids (`screen-shake`, `confetti`, `speed-lines`...).
-- Use football moments (`faceoff`, `attack-goal`, `crossbar-chaos`, `keeper-disaster`, `cross-header-goal`).
+- Use football moments (`faceoff`, `attack-goal`, `crossbar-chaos`, `keeper-disaster`, `cross-header-goal`, `hero-attack`).
 - Use audio cues (`typing`, `tension-rise`, `poof`, `whoosh`, `goal-roar`, `brand-sting`...).
 - Derive all variation from `rng(seed, '<stable-key>')`.
 - Derive all motion from `useCurrentFrame()` / absolute `frame`.
@@ -48,6 +50,14 @@ npm run reels:render -- \
   --headline "WHEN YOUR COWORKER SUPPORTS THE WRONG COUNTRY" \
   --cta "YOUR COUNTRY NEEDS YOU" \
   --output social/output/tr-gr-office.mp4
+```
+
+## Example: HNC hero trailer
+
+```bash
+npm run reels:validate -- --template hnc-hero --home TR --away GR --seed 42
+npm run reels:still -- --composition HncHeroReel --frame 398 --output social/output/hero-shot.png
+npm run reels:render -- --template hnc-hero --home TR --away GR --seed 42 --output social/output/hnc-hero.mp4
 ```
 
 ## Example: country rivalry (migration proof)

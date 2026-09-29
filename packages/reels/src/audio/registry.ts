@@ -28,6 +28,8 @@ export const AUDIO_CUE_IDS = [
   'disappointment',
   'anticipation',
   'brand-sting',
+  'impact',
+  'goal-sting',
 ] as const;
 
 export type AudioCueId = (typeof AUDIO_CUE_IDS)[number];
@@ -72,6 +74,8 @@ export const AUDIO_CUES: Record<AudioCueId, AudioCueDef> = {
   disappointment: { id: 'disappointment', file: 'crowd/disappointment-01.wav', procedural: false, bus: 'crowd', description: 'Miss groan' },
   anticipation: { id: 'anticipation', file: 'crowd/anticipation-02.wav', procedural: false, bus: 'crowd', description: 'Pre-shot rise' },
   'brand-sting': { id: 'brand-sting', procedural: true, bus: 'foreground', description: 'HNC sonic logo sting' },
+  impact: { id: 'impact', procedural: true, bus: 'foreground', description: 'Low cinematic sweetener under a major contact' },
+  'goal-sting': { id: 'goal-sting', procedural: true, bus: 'foreground', description: 'Game goal SFX (noise wash + rising saw swell)' },
 };
 
 export function getAudioCue(id: string): AudioCueDef {

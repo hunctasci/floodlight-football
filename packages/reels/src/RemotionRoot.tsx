@@ -3,7 +3,8 @@ import { Composition } from 'remotion';
 import { ReelComposition } from './compositions/ReelComposition';
 import { OfficeRivalry } from './compositions/OfficeRivalry';
 import { CountryRivalry } from './compositions/CountryRivalry';
-import { compileCountryRivalry, compileOfficeRivalry } from './reel/compile';
+import { HncHeroReel } from './compositions/HncHeroReel';
+import { compileCountryRivalry, compileHncHero, compileOfficeRivalry } from './reel/compile';
 
 const officeSpec = compileOfficeRivalry({
   template: 'office-rivalry',
@@ -23,8 +24,19 @@ const countrySpec = compileCountryRivalry({
   footballMoment: 'attack-goal',
 });
 
+const heroSpec = compileHncHero({ template: 'hnc-hero', home: 'TR', away: 'GR', seed: 42, fps: 60 });
+
 export const RemotionRoot: React.FC = () => (
   <>
+    <Composition
+      id="HncHeroReel"
+      component={HncHeroReel}
+      durationInFrames={Math.round(heroSpec.durationInSeconds * heroSpec.fps)}
+      fps={60}
+      width={1080}
+      height={1920}
+      defaultProps={{ home: 'TR', away: 'GR', seed: 42 }}
+    />
     <Composition
       id="OfficeRivalry"
       component={OfficeRivalry}

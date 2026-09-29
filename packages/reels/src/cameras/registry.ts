@@ -8,6 +8,7 @@
  * Raw coordinates never reach callers — only semantic IDs.
  */
 import { hncFaceoffCameraAt, hncReelCameraBase } from '@floodlight/hnc-visuals';
+import { DEFAULT_LENS_ANCHORS, evaluateCameraMove, isCameraMoveId, type CameraMoveId } from './moves';
 
 export const CAMERA_PRESET_IDS = [
   'wide-establish',
@@ -29,6 +30,17 @@ export const CAMERA_PRESET_IDS = [
   'reaction-keeper',
   'reaction-scorer',
   'graphics-static',
+  // Anchored camera moves (cameras/moves.ts).
+  'ball-rise-reveal',
+  'faceoff-depth-push',
+  'runner-burst',
+  'runner-lead',
+  'runner-approach',
+  'striker-windup',
+  'net-reverse',
+  'scorer-push',
+  'crane-out',
+  'stadium-drift',
 ] as const;
 
 export type CameraPresetId = (typeof CAMERA_PRESET_IDS)[number];
@@ -62,6 +74,16 @@ function lensToPose(lens: { pos: { x: number; y: number; z: number }; look: { x:
 // invented numbers.
 function footballBase(id: string): CameraPose {
   return lensToPose(hncReelCameraBase(id));
+}
+
+/** Registry view of an anchored move: its start/end at the default anchors. */
+function moveDef(id: CameraMoveId, description: string): CameraPresetDef {
+  return {
+    id,
+    description,
+    pose: lensToPose(evaluateCameraMove(id, 0, DEFAULT_LENS_ANCHORS)),
+    pushTo: lensToPose(evaluateCameraMove(id, 1, DEFAULT_LENS_ANCHORS)),
+  };
 }
 
 const V: Record<CameraPresetId, CameraPresetDef> = {
@@ -164,6 +186,16 @@ const V: Record<CameraPresetId, CameraPresetDef> = {
     description: 'Static graphics camera (no 3D motion)',
     pose: { pos: [0, 1.6, 5], look: [0, 1.2, 0], fov: 40 },
   },
+  'ball-rise-reveal': moveDef('ball-rise-reveal', 'Ball macro rising into the faceoff (anchored move)'),
+  'faceoff-depth-push': moveDef('faceoff-depth-push', 'Depth-stacked portrait faceoff push-in (anchored move)'),
+  'runner-burst': moveDef('runner-burst', 'Faceoff framing into a follow from behind (anchored move)'),
+  'runner-lead': moveDef('runner-lead', 'Leading camera ahead of the hero looking back (anchored move)'),
+  'runner-approach': moveDef('runner-approach', 'Follow into the box, swing over the shoulder (anchored move)'),
+  'striker-windup': moveDef('striker-windup', 'Over-shoulder wind-up push toward goal (anchored move)'),
+  'net-reverse': moveDef('net-reverse', 'Reverse angle behind the net (anchored move)'),
+  'scorer-push': moveDef('scorer-push', 'Low push-in on the scorer (anchored move)'),
+  'crane-out': moveDef('crane-out', 'Crane up and out to the stadium (anchored move)'),
+  'stadium-drift': moveDef('stadium-drift', 'High stadium drift plate (anchored move)'),
 };
 
 export function getCameraPreset(id: string): CameraPresetDef {
@@ -189,6 +221,11 @@ function lerpPose(a: CameraPose, b: CameraPose, t: number): CameraPose {
  */
 export function evaluateCamera(presetId: string, localFrame: number, durationInFrames: number): CameraPose {
   const def = getCameraPreset(presetId);
+  if (isCameraMoveId(presetId)) {
+    // Without live anchors (no choreography) a move plays at the defaults.
+    const u = Math.min(1, Math.max(0, localFrame / Math.max(1, durationInFrames)));
+    return lensToPose(evaluateCameraMove(presetId, u, DEFAULT_LENS_ANCHORS));
+  }
   if (presetId === 'football-faceoff' && durationInFrames > 1) {
     // Proven Catmull-Rom dolly (seconds = frames @ 30fps, the Reel default).
     const time = Math.max(0, localFrame) / 30;

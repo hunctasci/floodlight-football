@@ -35,7 +35,9 @@ export const Stage3D: React.FC<{
   attackingTeam?: 'home' | 'away';
   shotStartFrame?: number;
   durationInFrames?: number;
-}> = ({ stageId, frame, fps, moment, home = 'TR', away = 'GR', attackingTeam, shotStartFrame = 0, durationInFrames = 60 }) => {
+  momentTime?: number;
+  momentLength?: number;
+}> = ({ stageId, frame, fps, moment, home = 'TR', away = 'GR', attackingTeam, shotStartFrame = 0, durationInFrames = 60, momentTime, momentLength }) => {
   if (stageId === 'office') return <OfficeSet />;
   if (stageId === 'stadium') {
     return (
@@ -48,6 +50,8 @@ export const Stage3D: React.FC<{
         attackingTeam={attackingTeam}
         shotStartFrame={shotStartFrame}
         durationInFrames={durationInFrames}
+        momentTime={momentTime}
+        momentLength={momentLength}
       />
     );
   }

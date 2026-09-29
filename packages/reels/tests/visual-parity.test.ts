@@ -54,6 +54,42 @@ describe('reel visual parity: no duplicate implementations', () => {
     }
   });
 
+  it('FootballStage puts the canonical sky + fog on the scene, not a group', () => {
+    // Code only (the why-comment quotes the old JSX).
+    const src = read('src/stages/football/FootballStage.tsx').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    // Regression: <color attach="background"> inside a <group> is a no-op.
+    assert.ok(!src.includes('attach="background"'), 'must not attach background to a group');
+    assert.ok(!src.includes('attach="fog"'), 'must not attach fog to a group');
+    assert.ok(src.includes('scene.background = new THREE.Color(HNC_RENDER_PROFILE.background)'));
+    assert.ok(src.includes('HNC_RENDER_PROFILE.fogNear') && src.includes('HNC_RENDER_PROFILE.fogFar'));
+  });
+
+  it('hero reel layers are adapters/overlays only (no player/ball/world geometry)', () => {
+    const files = [
+      'src/football/adapter/pose.ts',
+      'src/football/adapter/moments/hero-attack.ts',
+      'src/cameras/moves.ts',
+      'src/cameras/shot-camera.ts',
+      'src/effects/cinematic.tsx',
+      'src/graphics/Scoreboard.tsx',
+      'src/graphics/GoalCall.tsx',
+      'src/graphics/WorldTable.tsx',
+      'src/graphics/BrandReveal.tsx',
+    ];
+    const banned = [
+      'Geometry', // any THREE.*Geometry constructor or R3F *Geometry JSX
+      '<mesh',
+      'MeshStandardMaterial',
+      'createHncPlayerVisual', // players are only created by the stage
+    ];
+    for (const f of files) {
+      const src = read(f);
+      for (const b of banned) assert.ok(!src.includes(b), `${f} must not contain ${b}`);
+    }
+    // Poses go through the game's own pose function.
+    assert.ok(read('src/football/adapter/pose.ts').includes('applyHncGamePose'));
+  });
+
   it('ReelComposition uses the canonical render profile (no linear flat)', () => {
     const src = read('src/compositions/ReelComposition.tsx');
     assert.ok(!/<ThreeCanvas[^>]*\blinear\b/.test(src), 'must not pass `linear` to ThreeCanvas (disables sRGB)');

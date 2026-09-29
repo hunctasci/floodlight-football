@@ -15,7 +15,7 @@ const input = parseTemplateInput({
   home: arg('home', 'TR'),
   away: arg('away', 'GR'),
   seed: Number(arg('seed', '42')),
-  fps: Number(arg('fps', '30')),
+  fps: arg('fps') === undefined ? undefined : Number(arg('fps')),
   footballMoment: arg('football-moment') ?? arg('footballMoment', 'crossbar-chaos'),
   headline: arg('headline'),
   cta: arg('cta'),

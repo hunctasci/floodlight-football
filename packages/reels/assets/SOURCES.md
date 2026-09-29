@@ -33,6 +33,21 @@ The Reel Factory references these semantically (`goal-roar`, `crowd-bed`);
 copy or symlink them into `packages/reels/public/assets/audio/` when a
 composition needs audible `<Audio>` (procedural cues render silent-safe today).
 
+## Brand (single-sourced from the game)
+
+`public/assets/brand -> apps/game/public/icons` (directory symlink, no binary
+duplication). Asset id `hnc-logo` resolves to `brand/hnc-retro-v2.png`.
+It must be a DIRECTORY symlink: Remotion's static server lstat()s the
+requested path and 404s any file that is itself a symlink.
+
+## Generated SFX stems (not committed)
+
+`public/generated/<spec-id>-sfx.wav` is rebuilt by `reels:render` for specs
+with `audio.sfxStem`. Sound = the game's own arcade synth recipes
+(`apps/game/src/audio/audio.ts`) replayed offline by
+`packages/social-video/src/audio/render.ts`; seeded, byte-deterministic.
+Internal, no third-party material.
+
 ## 3D placeholders (no binaries committed yet)
 
 | Asset id | Wanted | Suggested source | License rule |

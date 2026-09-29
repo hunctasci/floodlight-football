@@ -30,7 +30,7 @@ export const ASSET_MANIFEST: AssetManifestEntry[] = [
   { id: 'anim-side-eye', type: 'animation', file: 'animations/side-eye.glb', bundled: false, tags: ['emotion', 'comedy'] },
   { id: 'anim-angry', type: 'animation', file: 'animations/angry.glb', bundled: false, tags: ['emotion'] },
   // Brand
-  { id: 'hnc-logo', type: 'image', file: 'brand/hnc-logo.png', bundled: false, proceduralFallback: 'procedural-hnc-logo', source: 'apps/game/public/icons/hnc-retro-v2.png', license: 'HNC internal', tags: ['brand'] },
+  { id: 'hnc-logo', type: 'image', file: 'brand/hnc-retro-v2.png', bundled: true, proceduralFallback: 'procedural-hnc-logo', source: 'apps/game/public/icons/hnc-retro-v2.png', license: 'HNC internal', tags: ['brand'] },
   // Audio: real Freesound CC0 crowd recordings, single-sourced from
   // packages/social-video via the public/assets/audio/crowd symlink.
   // Provenance: packages/social-video/assets/audio/SOURCES.md.

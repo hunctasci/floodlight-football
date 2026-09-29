@@ -1,5 +1,6 @@
 import type { ReelSpec, ShotPlan, ShotSpec, TemplateInput } from './types';
 import { formatSize } from './presets';
+import { compileHncHero } from '../director/stories/hnc-hero';
 
 /**
  * StoryCompiler: TemplateInput -> ReelSpec -> ShotPlan.
@@ -7,8 +8,11 @@ import { formatSize } from './presets';
  * captions) live here; stories never carry coordinates or asset paths.
  */
 
+export { compileHncHero };
+
 export function compileTemplate(input: TemplateInput): ReelSpec {
   if (input.template === 'country-rivalry') return compileCountryRivalry(input);
+  if (input.template === 'hnc-hero') return compileHncHero(input);
   return compileOfficeRivalry(input);
 }
 
@@ -284,6 +288,7 @@ export function compileShotPlan(spec: ReelSpec): ShotPlan {
       effects: c.effects,
       audio: c.audio,
       footballMoment: c.footballMoment,
+      momentClock: c.momentClock,
       home: c.home,
       away: c.away,
       attackingTeam: c.attackingTeam,

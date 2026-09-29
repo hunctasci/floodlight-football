@@ -15,7 +15,9 @@ export const AudioTrack: React.FC<{
   totalFrames: number;
   music?: string;
   musicVolume?: number;
-}> = ({ cues, fps, totalFrames, music, musicVolume = 0.25 }) => {
+  /** Pre-rendered procedural SFX stem (public-relative), see audio/sfx.ts. */
+  sfx?: string;
+}> = ({ cues, fps, totalFrames, music, musicVolume = 0.25, sfx }) => {
   const frame = useCurrentFrame();
   void frame;
   const compiled = compileCues(cues, fps);
@@ -24,6 +26,11 @@ export const AudioTrack: React.FC<{
       {music ? (
         <Sequence from={0} durationInFrames={totalFrames}>
           <Audio src={music} volume={musicVolume} />
+        </Sequence>
+      ) : null}
+      {sfx ? (
+        <Sequence from={0} durationInFrames={totalFrames}>
+          <Audio src={staticFile(sfx)} volume={0.85} />
         </Sequence>
       ) : null}
       {compiled.map((c, i) => {

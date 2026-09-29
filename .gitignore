@@ -6,3 +6,5 @@ dist/
 .env.local
 # Generated social-video output (specs and code are committed, media is not).
 social/output/
+# Reel Factory generated audio stems (rebuilt by reels:render).
+packages/reels/public/generated/

@@ -5,7 +5,7 @@ import type { ReelSpec, TemplateInput } from './types';
 
 export class ReelSpecError extends Error {}
 
-const TEMPLATE_IDS = ['office-rivalry', 'country-rivalry'] as const;
+const TEMPLATE_IDS = ['office-rivalry', 'country-rivalry', 'hnc-hero'] as const;
 export type ReelTemplateId = (typeof TEMPLATE_IDS)[number];
 
 const FOOTBALL_MOMENTS = [
@@ -14,6 +14,7 @@ const FOOTBALL_MOMENTS = [
   'crossbar-chaos',
   'keeper-disaster',
   'cross-header-goal',
+  'hero-attack',
 ] as const;
 
 export function parseTemplateId(v: unknown): ReelTemplateId {
@@ -54,7 +55,10 @@ export function parseTemplateInput(v: Record<string, unknown>): TemplateInput {
   const home = parseCountry(v['home']);
   const away = parseCountry(v['away']);
   const seed = parseSeed(v['seed']);
-  const fps = parseFps(v['fps']);
+  // Absent fps stays unset so each template applies its own default
+  // (30 for the rivalry templates, 60 for the hnc-hero trailer).
+  const rawFps = v['fps'];
+  const fps = rawFps === undefined || rawFps === '' || Number.isNaN(rawFps) ? undefined : parseFps(rawFps);
   const headline = v['headline'] === undefined ? undefined : String(v['headline']);
   const cta = v['cta'] === undefined ? undefined : String(v['cta']);
   const footballMoment =
