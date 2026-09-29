@@ -2,7 +2,12 @@
  * World registry (pure). Adding a world: a `<id>.world.ts` definition here +
  * its scene component in render/worlds.tsx.
  */
+import { APARTMENT_WORLD } from './apartment/apartment.world';
 import { BREAKROOM_WORLD } from './breakroom/breakroom.world';
+import { CAFE_WORLD } from './cafe/cafe.world';
+import { ROOFTOP_WORLD } from './rooftop/rooftop.world';
+import { STAGE_WORLD } from './stage/stage.world';
+import { CORRIDOR_WORLD } from './corridor/corridor.world';
 import { FOOTBALL_WORLD } from './football/football.world';
 import { OFFICE_WORLD } from './office/office.world';
 import { PHONE_WORLD } from './phone/phone.world';
@@ -17,6 +22,11 @@ export const WORLDS: Record<string, WorldDef> = {
   phone: PHONE_WORLD,
   title: TITLE_WORLD,
   breakroom: BREAKROOM_WORLD,
+  corridor: CORRIDOR_WORLD,
+  apartment: APARTMENT_WORLD,
+  cafe: CAFE_WORLD,
+  rooftop: ROOFTOP_WORLD,
+  stage: STAGE_WORLD,
 };
 
 export const WORLD_IDS = Object.keys(WORLDS);

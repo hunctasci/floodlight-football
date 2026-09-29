@@ -13,14 +13,26 @@ import type { SceneProps } from '../../render/worlds';
  * that has started: messages pop in and push the thread up; avatars are the
  * cast's HNC characters.
  */
-const UI = {
+const DEFAULT_UI = {
   bg: '#0b0b0f',
   bar: '#16161c',
   bubble: '#26262e',
   mine: '#2f7ff6',
+  mineText: '#f2f2f7',
   text: '#f2f2f7',
   muted: '#8e8e98',
   font: '-apple-system, system-ui, sans-serif',
+};
+/** An original HNC-flavoured messenger skin (not any real app): navy night, gold own bubbles. */
+export const HNC_CHAT_SKIN = {
+  bg: '#0a1220',
+  bar: '#101b31',
+  bubble: '#1c2b44',
+  mine: '#f7bf30',
+  mineText: '#101b31',
+  text: '#f8efdb',
+  muted: '#8ea0b8',
+  font: "'Avenir Next', system-ui, sans-serif",
 };
 const NAME_COLORS = ['#ff9f43', '#5fcddd', '#7ee08a', '#f78fb3'];
 // Sized for a phone feed, not a real phone: legible at thumbnail scale.
@@ -56,6 +68,7 @@ const Attachment: React.FC<{ kind: string; home: string; away: string }> = ({ ki
 export const PhoneScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline }) => {
   const { width, height } = useLayout();
   const set = shot.set;
+  const UI = set.skin === 'hnc' ? HNC_CHAT_SKIN : DEFAULT_UI;
   const me = String(set.me ?? Object.keys(timeline.cast)[0]);
   const members = ((set.members as string[] | undefined) ?? Object.keys(timeline.cast)).filter((id) => timeline.cast[id]);
   // One thread can span several phone scenes (`set.thread`), so the chat
@@ -104,7 +117,7 @@ export const PhoneScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline })
                 ))}
               </div>
             ) : (
-              <div style={{ background: mine ? UI.mine : UI.bubble, borderRadius: 40, borderBottomRightRadius: mine ? 12 : 40, borderBottomLeftRadius: mine ? 40 : 12, padding: '20px 32px', maxWidth: MAX_W + 64, fontSize: FONT, lineHeight: `${LINE}px` }}>
+              <div style={{ background: mine ? UI.mine : UI.bubble, color: mine ? UI.mineText : UI.text, fontWeight: mine && set.skin === 'hnc' ? 700 : 400, borderRadius: 40, borderBottomRightRadius: mine ? 12 : 40, borderBottomLeftRadius: mine ? 40 : 12, padding: '20px 32px', maxWidth: MAX_W + 64, fontSize: FONT, lineHeight: `${LINE}px` }}>
                 {!mine ? <div style={{ fontSize: 36, fontWeight: 700, color: colorOf(from), marginBottom: 4, lineHeight: '42px' }}>{member?.name ?? from} {member ? countryFlag(member.country) : ''}</div> : null}
                 {ev.props.reply ? <div style={{ borderLeft: `6px solid ${mine ? '#fff9' : colorOf(from)}`, padding: '6px 16px', marginBottom: 10, fontSize: 40, lineHeight: '50px', opacity: 0.8, background: '#0003', borderRadius: 10 }}>{String(ev.props.reply)}</div> : null}
                 {ev.props.image ? <Attachment kind={String(ev.props.image)} home={home} away={away} /> : null}

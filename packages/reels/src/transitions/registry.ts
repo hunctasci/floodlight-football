@@ -22,6 +22,8 @@ export const TRANSITIONS: Record<string, TransitionDef> = {
   'match-cut': { summary: 'Hard cut between matched framings (same lens, new world)', duration: 0, lead: 0.5, overlap: false, sounds: [] },
   flash: { summary: 'White flash across the cut', duration: 0.2, lead: 0.5, overlap: false, sounds: [{ cue: 'impact', at: 'cut', volume: 1.5 }] },
   dip: { summary: 'Dip to black', duration: 0.5, lead: 0.5, overlap: false, sounds: [] },
+  dissolve: { summary: 'Slow cross-dissolve: both pictures share the frame (ceremony, memory — use sparingly)', duration: 1.0, lead: 0.5, overlap: true, sounds: [] },
+  'white-out': { summary: 'Walk into the light: the frame burns to white, the next shot resolves out of it', duration: 0.8, lead: 0.7, overlap: false, sounds: [{ cue: 'sub-hit', at: 'cut', volume: 1.2 }] },
   'light-bloom': {
     summary: 'A light in the outgoing shot blows out to white; the frame resolves from a light in the incoming shot',
     duration: 0.6,

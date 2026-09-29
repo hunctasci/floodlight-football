@@ -28,7 +28,9 @@
     "reels:asset:import": "npm run asset:import --workspace=@floodlight/reels",
     "deploy": "npm run deploy --workspace=floodlight-football",
     "reels:qa": "tsx packages/reels/scripts/qa.ts",
-    "reels:vocab": "tsx packages/reels/scripts/vocab.ts"
+    "reels:vocab": "tsx packages/reels/scripts/vocab.ts",
+    "reels:poster": "tsx packages/reels/scripts/poster.ts",
+    "reels:campaign": "tsx packages/reels/scripts/campaign.ts"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

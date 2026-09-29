@@ -2,6 +2,8 @@ import React from 'react';
 import { Composition } from 'remotion';
 import { CONTENT, compositionId } from './content';
 import { ContentComposition, contentMetadata } from './render/ContentComposition';
+import { PosterType } from './posters/PosterType';
+import type { PosterDef } from './posters/types';
 
 /**
  * One composition per registered piece (Studio browsing) plus `Content`,
@@ -23,6 +25,16 @@ export const RemotionRoot: React.FC = () => (
         height={1920}
       />
     ))}
+    <Composition
+      id="PosterType"
+      component={PosterType}
+      defaultProps={{ poster: { id: 'empty', plates: [], blocks: [], alt: '' } as PosterDef }}
+      calculateMetadata={({ props }: { props: { poster: PosterDef } }) => ({ width: props.poster.width ?? 1080, height: props.poster.height ?? 1350 })}
+      durationInFrames={1}
+      fps={30}
+      width={1080}
+      height={1350}
+    />
     <Composition
       id="Content"
       component={ContentComposition}

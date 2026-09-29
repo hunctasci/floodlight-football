@@ -8,6 +8,7 @@ import * as THREE from 'three';
 import { countryColors, countryFlag, countryName } from '../cast/countries';
 import { HNC_UI } from '../graphics/hnc-ui';
 import { paintNationalFlag } from './flags';
+import { upper } from '../graphics/case';
 
 export interface ScreenData {
   home: string;
@@ -144,7 +145,7 @@ const PAINTERS: Record<string, Painter> = {
     c.textBaseline = 'middle';
     c.fillText('BREAKING', w / 2, h * 0.42);
     c.font = mono(h * 0.07);
-    c.fillText(`${countryFlag(d.home)} ${countryName(d.home).toUpperCase()} ▲   ${countryFlag(d.away)} ${countryName(d.away).toUpperCase()} ▼`, w / 2, h * 0.7);
+    c.fillText(`${countryFlag(d.home)} ${upper(countryName(d.home))} ▲   ${countryFlag(d.away)} ${upper(countryName(d.away))} ▼`, w / 2, h * 0.7);
   },
   'world-table': (c, w, h, d) => {
     c.fillStyle = HNC_UI.ink;

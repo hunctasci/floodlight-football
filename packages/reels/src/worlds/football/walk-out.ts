@@ -2,18 +2,18 @@ import type { ChoreoActor, ChoreoFrame } from './choreography';
 import { gait, lerp, seg, smooth, speedOf, travel, type V2 } from './choreo-math';
 
 /**
- * walk-out — five players walk out across an empty stadium together, the lead
- * in front and the others in a shallow V behind, slow and unhurried, and stop
+ * walk-out — five players walk out across an empty stadium together, shoulder
+ * to shoulder in one line (a hair of stagger), slow and unhurried, and stop
  * short of the centre circle. No opponent, no ball: a ceremony, not a match.
  */
 export const WALK_OUT = { length: 16, start: 0, stop: 13.2 } as const;
 
 const SLOTS: readonly { dx: number; dz: number; delay: number; number: number }[] = [
   { dx: 0, dz: 0, delay: 0, number: 29 },
-  { dx: -2.3, dz: 1.7, delay: 0.25, number: 10 },
-  { dx: 2.3, dz: 1.7, delay: 0.3, number: 7 },
-  { dx: -4.6, dz: 3.4, delay: 0.5, number: 4 },
-  { dx: 4.6, dz: 3.4, delay: 0.55, number: 1 },
+  { dx: -1.45, dz: 0.3, delay: 0.12, number: 10 },
+  { dx: 1.45, dz: 0.3, delay: 0.18, number: 7 },
+  { dx: -2.9, dz: 0.55, delay: 0.26, number: 4 },
+  { dx: 2.9, dz: 0.55, delay: 0.3, number: 1 },
 ];
 const FROM_Z = 25;
 const TO_Z = 6.5;

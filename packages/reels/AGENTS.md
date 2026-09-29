@@ -36,6 +36,14 @@ cameras, frame math, CSS, assets, audio files and encoding. Full vocabulary:
 }
 ```
 
+## Campaign / poster workflow
+
+- Recurring characters: cast `{ person: 'emre' }` (see `src/cast/people.ts`); never re-invent a known person with a new number.
+- A campaign item = reel spec + poster (`src/content/autumn-2026/posters.ts`) + metadata (`campaign.ts`). `npm run reels:campaign -- --only 3` renders reel.mp4, post.png, storyboard.md and qa/ into `social/output/autumn-2026/<dir>/`. Write `copy.md` by hand.
+- Posters are composed: a one-beat key-art spec with a poster lens, cropped from 9:16 (a 4:5 crop keeps 70% of the height — stage people to fill ≤ 60%), then typography blocks. `npm run reels:poster -- --poster autumn-07-poster`.
+- `npm run reels:still -- --content <id> --at beatA@60%,beatB@30%` renders several beats into one sheet.
+- Uppercase through `graphics/case.ts` (`upper`) — never raw `toUpperCase()` on text that may contain Turkish.
+
 ## Rules
 
 - **Cast is identity.** `country` + `number` drive skin, kit, back number and flag in every world. Keep the same person across worlds; change their `looks`, not their identity. Match a football role's choreographed number (validator warns).
@@ -47,6 +55,7 @@ cameras, frame math, CSS, assets, audio files and encoding. Full vocabulary:
 - **Sound is semantic**: cue ids only. World ambience beds are automatic; `hush` makes a comedic silence.
 - **Brand arrives at the payoff**, not before it: end on `brand-reveal` in the `title` world.
 - Determinism: never `Math.random`, `Date.now`, or accumulated state. Variation comes from `seed`.
+- IP: no competition/club/broadcaster marks, no real players; the game's third-party ad creatives are never shown (football boards paint HNC). Standings in content are illustrative and say so on screen.
 
 ## Adding capability
 

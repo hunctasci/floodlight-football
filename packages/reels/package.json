@@ -13,7 +13,9 @@
     "asset:import": "tsx scripts/import-glb.ts",
     "asset:validate": "tsx scripts/validate-assets.ts",
     "qa": "tsx scripts/qa.ts",
-    "vocab": "tsx scripts/vocab.ts"
+    "vocab": "tsx scripts/vocab.ts",
+    "poster": "tsx scripts/poster.ts",
+    "campaign": "tsx scripts/campaign.ts"
   },
   "dependencies": {
     "@floodlight/hnc-visuals": "1.0.0",

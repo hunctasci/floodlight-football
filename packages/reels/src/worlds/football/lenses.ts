@@ -75,6 +75,25 @@ const REEL_LENSES = {
   /** Low hero angle on the scorer, full body with headroom for the jump. */
   'scorer-low': (a: LensAnchors) => lens(at(a.hero, -2.2, 1.1, 6.2), at(a.hero, 0.4, 1.6, -0.5), 50),
   'scorer-low-tight': (a: LensAnchors) => lens(at(a.hero, -1.7, 1.0, 5.0), at(a.hero, 0.3, 1.7, -0.4), 48),
+  /** Behind the +x goal, low: the keeper's back in the foreground, the pitch (and whoever walks on) beyond. */
+  'goal-behind': () => lens({ x: 49.2, y: 1.7, z: 0.9 }, { x: 29.3, y: 1.3, z: -0.5 }, 44),
+  /** Low on the penalty spot looking at goal: a ball rolling at the lens, keeper on his line. */
+  'spot-low': () => lens({ x: 32.9, y: 0.34, z: 0.3 }, { x: 44, y: 0.75, z: 0 }, 40),
+  /** Straight down onto the ball (the espresso match cut); screen-up points at goal. */
+  'ball-overhead': (a: LensAnchors) => lens({ x: a.ball.x, y: a.ball.y + 1.75, z: a.ball.z }, { x: a.ball.x + 0.09, y: a.ball.y, z: a.ball.z }, 40),
+  'ball-overhead-wide': (a: LensAnchors) => lens({ x: a.ball.x, y: a.ball.y + 3.1, z: a.ball.z }, { x: a.ball.x + 0.15, y: a.ball.y, z: a.ball.z }, 40),
+  /** High behind a set piece: taker, wall, keeper and goal in one frame. */
+  'fk-high': (a: LensAnchors) => lens({ x: a.ball.x - 7.5, y: 10.5, z: a.ball.z + 4.5 }, { x: a.ball.x + 13, y: 0, z: a.ball.z - 3 }, 50),
+  /** Behind the taker at shoulder height, toward the wall and the far corner. */
+  'kick-behind': (a: LensAnchors) => lens(at(a.hero, -3.2, 1.6, 1.3), { x: a.hero.x + 14, y: 1.35, z: a.hero.z - 4 }, 42),
+  /** Low in front of a walk-out, looking back up the pitch at the faces coming on. */
+  'walkout-front': (a: LensAnchors) => lens({ x: a.hero.x + 0.6, y: 0.95, z: a.hero.z - 4.2 }, { x: a.hero.x, y: 1.55, z: a.hero.z + 10 }, 44),
+  /** Behind a walk-out line at head height: three backs across the frame, the far stand ahead. */
+  'walkout-back': (a: LensAnchors) => lens({ x: a.hero.x + 0.4, y: 1.75, z: a.hero.z + 6.8 }, { x: a.hero.x, y: 1.9, z: a.hero.z - 30 }, 44),
+  /** High behind a walk-out: the players small on the grass, the far stand ahead. */
+  'walkout-high': (a: LensAnchors) => lens({ x: a.hero.x + 3.2, y: 7.5, z: a.hero.z + 17 }, { x: a.hero.x, y: 1.5, z: a.hero.z - 30 }, 46),
+  /** Horror key art: far behind a small striker, the keeper centred in his goal under one light. */
+  'poster-horror': () => lens({ x: 25.6, y: 1.25, z: 1.6 }, { x: 45.5, y: 2.05, z: 0.1 }, 30),
   /** High crane over the scorer, stand in frame. */
   'stadium-high': (a: LensAnchors) => lens(at(a.hero, -9, 11, 14), at(a.hero, -6, 0, -9), 52),
   'stadium-high-drift': (a: LensAnchors) => lens(at(a.hero, -12.5, 12, 16), at(a.hero, -8, 0, -9), 52),
@@ -148,6 +167,11 @@ export const CAMERA_MOVES = {
     description: 'Low push-in on the scorer',
     keys: [[0, 'scorer-low'], [1, 'scorer-low-tight']],
     ease: ['ease-in-out'],
+  },
+  'ball-overhead-rise': {
+    description: 'Hold straight down on a spinning ball, then crane up and back to reveal the whole set piece',
+    keys: [[0, 'ball-overhead'], [0.35, 'ball-overhead'], [1, 'fk-high']],
+    ease: ['linear', 'ease-in-out'],
   },
   'crane-out': {
     description: 'Crane up and out from the scorer to a high stadium view',

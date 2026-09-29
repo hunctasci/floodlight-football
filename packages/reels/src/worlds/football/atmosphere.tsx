@@ -25,6 +25,8 @@ interface Preset {
   practicals: number;
   /** Soft fill from the camera side (keeps faces readable against a backlight). */
   fill?: { pos: [number, number, number]; color: string; intensity: number };
+  /** Low practicals on the grass (horror under-lighting of faces near the goal / spot). */
+  ground?: { pos: [number, number, number]; color: string; intensity: number }[];
 }
 
 /** Floodlight head positions (create-stands.ts pylons). */
@@ -57,7 +59,11 @@ export const FOOTBALL_LIGHTS: Record<Exclude<FootballLightId, 'day'>, Preset> = 
     hemi: { sky: '#6a82a6', ground: '#040806', intensity: 0.3 },
     floods: { heads: [0], color: '#cfe0ff', intensity: 1.55, halo: 0.8 },
     practicals: 0.25,
-    fill: { pos: [-20, 9, 30], color: '#7d93c4', intensity: 0.55 },
+    fill: { pos: [-20, 9, 18], color: '#8aa0d0', intensity: 1.05 },
+    ground: [
+      { pos: [42.6, 0.35, 0.4], color: '#b9d2ff', intensity: 5 },
+      { pos: [34.1, 0.35, 2.4], color: '#b9d2ff', intensity: 4 },
+    ],
   },
 };
 
@@ -236,6 +242,7 @@ export const FootballLighting: React.FC<{ preset: FootballLightId; level: number
       {p.sun ? (
         <directionalLight position={p.sun.pos} color={p.sun.color} intensity={p.sun.intensity * level} castShadow shadow-mapSize={[2048, 2048]} shadow-camera-left={-60} shadow-camera-right={60} shadow-camera-top={45} shadow-camera-bottom={-45} shadow-camera-far={400} />
       ) : null}
+      {p.ground?.map((g) => <pointLight key={g.pos.join(',')} position={g.pos} color={g.color} intensity={g.intensity * level} distance={6} decay={1.6} />)}
       {p.fill ? <directionalLight position={p.fill.pos} color={p.fill.color} intensity={p.fill.intensity * level} /> : null}
       {p.floods.heads.map((h, i) => (
         <directionalLight

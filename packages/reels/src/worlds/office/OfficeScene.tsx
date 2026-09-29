@@ -9,9 +9,38 @@ import { CastActor } from '../../render/CastActor';
 import { makeCanvasTexture, paintFlag } from '../../render/screens';
 import { Screen } from '../../render/Screen';
 import { countryColors } from '../../cast/countries';
+import { getLook } from '../../cast/looks';
 import type { Vec3 } from '../types';
 import { CEILING_LIGHT, DESKS, OFFICE, podSeats, POD_NAMES, type DeskSide } from './layout';
 import { officeLightLevel } from './lighting';
+import { screenAt } from '../../render/screen-switch';
+import { Glow, paintCityView } from '../interior/kit';
+import { eventProgress, smooth01 } from '../events';
+import { createHncBallVisual, disposeHncBallVisual, HNC_CROWD_COLORS } from '@floodlight/hnc-visuals';
+
+/** The carpet turning into a pitch (stadium morph): stripes + a halfway line down the aisle. */
+const PitchFloor: React.FC<{ morph: number }> = ({ morph }) => {
+  const tex = useTexture(512, 512, (c) => {
+    for (let i = 0; i < 8; i++) {
+      c.fillStyle = i % 2 ? '#3f9d52' : '#48ab5c';
+      c.fillRect(0, (i * 512) / 8, 512, 512 / 8);
+    }
+    c.fillStyle = '#eef6ee';
+    c.fillRect(256 - 4, 0, 8, 512);
+    c.strokeStyle = '#eef6ee';
+    c.lineWidth = 8;
+    c.beginPath();
+    c.arc(256, 256, 90, 0, Math.PI * 2);
+    c.stroke();
+  }, 'office-pitch');
+  const { halfX, back, front } = OFFICE.room;
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, (back + front) / 2]} receiveShadow>
+      <planeGeometry args={[halfX * 2, front - back]} />
+      <meshStandardMaterial map={tex} roughness={0.95} transparent opacity={smooth01(morph * 1.6)} />
+    </mesh>
+  );
+};
 
 /**
  * Office world renderer — HNC low-poly flat-shaded set (warm walls, carpet
@@ -69,8 +98,12 @@ const Carpet: React.FC = () => {
   );
 };
 
-const Skyline: React.FC<{ w: number; h: number; position: [number, number, number] }> = ({ w, h, position }) => {
+const Skyline: React.FC<{ w: number; h: number; position: [number, number, number]; night?: boolean }> = ({ w, h, position, night }) => {
   const tex = useTexture(512, 300, (c) => {
+    if (night) {
+      paintCityView(c, 512, 300, 'night', Math.round(position[0] * 10) + 7);
+      return;
+    }
     const g = c.createLinearGradient(0, 0, 0, 300);
     g.addColorStop(0, '#9fd0ef');
     g.addColorStop(1, '#d9eef8');
@@ -83,7 +116,7 @@ const Skyline: React.FC<{ w: number; h: number; position: [number, number, numbe
       c.fillStyle = '#9cbcd4';
       for (let y = top + 12; y < 290; y += 22) for (let wx = x + 8; wx < x + bw - 10; wx += 16) c.fillRect(wx, y, 8, 10);
     }
-  }, 'skyline');
+  }, night ? `skyline-night-${position[0]}` : 'skyline');
   return (
     <mesh position={position}>
       <planeGeometry args={[w, h]} />
@@ -92,7 +125,8 @@ const Skyline: React.FC<{ w: number; h: number; position: [number, number, numbe
   );
 };
 
-const Room: React.FC<{ level: number; clock: string }> = ({ level, clock }) => {
+const Room: React.FC<{ level: number; clock: string; night: boolean; morph: number; panelsLit: (x: number, z: number) => number }> = ({ level, clock, night, morph, panelsLit }) => {
+  const wallTone = new THREE.Color(night ? '#b9b4aa' : C.wall).lerp(new THREE.Color('#0b1422'), morph);
   const { halfX, back, front, ceiling } = OFFICE.room;
   const depth = front - back;
   const clockTex = useTexture(256, 256, (c) => {
@@ -155,6 +189,7 @@ const Room: React.FC<{ level: number; clock: string }> = ({ level, clock }) => {
   return (
     <group>
       <Carpet />
+      {morph > 0.01 ? <PitchFloor morph={morph} /> : null}
       {/* Ceiling + fluorescent grid (emissive boost = light level). */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ceiling, (back + front) / 2]}>
         <planeGeometry args={[halfX * 2, depth]} />
@@ -168,14 +203,14 @@ const Room: React.FC<{ level: number; clock: string }> = ({ level, clock }) => {
           </mesh>
           <mesh position={[0, -0.025, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <planeGeometry args={[1.2, 0.54]} />
-            <meshBasicMaterial color={new THREE.Color('#fffbe8').multiplyScalar(0.55 + 0.45 * level)} />
+            <meshBasicMaterial color={new THREE.Color(morph > 0 ? '#f4f8ff' : '#fffbe8').multiplyScalar((0.55 + 0.45 * level) * panelsLit(x, z) * (1 + 1.6 * morph))} toneMapped={morph < 0.05} />
           </mesh>
         </group>
       ))}
       {/* Back wall with windows onto the skyline. */}
       <mesh position={[0, ceiling / 2, back]}>
         <planeGeometry args={[halfX * 2, ceiling]} />
-        <meshStandardMaterial color={C.wall} {...FLAT} />
+        <meshStandardMaterial color={wallTone} {...FLAT} />
       </mesh>
       {[-3.6, 0, 3.6].map((x) => (
         <group key={x} position={[x, 1.75, back + 0.02]}>
@@ -183,7 +218,7 @@ const Room: React.FC<{ level: number; clock: string }> = ({ level, clock }) => {
             <boxGeometry args={[2.7, 1.6, 0.05]} />
             <meshStandardMaterial color={C.frame} {...FLAT} />
           </mesh>
-          <Skyline w={2.5} h={1.4} position={[0, 0, 0.03]} />
+          <Skyline w={2.5} h={1.4} position={[0, 0, 0.03]} night={night} />
           <mesh position={[0, 0, 0.05]}>
             <boxGeometry args={[0.06, 1.4, 0.02]} />
             <meshStandardMaterial color={C.frame} {...FLAT} />
@@ -198,12 +233,12 @@ const Room: React.FC<{ level: number; clock: string }> = ({ level, clock }) => {
       {[-1, 1].map((sx) => (
         <mesh key={sx} position={[sx * halfX, ceiling / 2, (back + front) / 2]} rotation={[0, -sx * (Math.PI / 2), 0]}>
           <planeGeometry args={[depth, ceiling]} />
-          <meshStandardMaterial color={C.wall} {...FLAT} />
+          <meshStandardMaterial color={wallTone} {...FLAT} />
         </mesh>
       ))}
       <mesh position={[0, ceiling / 2, front]} rotation={[0, Math.PI, 0]}>
         <planeGeometry args={[halfX * 2, ceiling]} />
-        <meshStandardMaterial color={C.wall} {...FLAT} />
+        <meshStandardMaterial color={wallTone} {...FLAT} />
       </mesh>
       {[-1, 1].map((sx) => (
         <mesh key={`w${sx}`} position={[sx * (halfX - 0.01), 0.45, (back + front) / 2]} rotation={[0, -sx * (Math.PI / 2), 0]}>
@@ -380,59 +415,128 @@ function extraTracks(shot: Shot, taken: Set<string>, count: number): { track: Ac
   }));
 }
 
+/** The door on the right wall stands open onto impossible stadium light. */
+const DoorLight: React.FC = () => {
+  const x = OFFICE.room.halfX - 0.05;
+  return (
+    <group>
+      {/* In front of the (closed) door mesh: the doorway is pure light. */}
+      <mesh position={[x - 0.08, 1.05, -2.6]} rotation={[0, -Math.PI / 2, 0]}>
+        <planeGeometry args={[1.0, 2.1]} />
+        <meshBasicMaterial color="#f4fbef" toneMapped={false} />
+      </mesh>
+      {/* Light on the carpet: a long wedge from the door, plus the glow of the opening. */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[x - 2.1, 0.01, -2.35]}>
+        <planeGeometry args={[4.2, 1.4]} />
+        <meshBasicMaterial color="#dff5d8" transparent opacity={0.4} toneMapped={false} />
+      </mesh>
+      <Glow pos={[x - 0.2, 1.1, -2.6]} size={4.4} color="#f0ffe8" strength={1} />
+      <pointLight position={[x - 0.6, 1.3, -2.6]} color="#e8ffe0" intensity={4} distance={7} decay={1.4} />
+    </group>
+  );
+};
+
+/** A canonical HNC ball left under desk-a (nobody in the office plays football). */
+const DeskBall: React.FC<{ at: [number, number] }> = ({ at }) => {
+  const ball = React.useMemo(() => createHncBallVisual(), []);
+  React.useEffect(() => () => disposeHncBallVisual(ball), [ball]);
+  ball.root.position.set(at[0], 0.25, at[1]);
+  ball.root.rotation.set(0.4, 0.9, 0.2);
+  ball.shadow.position.set(at[0], 0.012, at[1]);
+  return (
+    <>
+      <primitive object={ball.root} />
+      <primitive object={ball.shadow} />
+    </>
+  );
+};
+
+/**
+ * Night + morph: `set.time: 'night'` darkens the room (skyline lit, a few
+ * panels on, monitors light the faces). A `stadium-morph` event turns the
+ * floor into a pitch, the panels into floodlights, the walls to night, the
+ * partitions to crowd colours and everyone into a fan (persists in the scene).
+ */
 export const OfficeScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline, lens }) => {
   const scene = useThree((s) => s.scene);
-  React.useMemo(() => {
-    scene.background = new THREE.Color(C.wall);
-    scene.fog = null;
-  }, [scene]);
-  const level = officeLightLevel(shot, frame, fps, timeline.seed);
   const set = shot.set;
+  const night = set.time === 'night';
+  const morphEv = eventProgress(timeline, shot, 'stadium-morph', frame);
+  const morph = morphEv ? smooth01(morphEv.p) : 0;
+  React.useMemo(() => {
+    scene.background = new THREE.Color(night ? '#0d1320' : C.wall);
+    scene.fog = null;
+  }, [scene, night]);
+  const level = officeLightLevel(shot, frame, fps, timeline.seed);
   const clues = set.clues !== false;
   const screens = (set.screens ?? {}) as Record<string, string>;
   const castList = Object.values(timeline.cast);
-  const screenData = { home: castList[0]?.country ?? 'TR', away: castList[1]?.country ?? 'GR', t: frame / fps };
+  const screenData = { home: String(set.home ?? castList[0]?.country ?? 'TR'), away: String(set.away ?? castList[1]?.country ?? 'GR'), t: frame / fps };
+  const screenOf = (mark: string) => screenAt(timeline, shot, frame, `${mark}-monitor`, screens[`${mark}-monitor`] ?? screens.all ?? 'spreadsheet');
 
-  const target = gazeTargets(shot, frame, fps, lens);
+  const target = gazeTargets(shot, frame, fps, lens, timeline);
   const deskOwner = (mark: string) => {
     const t = shot.actors.find((a) => a.mark === mark);
     return t ? { member: timeline.cast[t.cast], sit: actorState(shot, t, frame, fps).pose.sit } : undefined;
   };
   const taken = new Set(shot.actors.map((a) => a.mark));
   const extras = extraTracks(shot, taken, typeof set.extras === 'number' ? set.extras : 5);
+  // Night: only the panels over the occupied pods glow; morph floods everything.
+  const panelsLit = (x: number, z: number) => (!night ? 1 : morph > 0 ? 0.25 + 0.75 * morph : Math.abs(x) < 0.5 && Math.abs(z) < 0.5 ? 0.85 : 0.12);
+  const amb = night ? 0.28 + 1.4 * morph : 1;
+  const fanLook = morph > 0.45 ? 'fan' : undefined;
+  const litDesks = [...Object.keys(DESKS), ...OFFICE.pods.flatMap((_, i) => [`${POD_NAMES[i]}-a`, `${POD_NAMES[i]}-b`])].filter((m) => taken.has(m) || extras.some((e) => e.track.mark === m));
+  const deskCentre = (mark: string): Vec3 => {
+    const seat = podSeats()[mark];
+    if (seat) return { x: seat.x, y: OFFICE.monitorY, z: seat.z - Math.sign(seat.z - (OFFICE.pods.find(([px]) => Math.abs(px - seat.x) < 0.1)?.[1] ?? 0)) * (OFFICE.seatZ - OFFICE.monitorZ - 0.35) };
+    const sd = DESKS[mark as 'desk-a' | 'desk-b'];
+    return { x: 0, y: OFFICE.monitorY, z: sd * (OFFICE.monitorZ + 0.35) };
+  };
+  const monitorColor = (content: string) => (content === 'black' || content === 'off' ? undefined : content === 'your-match' ? '#f7bf30' : content.startsWith('stream') ? '#8fe0a0' : '#bcd4ff');
 
   return (
     <group>
-      <hemisphereLight args={['#fffaf0', '#6f6a60', 1.75 * level]} />
-      <directionalLight position={[3.5, 6.5, 7]} color="#fff4e2" intensity={1.8 * level} castShadow shadow-mapSize={[1024, 1024]} shadow-camera-left={-8} shadow-camera-right={8} shadow-camera-top={8} shadow-camera-bottom={-8} />
-      <directionalLight position={[-2, 4, -9]} color="#dbeaff" intensity={0.55 * Math.min(1.4, level)} />
-      <pointLight position={[CEILING_LIGHT.x, CEILING_LIGHT.y - 0.3, CEILING_LIGHT.z]} intensity={2.2 * level} distance={5} decay={1.6} color="#fff6dc" />
-      <Room level={level} clock={typeof set.clock === 'string' ? set.clock : '09:03'} />
+      <hemisphereLight args={[night ? '#9fb3d9' : '#fffaf0', night ? '#2a2c35' : '#6f6a60', 1.75 * level * amb]} />
+      <directionalLight position={[3.5, 6.5, 7]} color={night ? '#c9d6ff' : '#fff4e2'} intensity={(night ? 0.35 + 1.2 * morph : 1.8) * level} castShadow shadow-mapSize={[1024, 1024]} shadow-camera-left={-8} shadow-camera-right={8} shadow-camera-top={8} shadow-camera-bottom={-8} />
+      <directionalLight position={[-2, 4, -9]} color="#dbeaff" intensity={0.55 * Math.min(1.4, level) * (night ? 0.4 : 1)} />
+      <pointLight position={[CEILING_LIGHT.x, CEILING_LIGHT.y - 0.3, CEILING_LIGHT.z]} intensity={2.2 * level * (night ? 0.6 : 1)} distance={5} decay={1.6} color="#fff6dc" />
+      {night
+        ? litDesks.map((m) => {
+            const col = monitorColor(screenOf(m));
+            if (!col || morph > 0.6) return null;
+            const c = deskCentre(m);
+            return <pointLight key={`mon-${m}`} position={[c.x, c.y + 0.1, c.z]} color={col} intensity={0.9} distance={2.4} decay={1.8} />;
+          })
+        : null}
+      {morph > 0
+        ? OFFICE.panels.map(([x, z]) => <Glow key={`fl-${x}:${z}`} pos={[x, OFFICE.room.ceiling - 0.15, z]} size={2.8} color="#eaf1ff" strength={morph} />)
+        : null}
+      <Room level={level} clock={typeof set.clock === 'string' ? set.clock : '09:03'} night={night} morph={morph} panelsLit={panelsLit} />
+      {set.doorLight ? <DoorLight /> : null}
+      {set.ball === 'under-desk' ? <DeskBall at={[0.25, 0.78]} /> : set.ball === 'in-light' ? <DeskBall at={[4.25, -1.25]} /> : null}
       {(Object.keys(DESKS) as ('desk-a' | 'desk-b')[]).map((mark) => {
         const o = deskOwner(mark);
-        return (
-          <Desk key={mark} origin={[0, 0]} s={DESKS[mark]} owner={o?.member} ownerSit={o?.sit ?? 1} clues={clues} screen={screens[`${mark}-monitor`] ?? 'spreadsheet'} screenData={screenData} />
-        );
+        return <Desk key={mark} origin={[0, 0]} s={DESKS[mark]} owner={o?.member} ownerSit={o?.sit ?? 1} clues={clues} screen={screenOf(mark)} screenData={screenData} />;
       })}
       {OFFICE.pods.map(([px, pz], i) =>
-        ([1, -1] as DeskSide[]).map((s) => {
-          const mark = `${POD_NAMES[i]}-${s > 0 ? 'a' : 'b'}`;
+        ([1, -1] as DeskSide[]).map((sd) => {
+          const mark = `${POD_NAMES[i]}-${sd > 0 ? 'a' : 'b'}`;
           const o = deskOwner(mark);
-          return <Desk key={mark} origin={[px, pz]} s={s} owner={o?.member} ownerSit={o?.sit ?? 1} clues={clues} screen="spreadsheet" screenData={screenData} />;
+          return <Desk key={mark} origin={[px, pz]} s={sd} owner={o?.member} ownerSit={o?.sit ?? 1} clues={clues} screen={screenOf(mark)} screenData={screenData} />;
         }),
       )}
-      {/* Low fabric dividers on the background pods (depth + office read). */}
-      {OFFICE.pods.map(([px, pz]) => (
-        <mesh key={`p${px}:${pz}`} position={[px, OFFICE.deskTop + 0.24, pz]}>
-          <boxGeometry args={[OFFICE.deskW, 0.48, 0.04]} />
-          <meshStandardMaterial color={C.partition} {...FLAT} />
+      {/* Low fabric dividers on the background pods; crowd colours in the morph. */}
+      {OFFICE.pods.map(([px, pz], i) => (
+        <mesh key={`p${px}:${pz}`} position={[px, OFFICE.deskTop + 0.24 + 0.3 * morph, pz]}>
+          <boxGeometry args={[OFFICE.deskW, 0.48 + 0.6 * morph, 0.04]} />
+          <meshStandardMaterial color={new THREE.Color(C.partition).lerp(new THREE.Color(HNC_CROWD_COLORS[i * 2]), morph)} {...FLAT} />
         </mesh>
       ))}
       {shot.actors.map((track) => (
-        <CastActor key={track.cast} shot={shot} track={track} member={timeline.cast[track.cast]} frame={frame} fps={fps} target={target} shadowColor="#20242c" />
+        <CastActor key={track.cast} shot={shot} track={track} member={timeline.cast[track.cast]} frame={frame} fps={fps} target={target} shadowColor="#20242c" lookOverride={fanLook && getLook(track.look).kit !== true ? fanLook : undefined} />
       ))}
       {extras.map(({ track, member }) => (
-        <CastActor key={track.cast} shot={shot} track={track} member={member} frame={frame} fps={fps} target={target} shadowColor="#20242c" />
+        <CastActor key={track.cast} shot={shot} track={track} member={member} frame={frame} fps={fps} target={target} shadowColor="#20242c" lookOverride={fanLook} />
       ))}
     </group>
   );

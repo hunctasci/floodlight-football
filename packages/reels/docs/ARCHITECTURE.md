@@ -127,3 +127,27 @@ and proves the linter catches the first-generation bugs.
 * Close-ups in 1:1 are very tight (the crop keeps face width).
 * Screen content inside the 3D world is canvas-painted; the zoom-through
   hands over to the DOM graphic (similar, not pixel-identical content).
+
+## 8. Autumn 2026 campaign additions (2026-09-29)
+
+Built because the ten campaign concepts needed them — each is used by at
+least two pieces or is a genuine engine gap (listed with its first users).
+
+| Addition | Where | Why |
+|---|---|---|
+| **People** (recurring identities) | `cast/people.ts`, `CastSpec.person` | Emre, Lucas, Nikos, Kaan… are one identity (country + number → face, kit, flag) across apartment, office, café, tunnel, stadium. Specs cast `{ person: 'emre' }`; identity can't drift. |
+| **Scene world events** | `worlds/events.ts` | A world effect on one beat persists for the scene (a cup that fell stays fallen; a ball that rolled in stays put). Worlds read every event of their scene from the timeline, so stills/video/QA agree. |
+| **New worlds** | `worlds/{apartment,breakroom,cafe,corridor,rooftop,stage}` | Night flat (#01), office kitchen with a live cup + machine display (#02, #09), café with a live espresso (#03), corridor→tunnel in one passage (#10), dawn rooftop with a waving geometric flag (#06), abstract cyclorama with a giant phone people step out of (#05). Shared set pieces in `worlds/interior/kit.tsx`. |
+| **Office night + morph** | `worlds/office` | `time: 'night'` (monitors light faces), per-desk switchable screens, `stadium-morph` (carpet→pitch, panels→floodlights, workers→fans) (#04). |
+| **Football atmosphere** | `worlds/football/atmosphere.tsx` | `light: day/night/dawn/horror`, `lights-out` / `lights-up` events, `crowd: 'empty'`, terrace `tifo`, HNC-owned pitch boards (the game's third-party ad creatives never appear in campaign content). The canonical stadium/players/ball are untouched. |
+| **Canonical kit clash** | `FootballScene` → `apps/game/src/city-league/kits.ts` | Kits come from the game's own `countryTeams` (away changes shirt when too close): TR v BE is red v black, BE v TR is red v white. |
+| **New choreographies** | `worlds/football/{free-kick,midnight-penalty,walk-out}.ts`, `hero-attack-bar` | Set piece with a spinning ball (#03), the no-blink penalty (#07), a ceremonial walk-out (#06), the attack that hits the bar (#09). `dropBall` restarts (#02). |
+| **Acting** | `cast/actions.ts` | reach / pull (counter props), knuckles, adjust-tie, pull-cord, place, fold, lean-in, earbud, fake-type, exhale, stroll, walk-slow, fiddle, breath, proud, papers, nervous, look-up. |
+| **Lenses** | `camera/lenses.ts` | `insert` (screen/sign detail), `follow`, `follow-low`; body-part subjects `<cast>.badge/.hands/.feet`. |
+| **Transitions** | `transitions/registry.ts` | `white-out` (walk into the light), `dissolve` (ceremony only), 2D `buzz-shake`; zoom-through from a chat bubble (`last-bubble`). |
+| **Type system** | `graphics/Text.tsx`, `graphics/case.ts` | Futura headline, Didot cinema/monument/dedication, DIN broadcast, Bodoni horror, typewriter; **Turkish-aware uppercase** (TÜRKİYE, not TÜRKIYE). |
+| **Audio** | `audio/filtered.ts`, `social-synth.ts` | Crowd heard through walls / opening as you walk out (low-passed CC0 recordings in the stem), ~30 foley recipes; mastering to −14 LUFS by one static gain capped at −1.5 dBTP (`scripts/lib/master.ts`; no dynamic compression). |
+| **Posters** | `posters/*`, `scripts/poster.ts` | Key art is composed, not grabbed: key-art specs → cropped plates → grade → a typography layer rendered transparent → sharp composite. |
+| **Campaign pipeline** | `content/autumn-2026/campaign.ts`, `scripts/campaign.ts`, `engine/storyboard.ts` | One command renders reel.mp4 / post.png / storyboard.md / qa/ for every item. |
+
+Known limits: see `social/output/autumn-2026/CAMPAIGN.md` (Known limitations).

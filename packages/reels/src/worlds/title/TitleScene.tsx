@@ -10,6 +10,11 @@ import { HNC_UI } from '../../graphics/hnc-ui';
 export const TitleScene: React.FC<SceneProps> = ({ shot, frame, fps }) => {
   const { width, height } = useLayout();
   const theme = String(shot.set.theme ?? 'night');
+  // Plain plates: the white of walking into the light, true black, Republic red.
+  if (theme === 'white' || theme === 'black' || theme === 'red') {
+    const bg = theme === 'white' ? 'radial-gradient(ellipse at 50% 45%, #ffffff 0%, #f7f4ec 55%, #ece6d8 100%)' : theme === 'red' ? 'radial-gradient(ellipse at 50% 40%, #e8141f 0%, #c40b16 60%, #8f0710 100%)' : '#000000';
+    return <div style={{ position: 'absolute', inset: 0, background: bg }} />;
+  }
   const t = frame / fps;
   const base = theme === 'pitch' ? '#1f5a33' : theme === 'gold' ? '#b98a1c' : '#0b1d27';
   const line = theme === 'gold' ? 'rgba(16,27,49,0.25)' : 'rgba(248,239,219,0.09)';

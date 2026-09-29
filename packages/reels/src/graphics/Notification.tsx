@@ -2,6 +2,7 @@ import React from 'react';
 import { Img, interpolate, spring, staticFile } from 'remotion';
 import { getAsset } from '../assets/registry';
 import { useLayout } from '../render/layout';
+import { upper } from './case';
 
 /**
  * Phone push notification (native-looking card, the real HNC badge as the
@@ -37,7 +38,7 @@ export const Notification: React.FC<{ frame: number; fps: number; at: number; en
       <Img src={logo} style={{ width: 104, height: 104, borderRadius: 24, background: '#101b31' }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 28, color: '#6b6b70', letterSpacing: '0.02em' }}>
-          <span>{app.toUpperCase()}</span>
+          <span>{upper(app)}</span>
           <span>now</span>
         </div>
         <div style={{ fontSize: 40, fontWeight: 700, color: '#111', marginTop: 4 }}>{title}</div>

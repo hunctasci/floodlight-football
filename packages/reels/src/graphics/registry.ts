@@ -19,10 +19,10 @@ export const GRAPHICS: Record<string, GraphicDef> = {
   'goal-call': { summary: 'Big GOAL! call with a sub line', props: { sub: 'sub line', exitAt: 'time it leaves' } },
   'world-table': {
     summary: 'The game WORLD TABLE; the hero nation climbs after a win',
-    props: { rows: '[{code, points}] (default: illustrative table)', hero: 'cast id whose country climbs', gain: 'points gained (default 3)', climbAt: 'climb time', exitAt: 'time it leaves', lines: '[line1, line2] headline' },
+    props: { rows: '[{code, points}] (default: illustrative table)', hero: 'cast id whose country climbs', gain: 'points gained (default 3)', climbAt: 'climb time', exitAt: 'time it leaves', lines: '[line1, line2] headline', tag: 'row tag (default YOU)', note: 'footnote, e.g. ILLUSTRATIVE STANDINGS' },
   },
   'brand-reveal': { summary: 'HNC badge + three-word promise + site button end card', props: { words: 'array of words', site: 'url', footer: 'small footer line' } },
-  'breaking-banner': { summary: 'Red BREAKING NEWS banner that slams in', props: { label: 'banner label (default BREAKING)', headline: 'headline text' } },
+  'breaking-banner': { summary: 'Red BREAKING NEWS banner that slams in', props: { label: 'banner label (default BREAKING)', headline: 'headline text', level: '1 calm · 2 urgent (shakes, pulses) · 3 meltdown (red frame + BREAKING strip)' } },
   'lower-third': { summary: 'News lower third: name + role, country flag', props: { cast: 'cast id', role: 'role line' } },
   ticker: { summary: 'Scrolling news ticker along the bottom', props: { items: 'array of strings' } },
   'live-bug': { summary: 'LIVE bug + channel mark in the corner', props: { channel: 'channel name (default HNC SPORTS)' } },
@@ -34,7 +34,7 @@ export const GRAPHICS: Record<string, GraphicDef> = {
   timestamp: { summary: 'Typographic time stamp ("MONDAY · 09:03")', props: { day: 'day text', time: 'time text' } },
   stamp: { summary: 'Rubber-stamp slam text ("WORTH IT")', props: { tilt: 'degrees', color: 'gold | red | cream' } },
   screen: { summary: 'Switch an in-world screen’s content from this beat', props: { surface: 'surface id', content: 'screen content id' } },
-  lockup: { summary: 'Small HNC League lockup (badge + wordmark) that settles in; optional line under it', props: { line: 'small line under the wordmark', place: 'bottom | center | top', tone: 'light | dark' } },
+  lockup: { summary: 'Small HNC League lockup (badge + wordmark) that settles in; optional line under it', props: { line: 'small line under the wordmark', place: 'bottom | center | top', tone: 'light | dark', plate: 'true: dark backing pill for busy backgrounds' } },
 };
 
 export const GRAPHIC_KINDS = Object.keys(GRAPHICS);
@@ -51,6 +51,9 @@ export const TEXT_STYLES: Record<string, string> = {
   stamp: 'Rotated stamp slam',
   title: 'Campaign headline (Futura Condensed), lines rise in; use \\n for lines, last line gold',
   cinema: 'Quiet serif caps (Didot), wide tracking, slow fade — film titles',
+  'cinema-ink': 'Cinema serif in navy ink, larger — for white / light plates',
+  monument: 'Ceremony: very large quiet serif (dates, names)',
+  dedication: 'Ceremony: small tracked serif caps line (a dedication under a monument)',
   broadcast: 'Condensed broadcast caps (DIN), snaps open vertically',
   horror: 'Bodoni italic caps with a red ghost glow and a nervous jitter',
   typewriter: 'Typed-out memo line on paper',

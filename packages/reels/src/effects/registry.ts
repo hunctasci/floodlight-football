@@ -35,6 +35,18 @@ export const EFFECTS: Record<string, EffectDef> = {
   'drawer-close': { summary: 'A counter drawer slides shut', layer: 'world', worlds: ['breakroom'] },
   'lights-out': { summary: 'Stadium floodlights stutter and die (scene stays dark until lights-up)', layer: 'world', worlds: ['football'] },
   'lights-up': { summary: 'Floodlights strike back bank by bank (first in a scene: the scene starts dark)', layer: 'world', worlds: ['football'] },
+  'stadium-morph': { summary: 'The office becomes a stadium: pitch floor, floodlight panels, night walls, crowd-colour partitions, everyone a fan (persists)', layer: 'world', worlds: ['office'] },
+  'ball-roll': { summary: 'A ball rolls out of the dark hallway and settles (persists)', layer: 'world', worlds: ['apartment'] },
+  'phone-wake': { summary: 'The phone on the table lights up with a push (persists)', layer: 'world', worlds: ['apartment'] },
+  'scarf-in': { summary: 'The folded scarf is in the moving box (persists)', layer: 'world', worlds: ['apartment'] },
+  'remote-down': { summary: 'The remote is back on the table (persists)', layer: 'world', worlds: ['apartment'] },
+  'room-shift': { summary: 'The lamp fades; cold floodlight pours through the window (persists)', layer: 'world', worlds: ['apartment'] },
+  'cup-turn': { summary: 'The espresso turns on its saucer, slow then ~2 rev/s (keeps spinning after)', layer: 'world', worlds: ['cafe'] },
+  ripple: { summary: 'Concentric ripples cross the crema (an impact from somewhere else)', layer: 'world', worlds: ['cafe'] },
+  'espresso-take': { summary: 'The espresso leaves the saucer (in someone’s hand now; persists)', layer: 'world', worlds: ['cafe'] },
+  dawn: { summary: 'The sky moves from blue hour to a red sunrise (persists)', layer: 'world', worlds: ['rooftop'] },
+  'buzz-shake': { summary: 'The picture jitters like a phone vibrating in the hand (2D worlds)', layer: 'world', worlds: ['phone', 'title'] },
+  'floor-table': { summary: 'The studio floor lights up as a giant World Table on a pitch (persists)', layer: 'world', worlds: ['studio'] },
   'coworkers-look': { summary: 'Background coworkers turn to stare at the pod', layer: 'world', worlds: ['office'] },
 };
 

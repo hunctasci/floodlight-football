@@ -7,6 +7,69 @@ import { Screen } from '../../render/Screen';
 import type { SceneProps } from '../../render/worlds';
 import { STUDIO } from './layout';
 import { STUDIO_WORLD } from './studio.world';
+import { eventProgress, smooth01 } from '../events';
+import { makeCanvasTexture } from '../../render/screens';
+import { countryFlag, countryName } from '../../cast/countries';
+import { HNC_UI } from '../../graphics/hnc-ui';
+import { upper } from '../../graphics/case';
+
+type Row = { code: string; points: number };
+
+/** The LED floor: a pitch with the World Table laid across it, rows lighting up one by one. */
+function paintFloor(c: CanvasRenderingContext2D, w: number, h: number, rows: Row[], p: number): void {
+  c.fillStyle = '#0a1628';
+  c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 10; i++) {
+    c.fillStyle = i % 2 ? '#15532d' : '#186233';
+    c.globalAlpha = smooth01(p * 1.4);
+    c.fillRect(0, (i * h) / 10, w, h / 10);
+  }
+  c.globalAlpha = smooth01(p * 1.4);
+  c.strokeStyle = '#e8f5e9';
+  c.lineWidth = 8;
+  c.strokeRect(w * 0.04, h * 0.03, w * 0.92, h * 0.94);
+  c.beginPath();
+  c.moveTo(w * 0.04, h / 2);
+  c.lineTo(w * 0.96, h / 2);
+  c.stroke();
+  c.beginPath();
+  c.arc(w / 2, h / 2, w * 0.16, 0, Math.PI * 2);
+  c.stroke();
+  const rh = h * 0.115;
+  rows.forEach((r, i) => {
+    const k = smooth01(p * 2.2 - 0.6 - i * 0.18);
+    if (k <= 0) return;
+    const y = h * 0.34 + i * rh * 1.02;
+    c.globalAlpha = k * 0.92;
+    c.fillStyle = i === 0 ? HNC_UI.gold : '#101b31';
+    c.fillRect(w * 0.1, y, w * 0.8, rh);
+    c.globalAlpha = k;
+    c.fillStyle = i === 0 ? HNC_UI.ink : HNC_UI.cream;
+    c.font = `${rh * 0.6}px Impact, 'Arial Black', sans-serif`;
+    c.textBaseline = 'middle';
+    c.textAlign = 'left';
+    c.fillText(`${String(i + 1).padStart(2, '0')}  ${countryFlag(r.code)} ${upper(countryName(r.code))}`, w * 0.14, y + rh / 2);
+    c.textAlign = 'right';
+    c.fillText(String(r.points), w * 0.86, y + rh / 2);
+  });
+  c.globalAlpha = 1;
+}
+
+const LedFloor: React.FC<{ rows: Row[]; p: number }> = ({ rows, p }) => {
+  const { tex, ctx } = React.useMemo(() => makeCanvasTexture(1024, 1280), []);
+  React.useEffect(() => () => tex.dispose(), [tex]);
+  React.useMemo(() => {
+    paintFloor(ctx, 1024, 1280, rows, p);
+    tex.needsUpdate = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctx, tex, Math.round(p * 120), JSON.stringify(rows)]);
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.012, 2.1]}>
+      <planeGeometry args={[6.4, 8]} />
+      <meshBasicMaterial map={tex} toneMapped={false} transparent opacity={Math.min(1, 0.15 + p * 1.2)} />
+    </mesh>
+  );
+};
 
 /**
  * Studio renderer: dark navy set, gold/blue LED pillars, an anchor desk with
@@ -30,11 +93,15 @@ export const StudioScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline, 
   const switches = timeline.overlays.filter((o) => o.type === 'screen' && o.id.startsWith(`${shot.scene}/`) && o.start <= frame).sort((a, b) => a.start - b.start);
   const content = String(switches[switches.length - 1]?.props.content ?? shot.set.screen ?? 'hnc-news');
   const t = frame / fps;
-  const target = gazeTargets(shot, frame, fps, lens);
+  const target = gazeTargets(shot, frame, fps, lens, timeline);
   const glow = 0.75 + 0.25 * Math.sin(t * 2.2);
   const s = STUDIO.screen;
+  const floorEv = eventProgress(timeline, shot, 'floor-table', frame);
+  const floorP = floorEv ? smooth01(floorEv.p) : shot.set.floor === 'table' ? 1 : 0;
+  const floorRows = (shot.set.rows as Row[] | undefined) ?? [];
   return (
     <group>
+      {floorP > 0 ? <LedFloor rows={floorRows} p={floorP} /> : null}
       <hemisphereLight args={['#a9c2e6', '#141824', 1.1]} />
       <directionalLight position={[1.2, 4.2, 6.5]} color="#fff2df" intensity={2.1} castShadow shadow-mapSize={[1024, 1024]} shadow-camera-left={-6} shadow-camera-right={6} shadow-camera-top={6} shadow-camera-bottom={-6} />
       <directionalLight position={[0, 3.2, -5]} color="#6fa8ff" intensity={0.9} />

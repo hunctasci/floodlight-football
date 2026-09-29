@@ -128,7 +128,41 @@ const topDown: Builder = (i) => {
   return { pos, look: s.pos, fov: 40 };
 };
 
+/**
+ * Tight insert on part of a flat surface (a screen corner, a sign): in front
+ * of it along its normal, close enough to sit between the screen and whoever
+ * faces it; `left` / `right` favours that half of the surface.
+ */
+const insert: Builder = (i) => {
+  const s = need(i.on, 'insert', 'on');
+  const f = frontOf(s);
+  const r = side(s.facing);
+  const d = Math.max(0.4, s.radius * 1.9);
+  const pos = add(add(add(s.head, scale(f, d)), scale(r, -i.side * s.radius * 0.45)), up(0.02));
+  const look = add(add(s.head, scale(r, -i.side * s.radius * 0.55)), up(-s.radius * 0.25));
+  return { pos, look, fov: 40 };
+};
+
+/** Behind a (walking) subject at shoulder height, looking ahead past them. */
+const follow: Builder = (i) => {
+  const s = need(i.on, 'follow', 'on');
+  const f = frontOf(s);
+  const pos = add(add(add(s.head, scale(f, -2.5)), scale(side(s.facing), i.side * 0.32)), up(0.05));
+  return { pos, look: add(add(s.head, scale(f, 6)), up(-0.45)), fov: 46 };
+};
+
+/** Low behind a subject, looking up past their back (the shirt number) at what is ahead. */
+const followLow: Builder = (i) => {
+  const s = need(i.on, 'follow-low', 'on');
+  const f = frontOf(s);
+  const pos = add(add(add(flat(s.pos), scale(f, -1.9)), scale(side(s.facing), i.side * 0.25)), up(0.55));
+  return { pos, look: add(add(s.head, scale(f, 4)), up(-0.2)), fov: 50 };
+};
+
 export const GENERIC_LENSES: Record<string, Builder> = {
+  insert,
+  follow,
+  'follow-low': followLow,
   close,
   medium,
   full,
@@ -144,6 +178,9 @@ export const GENERIC_LENS_IDS = Object.keys(GENERIC_LENSES);
 
 /** Which generic lenses need which subjects (validation + docs). */
 export const LENS_SUBJECTS: Record<string, { on: boolean; at: boolean }> = {
+  insert: { on: true, at: false },
+  follow: { on: true, at: false },
+  'follow-low': { on: true, at: false },
   close: { on: true, at: false },
   medium: { on: true, at: false },
   full: { on: true, at: false },

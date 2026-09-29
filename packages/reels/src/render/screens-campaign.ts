@@ -4,7 +4,6 @@
  * blacked-out "YOUR MATCH IS READY" monitor. Pure functions of their inputs.
  */
 import { HNC_UI } from '../graphics/hnc-ui';
-import { countryColors } from '../cast/countries';
 import { paintFlag } from './screens';
 
 export interface CampaignScreenData {
@@ -77,8 +76,9 @@ function miniMatch(c: CanvasRenderingContext2D, x: number, y: number, w: number,
   c.moveTo(x + w / 2, y + h * 0.12);
   c.lineTo(x + w / 2, y + h * 0.9);
   c.stroke();
-  const hc = countryColors(d.home).primary;
-  const ac = countryColors(d.away).primary;
+  // Neutral kits: a generic club night, no real club colours or codes.
+  const hc = '#f3ede0';
+  const ac = '#1d2a4a';
   for (let i = 0; i < 4; i++) {
     c.fillStyle = hc;
     c.fillRect(x + w * (0.3 + 0.06 * Math.sin(d.t * 1.7 + i)) + i * 6, y + h * (0.25 + i * 0.16), 6, 6);
@@ -95,7 +95,7 @@ function miniMatch(c: CanvasRenderingContext2D, x: number, y: number, w: number,
   c.font = mono(h * 0.1);
   c.textAlign = 'left';
   c.textBaseline = 'middle';
-  c.fillText(`${d.home} – ${d.away}`, x + 4, y + h * 0.08);
+  c.fillText('LIVE', x + 4, y + h * 0.08);
   c.fillStyle = '#e53935';
   c.beginPath();
   c.arc(x + w - 10, y + 9, 4, 0, Math.PI * 2);
@@ -181,28 +181,38 @@ export const CAMPAIGN_PAINTERS: Record<string, Painter> = {
     c.textBaseline = 'middle';
     c.fillText('23:58', w / 2, h * 0.2);
     c.fillStyle = 'rgba(248,239,219,0.92)';
-    const y = h * 0.42;
+    const y = h * 0.36;
     c.beginPath();
-    c.roundRect(w * 0.06, y, w * 0.88, h * 0.2, w * 0.05);
+    c.roundRect(w * 0.04, y, w * 0.92, h * 0.3, w * 0.05);
     c.fill();
     c.fillStyle = HNC_UI.navy;
-    c.font = `800 ${h * 0.045}px system-ui, sans-serif`;
+    c.font = `800 ${h * 0.05}px system-ui, sans-serif`;
     c.textAlign = 'left';
-    c.fillText('HNC LEAGUE', w * 0.12, y + h * 0.055);
-    c.font = `700 ${h * 0.05}px system-ui, sans-serif`;
-    c.fillText('The table is still open.', w * 0.12, y + h * 0.12);
-    void d;
+    c.fillText('HNC LEAGUE', w * 0.1, y + h * 0.06);
+    // Body wraps onto two lines at a readable size.
+    c.font = `700 ${h * 0.058}px system-ui, sans-serif`;
+    const words = (d.ticker ?? 'The table is still open.').split(' ');
+    const half = Math.ceil(words.length / 2);
+    c.fillText(words.slice(0, half).join(' '), w * 0.1, y + h * 0.15);
+    c.fillText(words.slice(half).join(' '), w * 0.1, y + h * 0.23);
   },
-  /** A lit TV showing the end of a broadcast (flag + generic slate). */
+  /** A generic end-of-broadcast slate (no competition marks, no flags). */
   'tv-slate': (c, w, h, d) => {
-    c.fillStyle = '#0a1320';
+    const g = c.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, '#0d1b30');
+    g.addColorStop(1, '#070d18');
+    c.fillStyle = g;
     c.fillRect(0, 0, w, h);
-    paintFlag(c, w * 0.3, h * 0.3, d.home);
+    c.fillStyle = HNC_UI.gold;
+    c.fillRect(w * 0.3, h * 0.36, w * 0.4, h * 0.012);
     c.fillStyle = HNC_UI.cream;
-    c.font = display(h * 0.14);
+    c.font = display(h * 0.13);
     c.textAlign = 'center';
-    c.fillText('SEE YOU', w * 0.62, h * 0.4);
-    c.fillText('NEXT SUMMER', w * 0.62, h * 0.58);
+    c.textBaseline = 'middle';
+    c.fillText('END OF COVERAGE', w / 2, h * 0.5);
+    c.font = mono(h * 0.05, 600);
+    c.fillStyle = 'rgba(248,239,219,0.7)';
+    c.fillText(`THANKS FOR WATCHING · ${Math.floor(d.t) % 2 ? '●' : '○'}`, w / 2, h * 0.64);
   },
 };
 

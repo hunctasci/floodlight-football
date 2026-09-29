@@ -1,6 +1,7 @@
 import React from 'react';
 import { interpolate, spring } from 'remotion';
 import { useLayout } from '../render/layout';
+import { upper } from './case';
 import { HNC_UI } from './hnc-ui';
 
 /**
@@ -48,7 +49,10 @@ const WordPop: React.FC<{ text: string; frame: number; fps: number; delay?: numb
   );
 };
 
-export const Text: React.FC<TextProps> = ({ text, style, frame, fps, start, end, pin, place, words }) => {
+const CAPS = new Set(['hook', 'caption', 'kicker', 'impact', 'stamp', 'title', 'cinema', 'cinema-ink', 'broadcast', 'horror', 'monument', 'dedication']);
+
+export const Text: React.FC<TextProps> = ({ text: raw, style, frame, fps, start, end, pin, place, words }) => {
+  const text = CAPS.has(style) ? upper(raw) : raw;
   const { width, height, safe } = useLayout();
   const local = frame - start;
   if (local < 0 || frame >= end) return null;
@@ -85,7 +89,7 @@ export const Text: React.FC<TextProps> = ({ text, style, frame, fps, start, end,
     case 'kicker':
       body = (
         <div style={{ fontFamily: HNC_UI.mono, fontWeight: 800, fontSize: 30, letterSpacing: '0.2em', color: HNC_UI.gold, textShadow: '3px 3px 0 #101b31', transform: `translateY(${(1 - inS) * 20}px)`, opacity: inS }}>
-          {text.toUpperCase()}
+          {text}
         </div>
       );
       break;
@@ -94,7 +98,7 @@ export const Text: React.FC<TextProps> = ({ text, style, frame, fps, start, end,
       const shake = local < 8 ? Math.sin(local * 2.7) * (8 - local) * 1.4 : 0;
       body = (
         <div style={{ fontFamily: HNC_UI.display, fontSize: 200, lineHeight: 0.95, color: HNC_UI.gold, textShadow: '9px 9px 0 #101b31', textAlign: 'center', transform: `translateX(${shake}px) scale(${interpolate(s, [0, 1], [2.2, 1])})`, opacity: Math.min(1, s * 3) }}>
-          {text.toUpperCase()}
+          {text}
         </div>
       );
       break;
@@ -103,7 +107,7 @@ export const Text: React.FC<TextProps> = ({ text, style, frame, fps, start, end,
       const s = spring({ frame: local, fps, config: { damping: 13, stiffness: 400, mass: 0.8 } });
       body = (
         <div style={{ fontFamily: HNC_UI.display, fontSize: 132, lineHeight: 1, color: HNC_UI.gold, border: `12px solid ${HNC_UI.gold}`, padding: '14px 36px', background: 'rgba(16,27,49,0.55)', transform: `rotate(-9deg) scale(${interpolate(s, [0, 1], [2.6, 1])})`, opacity: Math.min(1, s * 2.5), textShadow: '6px 6px 0 #101b31', boxShadow: '10px 10px 0 #101b31' }}>
-          {text.toUpperCase()}
+          {text}
         </div>
       );
       break;
@@ -133,11 +137,23 @@ export const Text: React.FC<TextProps> = ({ text, style, frame, fps, start, end,
       );
       break;
     }
-    case 'cinema': {
-      // Quiet serif caps, wide tracking, slow fade (film titles).
+    case 'cinema':
+    case 'cinema-ink': {
+      // Quiet serif caps, wide tracking, slow fade (film titles); -ink for light plates.
       const k = interpolate(local, [0, Math.round(fps * 0.6)], [0, 1], clamp);
+      const ink = style === 'cinema-ink';
       body = (
-        <div style={{ fontFamily: HNC_UI.cinema, fontSize: 70, letterSpacing: '0.22em', color: HNC_UI.cream, textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.25, opacity: k, transform: `translateY(${(1 - k) * 10}px)`, textShadow: '0 2px 24px rgba(0,0,0,0.6)', whiteSpace: 'pre-line' }}>{text}</div>
+        <div style={{ fontFamily: HNC_UI.cinema, fontSize: ink ? 96 : 70, letterSpacing: '0.22em', color: ink ? HNC_UI.navy : HNC_UI.cream, textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.25, opacity: k, transform: `translateY(${(1 - k) * 10}px)`, textShadow: ink ? 'none' : '0 2px 24px rgba(0,0,0,0.6)', whiteSpace: 'pre-line' }}>{text}</div>
+      );
+      break;
+    }
+    case 'monument':
+    case 'dedication': {
+      // Ceremony type: large quiet serif (monument) / tracked caps line (dedication), slow fade.
+      const k = interpolate(local, [0, Math.round(fps * 0.9)], [0, 1], clamp);
+      const big = style === 'monument';
+      body = (
+        <div lang="tr" style={{ fontFamily: HNC_UI.cinema, fontSize: big ? 190 : 42, letterSpacing: big ? '0.06em' : '0.24em', lineHeight: 1.1, color: '#ffffff', textAlign: 'center', opacity: k, transform: `translateY(${(1 - k) * 8}px)`, textShadow: '0 4px 40px rgba(60,0,0,0.55)', whiteSpace: 'pre-line' }}>{text}</div>
       );
       break;
     }

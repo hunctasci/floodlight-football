@@ -67,7 +67,7 @@ const Machine: React.FC<{ display: string; t: number; data: { home: string; away
       <Cyl r={[0.06, 0.07]} h={0.1} pos={[m.x, y0 + 0.33, front - 0.04]} color={C.chrome} metal={0.8} rough={0.25} />
       <Block size={[BREAK.display.width + 0.04, BREAK.display.height + 0.04, 0.02]} pos={[BREAK.display.center.x, BREAK.display.center.y, front - 0.005]} color="#0a0d12" shadow={false} />
       <Screen content={display} data={data} width={BREAK.display.width} height={BREAK.display.height} position={[BREAK.display.center.x, BREAK.display.center.y, front + 0.006]} resolution={256} />
-      <Glow pos={[BREAK.display.center.x, BREAK.display.center.y, front + 0.05]} size={0.5} color={display === 'machine-ready' ? '#7dffa0' : '#ff6a4f'} strength={0.35} />
+      <Glow pos={[BREAK.display.center.x, BREAK.display.center.y, front + 0.03]} size={0.3} color={display === 'machine-ready' ? '#7dffa0' : '#ff6a4f'} strength={0.2} />
       {brew > 0 ? [0, 1, 2].map((i) => <Glow key={i} pos={[m.x + 0.05 * Math.sin(i * 2 + brew * 9), y0 + m.h + 0.15 + ((brew * 0.9 + i * 0.33) % 1) * 0.5, m.z + 0.1]} size={0.35 + 0.2 * i} color="#f4f4f4" strength={0.28 * brew} />) : null}
       {ball ? (
         <>

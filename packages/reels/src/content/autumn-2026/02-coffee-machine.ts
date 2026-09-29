@@ -116,7 +116,7 @@ export const COFFEE_MACHINE: ContentSpec = {
           duration: 0.85,
           camera: { lens: 'symmetry', move: ['push-in'], amount: 1.2, ease: 'ease-in' },
           cast: { emre: { do: { do: 'glare', lookAt: 'lucas' } } },
-          fx: [{ type: 'lights-flicker', at: 0, until: 'end' }, { type: 'cup-tip', at: 0.5 }],
+          fx: [{ type: 'lights-flicker', at: 0, until: 'end' }, { type: 'cup-tip', at: '33f' }],
           sound: [{ cue: 'flicker', at: 0, volume: 1.2 }, { cue: 'buzz', duration: 0.85, volume: 0.8 }],
         },
         {

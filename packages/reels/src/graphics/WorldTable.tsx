@@ -28,7 +28,11 @@ export const WorldTable: React.FC<{
   climbAt: number;
   exitAt?: number;
   lines: [string, string];
-}> = ({ frame, fps, rows, hero, gain, enterAt, climbAt, exitAt, lines }) => {
+  /** Tag on the climbing row (default YOU; '' hides it). */
+  tag?: string;
+  /** Footnote under the table (e.g. illustrative data disclosure). */
+  note?: string;
+}> = ({ frame, fps, rows, hero, gain, enterAt, climbAt, exitAt, lines, tag = 'YOU', note }) => {
   const { safe: SAFE } = useLayout();
   // Designed on a 60fps clock: frames below are 1/60 s at any output rate.
   const k = 60 / fps;
@@ -134,8 +138,8 @@ export const WorldTable: React.FC<{
                 <div style={{ fontSize: 56, lineHeight: 1 }}>{countryFlag(r.code)}</div>
                 <div style={{ flex: 1, fontFamily: HNC_UI.body, fontWeight: 600, fontSize: 38, whiteSpace: 'nowrap' }}>
                   {countryName(r.code)}
-                  {isHero ? (
-                    <span style={{ marginLeft: 14, background: HNC_UI.gold, color: HNC_UI.ink, fontFamily: HNC_UI.mono, fontWeight: 800, fontSize: 18, padding: '2px 8px', verticalAlign: 'middle' }}>YOU</span>
+                  {isHero && tag ? (
+                    <span style={{ marginLeft: 14, background: HNC_UI.gold, color: HNC_UI.ink, fontFamily: HNC_UI.mono, fontWeight: 800, fontSize: 18, padding: '2px 8px', verticalAlign: 'middle' }}>{tag}</span>
                   ) : null}
                 </div>
                 {isHero && chip > 0 ? (
@@ -154,6 +158,7 @@ export const WorldTable: React.FC<{
           <span><b style={{ color: HNC_UI.gold, fontSize: 26 }}>+1</b> DRAW</span>
           <span>ONE SHARED RANK</span>
         </div>
+        {note ? <div style={{ marginTop: 14, fontFamily: HNC_UI.mono, fontSize: 18, letterSpacing: '0.12em', color: HNC_UI.muted, opacity: 0.85 }}>{note}</div> : null}
       </div>
     </div>
   );

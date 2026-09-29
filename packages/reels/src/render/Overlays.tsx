@@ -81,7 +81,7 @@ export const Overlay: React.FC<{
       const rows = (p.rows as WorldTableRow[] | undefined) ?? defaultTableRows(hero, country(p.rival, 1));
       return (
         <FitBox top={300} bottom={1580}>
-          <WorldTable frame={frame} fps={fps} rows={rows} hero={hero} gain={Number(p.gain ?? 3)} enterAt={Number(p.enterAt ?? at)} climbAt={Number(p.climbAt ?? at + fps)} exitAt={p.exitAt as number | undefined} lines={(p.lines as [string, string]) ?? ['YOUR COUNTRY.', 'YOUR LEAGUE.']} />
+          <WorldTable frame={frame} fps={fps} rows={rows} hero={hero} gain={Number(p.gain ?? 3)} enterAt={Number(p.enterAt ?? at)} climbAt={Number(p.climbAt ?? at + fps)} exitAt={p.exitAt as number | undefined} lines={(p.lines as [string, string]) ?? ['YOUR COUNTRY.', 'YOUR LEAGUE.']} tag={p.tag as string | undefined} note={p.note as string | undefined} />
         </FitBox>
       );
     }
@@ -92,7 +92,7 @@ export const Overlay: React.FC<{
         </FitBox>
       );
     case 'breaking-banner':
-      return <BreakingBanner frame={frame} fps={fps} at={at} end={ev.end} label={String(p.label ?? 'BREAKING')} headline={ev.text ?? String(p.headline ?? '')} />;
+      return <BreakingBanner frame={frame} fps={fps} at={at} end={ev.end} label={String(p.label ?? 'BREAKING')} headline={ev.text ?? String(p.headline ?? '')} level={Number(p.level ?? 1)} />;
     case 'lower-third': {
       const m = tl.cast[String(p.cast)];
       return <LowerThird frame={frame} fps={fps} at={at} end={ev.end} name={m?.name ?? String(p.cast)} country={m?.country ?? 'TR'} role={String(p.role ?? '')} />;
@@ -108,7 +108,7 @@ export const Overlay: React.FC<{
     case 'timestamp':
       return <Timestamp frame={frame} fps={fps} at={at} end={ev.end} day={String(p.day ?? 'MONDAY')} time={String(p.time ?? '09:03')} />;
     case 'lockup':
-      return <Lockup frame={frame} fps={fps} at={at} line={p.line as string | undefined} place={p.place as string | undefined} tone={p.tone as 'light' | 'dark' | undefined} />;
+      return <Lockup frame={frame} fps={fps} at={at} line={p.line as string | undefined} place={p.place as string | undefined} tone={p.tone as 'light' | 'dark' | undefined} plate={p.plate === true} />;
     case 'stamp':
       return <Text text={ev.text ?? ''} style="stamp" frame={frame} fps={fps} start={ev.start} end={ev.end} place="center" />;
     default:

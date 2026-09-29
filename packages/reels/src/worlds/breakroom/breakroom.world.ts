@@ -65,7 +65,7 @@ export const BREAKROOM_WORLD: WorldDef = {
   defaultLook: 'office',
   ambience: 'office-tone',
   effects: ['lights-flicker', 'lights-surge', 'cup-slide', 'cup-tip', 'cup-take', 'blinds-close', 'machine-brew', 'drawer-close'],
-  lensIds: ['wide', 'counter-low', 'machine-pov', 'door-wide', 'high', 'floor-low', 'symmetry', 'cup-overhead', 'exit-view', 'cup-pov', 'standoff-left', 'standoff-right', 'window-side', 'drawer-side', 'sign-close'],
+  lensIds: ['wide', 'counter-low', 'machine-pov', 'door-wide', 'high', 'floor-low', 'symmetry', 'cup-overhead', 'exit-view', 'cup-pov', 'standoff-left', 'standoff-right', 'window-side', 'drawer-side', 'sign-close', 'machine-mid', 'poster-symmetry', 'cup-gap'],
   lens(id) {
     if (id === 'wide') return { pos: v3(0.35, 1.75, 2.9), look: v3(0, 1.1, -2.6), fov: 46 };
     if (id === 'counter-low') return { pos: v3(0.04, 1.08, -1.95), look: v3(0, 1.12, -2.95), fov: 38 };
@@ -85,10 +85,16 @@ export const BREAKROOM_WORLD: WorldDef = {
     // Standoff singles: past the far shoulder onto whoever stands at cup-left / cup-right.
     if (id === 'standoff-left') return { pos: v3(2.75, 1.92, -0.25), look: v3(-0.5, 1.55, -2.3), fov: 31 };
     if (id === 'standoff-right') return { pos: v3(-2.75, 1.92, -0.25), look: v3(0.5, 1.55, -2.3), fov: 31 };
+    // Between the two standing bodies at counter height: the cup, both reaching hands, bodies as dark frames.
+    if (id === 'cup-gap') return { pos: v3(0, 1.14, -1.72), look: v3(0, 1.04, -2.8), fov: 32 };
+    // Key art: tighter centred frame of the standoff over the cup.
+    if (id === 'poster-symmetry') return { pos: v3(0, 1.62, 0.55), look: v3(0, 1.36, -2.8), fov: 46 };
     // Whoever works the blinds at `window`, from behind their left shoulder.
     if (id === 'window-side') return { pos: v3(1.75, 1.75, 0.55), look: v3(3.95, 1.45, -1.25), fov: 44 };
     // The counter drawer at `drawer`, from the room side.
-    if (id === 'drawer-side') return { pos: v3(-2.85, 1.55, -0.75), look: v3(-1.7, 0.92, -2.65), fov: 46 };
+    if (id === 'drawer-side') return { pos: v3(-0.35, 1.95, -1.25), look: v3(-1.8, 0.85, -2.65), fov: 46 };
+    // The machine at mid distance: whatever is on / in it plus both heads at the frame edges.
+    if (id === 'machine-mid') return { pos: v3(0, 1.5, -0.95), look: v3(0, 1.3, -2.9), fov: 42 };
     // The notice board on the left wall.
     if (id === 'sign-close') return { pos: v3(-3.05, 1.68, -1.25), look: v3(-4.17, 1.62, -1.35), fov: 40 };
     if (id === 'high') return { pos: v3(1.6, 2.7, 0.6), look: v3(-0.1, 0.95, -2.5), fov: 44 };

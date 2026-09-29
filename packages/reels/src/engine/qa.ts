@@ -72,7 +72,8 @@ export function qaTimeline(tl: Timeline): QaIssue[] {
       // Over-shoulder / two-shot frame the far subject; the near one is edge dressing.
       const primaryId = shot.camera.lens === 'over-shoulder' || shot.camera.lens === 'two-shot' ? shot.camera.at : shot.camera.on;
       const on = primaryId ? subject(primaryId) : undefined;
-      if (on && primaryId && !(shot.camera.move.some((m) => m.startsWith('tilt-')))) {
+      // An insert frames a DETAIL of its subject (a screen corner): its centre may sit outside.
+      if (on && primaryId && shot.camera.lens !== 'insert' && !(shot.camera.move.some((m) => m.startsWith('tilt-')))) {
         const p = projectToScreen(lens, on.head, W, H);
         const mid = f === shot.start + Math.floor(shot.duration / 2);
         if (!p.visible || p.x < -0.05 * W || p.x > 1.05 * W || p.y < -0.05 * H || p.y > 1.05 * H) {

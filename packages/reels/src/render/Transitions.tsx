@@ -104,6 +104,16 @@ export function layerStyle(tl: Timeline, shot: Shot, prev: Shot | undefined, fra
       outer.opacity = Math.min(1, 0.35 + 2.2 * transitionProgress(frame, en.start, en.end));
     }
   }
+  const buzz = shot.fx.find((e) => e.type === 'buzz-shake' && frame >= e.start && frame < e.end);
+  if (buzz) {
+    // A phone vibrating in the hand: fast small jitter of the whole picture.
+    const k = frame - buzz.start;
+    inner.transform = `${inner.transform ?? ''} translate(${Math.sin(k * 2.9) * 7 * buzz.intensity}px, ${Math.cos(k * 3.7) * 4 * buzz.intensity}px)`;
+  }
+  if (ex?.type === 'dissolve' && frame >= ex.start && frame < ex.end) {
+    // Outgoing picture fades off the top of the incoming one.
+    outer.opacity = 1 - applyEasing('ease-in-out', transitionProgress(frame, ex.start, ex.end));
+  }
   if (en?.type === 'wipe' && frame < en.end) {
     const edge = wipeEdge(en, frame, width);
     outer.clipPath = en.direction === 'right' ? `inset(0 0 0 ${width - edge}px)` : `inset(0 ${width - edge}px 0 0)`;
@@ -126,6 +136,17 @@ export const TransitionOverlay: React.FC<{ tl: Timeline; ev: TransitionEvent; ou
   switch (ev.type) {
     case 'flash':
       return <div style={{ position: 'absolute', inset: 0, background: '#fffbef', opacity: Math.pow(peak, 1.4) }} />;
+    case 'white-out': {
+      // Burn up slowly (exposure first, then flat white), release fast.
+      const before = frame < ev.cut;
+      const k = before ? applyEasing('ease-in', transitionProgress(frame, ev.start, ev.cut)) : 1 - applyEasing('ease-out', transitionProgress(frame, ev.cut, ev.end));
+      return (
+        <>
+          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 42%, rgba(255,253,245,0.95), rgba(255,248,230,0.4) 60%, rgba(255,245,220,0) 100%)', opacity: Math.min(1, k * 1.6), mixBlendMode: 'screen' }} />
+          <div style={{ position: 'absolute', inset: 0, background: '#fffdf6', opacity: Math.pow(k, 1.8) }} />
+        </>
+      );
+    }
     case 'dip':
       return <div style={{ position: 'absolute', inset: 0, background: '#03060c', opacity: Math.pow(peak, 0.8) }} />;
     case 'light-bloom': {
