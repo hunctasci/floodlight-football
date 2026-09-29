@@ -1,5 +1,8 @@
 import type { HncCrowdMood } from '@floodlight/hnc-visuals';
-import { HERO_ATTACK, HERO_TOUCHES, sampleHeroAttack } from './hero-attack';
+import { HERO_ATTACK, HERO_TOUCHES, sampleHeroAttack, sampleHeroAttackBar } from './hero-attack';
+import { FREE_KICK, sampleFreeKick } from './free-kick';
+import { MIDNIGHT, sampleMidnightPenalty } from './midnight-penalty';
+import { WALK_OUT, sampleWalkOut } from './walk-out';
 
 /**
  * Deterministic football choreography contract: pure functions of moment
@@ -35,6 +38,15 @@ export interface ChoreoPose {
   reach?: number;
   /** 0..1 settle a finished dive onto the grass. */
   grounded?: number;
+  /** Head turn / nod (rad) on top of the game pose (acting beats). */
+  headYaw?: number;
+  headPitch?: number;
+  /** Eye openness (1 normal, 0 closed, >1 wide). */
+  eyeOpen?: number;
+  /** 0..1 arms forward holding the ball at the chest. */
+  cradle?: number;
+  /** 0..1 slow walk: calmer arm swing. */
+  walk?: number;
 }
 
 export interface ChoreoActor {
@@ -68,27 +80,49 @@ export interface ChoreoFrame {
   crowd: ChoreoCrowd;
   /** Goal-net pulse (game renderer behaviour) for the goal at `side`. */
   net?: { side: 1 | -1; phaseTime: number };
+  /** Explicit ball rotation (spin on the spot) instead of the rolling rule. */
+  ballSpin?: { x: number; y: number; z: number };
+  /** Ball not on the pitch (carried off / not yet placed). */
+  ballHidden?: boolean;
 }
 
 /** Choreographies by id (pure functions of moment seconds). */
 const MOMENTS: Record<string, (time: number) => ChoreoFrame> = {
   'hero-attack': sampleHeroAttack,
+  'hero-attack-bar': sampleHeroAttackBar,
+  'free-kick': sampleFreeKick,
+  'midnight-penalty': sampleMidnightPenalty,
+  'walk-out': sampleWalkOut,
 };
 
 /** Role name of each `actors[]` slot, per moment (cast members map onto roles). */
 export const MOMENT_ROLES: Record<string, readonly string[]> = {
   'hero-attack': ['striker', 'rival', 'keeper', 'mate', 'holder'],
+  'hero-attack-bar': ['striker', 'rival', 'keeper', 'mate', 'holder'],
+  'free-kick': ['striker', 'keeper', 'wall-1', 'wall-2', 'wall-3'],
+  'midnight-penalty': ['striker', 'keeper'],
+  'walk-out': ['lead', 'left-1', 'right-1', 'left-2', 'right-2'],
 };
 
 /** Named beats (moment seconds) for `moment:` times, per moment. */
+const beatsOf = (b: Record<string, number>) => Object.fromEntries(Object.entries(b).filter(([k]) => k !== 'length'));
+const heroBeats = { ...beatsOf(HERO_ATTACK), ...Object.fromEntries(HERO_TOUCHES.map((t, i) => [`touch-${i + 1}`, t])) };
+
 export const MOMENT_BEATS: Record<string, Record<string, number>> = {
-  'hero-attack': {
-    ...Object.fromEntries(Object.entries(HERO_ATTACK).filter(([k]) => k !== 'length')),
-    ...Object.fromEntries(HERO_TOUCHES.map((t, i) => [`touch-${i + 1}`, t])),
-  },
+  'hero-attack': heroBeats,
+  'hero-attack-bar': { ...heroBeats, barHit: HERO_ATTACK.goalLine },
+  'free-kick': beatsOf(FREE_KICK),
+  'midnight-penalty': beatsOf(MIDNIGHT),
+  'walk-out': beatsOf(WALK_OUT),
 };
 
-export const MOMENT_LENGTH: Record<string, number> = { 'hero-attack': HERO_ATTACK.length };
+export const MOMENT_LENGTH: Record<string, number> = {
+  'hero-attack': HERO_ATTACK.length,
+  'hero-attack-bar': HERO_ATTACK.length,
+  'free-kick': FREE_KICK.length,
+  'midnight-penalty': MIDNIGHT.length,
+  'walk-out': WALK_OUT.length,
+};
 
 export const FOOTBALL_MOMENT_IDS = Object.keys(MOMENTS);
 

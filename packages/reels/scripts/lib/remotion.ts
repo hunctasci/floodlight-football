@@ -44,7 +44,7 @@ export async function video(
   compositionId: string,
   inputProps: Record<string, unknown>,
   output: string,
-  opts: { scale?: number; frameRange?: [number, number] } = {},
+  opts: { scale?: number; frameRange?: [number, number]; concurrency?: number } = {},
 ): Promise<void> {
   const serveUrl = await bundleReels();
   const composition = await selectComposition({ serveUrl, id: compositionId, inputProps, chromiumOptions: CHROMIUM, logLevel: 'error', onBrowserLog: quiet });
@@ -59,6 +59,7 @@ export async function video(
     outputLocation: output,
     chromiumOptions: CHROMIUM,
     scale: opts.scale ?? 1,
+    concurrency: opts.concurrency ?? null,
     frameRange: opts.frameRange ?? null,
     logLevel: 'error',
     onBrowserLog: quiet,

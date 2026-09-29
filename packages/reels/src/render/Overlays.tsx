@@ -4,6 +4,7 @@ import type { OverlayEvent, Timeline } from '../engine/timeline/types';
 import type { SubjectResolver } from '../engine/subjects';
 import { BrandReveal } from '../graphics/BrandReveal';
 import { Eyebrow } from '../graphics/Eyebrow';
+import { Lockup } from '../graphics/Lockup';
 import { GoalCall } from '../graphics/GoalCall';
 import { BreakingBanner, LiveBug, LowerThird, Ticker, Timestamp, Versus } from '../graphics/News';
 import { Notification } from '../graphics/Notification';
@@ -106,6 +107,8 @@ export const Overlay: React.FC<{
       return <Versus frame={frame} fps={fps} at={at} end={ev.end} home={country(p.home, 0)} away={country(p.away, 1)} />;
     case 'timestamp':
       return <Timestamp frame={frame} fps={fps} at={at} end={ev.end} day={String(p.day ?? 'MONDAY')} time={String(p.time ?? '09:03')} />;
+    case 'lockup':
+      return <Lockup frame={frame} fps={fps} at={at} line={p.line as string | undefined} place={p.place as string | undefined} tone={p.tone as 'light' | 'dark' | undefined} />;
     case 'stamp':
       return <Text text={ev.text ?? ''} style="stamp" frame={frame} fps={fps} start={ev.start} end={ev.end} place="center" />;
     default:

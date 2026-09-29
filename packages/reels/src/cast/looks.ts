@@ -26,6 +26,8 @@ export const LOOKS: Record<string, LookDef> = {
   fan: { wardrobe: 'fan', summary: 'Replica country shirt + scarf' },
   referee: { wardrobe: 'referee', summary: 'Referee black' },
   hoodie: { wardrobe: 'hoodie', summary: 'Hoodie in the accent colour' },
+  tee: { wardrobe: 'tee', summary: 'At home: plain tee in the accent colour, jeans' },
+  'kit-trousers': { wardrobe: 'kit-trousers', kit: true, summary: 'Mid-change: country shirt with the back number over office trousers' },
 };
 
 export const LOOK_IDS = Object.keys(LOOKS);

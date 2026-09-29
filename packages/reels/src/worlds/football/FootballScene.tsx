@@ -1,7 +1,5 @@
 import React from 'react';
-import { useThree } from '@react-three/fiber';
 import {
-  HNC_RENDER_PROFILE,
   createHncBallVisual,
   createHncDressing,
   createHncPlayerVisual,
@@ -13,14 +11,13 @@ import {
   hncUpdateDressingFlags,
 } from '@floodlight/hnc-visuals';
 import { applyChoreoActor } from './pose';
-import { footballMoment, footballRoles, shotChoreo, shotMomentTime } from './football.world';
+import { footballLight, footballLightLevel, footballMoment, footballRoles, shotChoreo, shotMomentTime } from './football.world';
 import { MOMENT_ROLES, type ChoreoActor } from './choreography';
-import { countryColors, countryName } from '../../cast/countries';
-import { adForSlot, paintAd } from '../../../../../apps/game/src/render/ads';
-import { AD_H, AD_W } from '../../../../../apps/game/src/render/ads';
+import { countryColors, countryName, isValidCountryCode } from '../../cast/countries';
+import { countryTeams } from '../../../../../apps/game/src/city-league/kits';
 import type { SceneProps } from '../../render/worlds';
 import * as THREE from 'three';
-import { HncDaylight } from '../../render/lights';
+import { FLOOD_HEADS, FootballLighting, paintHncBoard, practicalLevel, Tifo } from './atmosphere';
 
 /**
  * Thin R3F adapter around the canonical HNC stadium + ball + players.
@@ -39,12 +36,21 @@ export const FootballScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline
   const roles = MOMENT_ROLES[moment] ?? [];
   const cast = footballRoles(shot.set);
   const castOf = (role: string) => (cast[role] ? timeline.cast[cast[role]] : undefined);
-  const home = castOf(roles[0])?.country ?? 'TR';
-  const away = castOf(roles[1])?.country ?? 'GR';
   const time = shotMomentTime(shot, frame, fps);
   const choreo = shotChoreo(shot, frame, fps);
-  const hColors = countryColors(home);
-  const aColors = countryColors(away);
+  // Home / away nations: whoever the cast plays on each side, else `set`.
+  const sideCountry = (side: 'home' | 'away'): string | undefined =>
+    choreo.actors.map((a, i) => (a.team === side || a.team === `keeper-${side}` ? castOf(roles[i])?.country : undefined)).find((c) => c && isValidCountryCode(c));
+  const home = sideCountry('home') ?? String(shot.set.home ?? 'TR');
+  const away = sideCountry('away') ?? String(shot.set.away ?? (home === 'GR' ? 'TR' : 'GR'));
+  // Kits follow the game's own clash rule (away changes shirt when too close).
+  const [homeTeam, awayTeam] = countryTeams(home, isValidCountryCode(away) ? away : 'GR');
+  const hColors = { primary: homeTeam.color, secondary: homeTeam.secondary };
+  const aColors = { primary: awayTeam.color, secondary: awayTeam.secondary };
+  const preset = footballLight(shot.set);
+  const light = footballLightLevel(timeline, shot, frame);
+  const practical = practicalLevel(preset, light.level);
+  const empty = shot.set.crowd === 'empty';
   // Which stand half holds home fans; moments may seat them behind the goal
   // they attack so the goal eruption is in frame.
   const homeSection = choreo.crowd.homeSection;
@@ -53,32 +59,38 @@ export const FootballScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline
   // scene.background / scene.fog). JSX `<color attach="background">` inside
   // this <group> attached to the Group instead — a no-op — so the Reel showed
   // the composition's navy fill through a transparent canvas, not the game sky.
-  const scene = useThree((s) => s.scene);
-  React.useMemo(() => {
-    scene.background = new THREE.Color(HNC_RENDER_PROFILE.background);
-    scene.fog = new THREE.Fog(HNC_RENDER_PROFILE.fogColor, HNC_RENDER_PROFILE.fogNear, HNC_RENDER_PROFILE.fogFar);
-  }, [scene]);
-
+  // Sky, fog and the light rig live in atmosphere.tsx (preset + light level).
   // Canonical stadium (built once per matchup; never rebuilt per frame).
-  const stadium = React.useMemo(() => {
-    const paintBoard = (slot: number): THREE.Material => {
-      try {
-        const ad = adForSlot(slot);
-        const c = document.createElement('canvas');
-        c.width = AD_W;
-        c.height = AD_H;
-        paintAd(c.getContext('2d')!, ad, AD_W, AD_H);
-        const tex = new THREE.CanvasTexture(c);
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.anisotropy = 4;
-        return new THREE.MeshBasicMaterial({ map: tex });
-      } catch {
-        return new THREE.MeshBasicMaterial({ color: '#101b31' });
+  // Boards carry HNC's own marks: campaign content never shows third-party brands.
+  const stadium = React.useMemo(() => createHncStadium(paintHncBoard), []);
+  // Practicals (floodlight heads, LED boards) dim with the preset / blackout.
+  const heads = React.useMemo(() => {
+    const out: { mesh: THREE.Mesh; index: number }[] = [];
+    stadium.stands.traverse((o) => {
+      const m = o as THREE.Mesh;
+      if (!m.isMesh || Math.abs(m.position.y - 20.4) > 0.01) return;
+      const index = FLOOD_HEADS.findIndex(([x, , z]) => Math.abs(x - m.position.x) < 0.1 && Math.abs(z - m.position.z) < 0.1);
+      if (index >= 0) {
+        m.material = (m.material as THREE.Material).clone();
+        out.push({ mesh: m, index });
       }
-    };
-    return createHncStadium(paintBoard);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    });
+    return out;
+  }, [stadium]);
+  React.useMemo(() => {
+    const lit = preset === 'day' ? [0, 1, 2, 3] : preset === 'night' ? [0, 1, 2, 3] : preset === 'horror' ? [0] : [];
+    for (const { mesh, index } of heads) {
+      const k = preset === 'day' ? 1 : lit.includes(index) ? Math.max(0.06, light.heads[index] * (preset === 'dawn' ? 0.4 : 1)) : 0.05;
+      (mesh.material as THREE.MeshBasicMaterial).color.set('#fffbe8').multiplyScalar(k);
+    }
+    for (const b of stadium.boards) {
+      const m = b.material as THREE.MeshBasicMaterial;
+      m.color.setScalar(Math.max(0.04, practical));
+    }
+  }, [heads, stadium, preset, light.heads.join(','), practical]);
+  React.useMemo(() => {
+    stadium.crowd.visible = !empty;
+  }, [stadium, empty]);
   React.useEffect(
     () => () => {
       stadium.crowdMeshes.forEach((m) => {
@@ -115,6 +127,7 @@ export const FootballScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline
     const awaySide = { name: countryName(away), color: aColors.primary };
     const d = homeSection === 0 ? createHncDressing(homeSide, awaySide) : createHncDressing(awaySide, homeSide);
     stadium.group.add(d.group);
+    d.group.visible = !empty;
     return d;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stadium, home, away, homeSection]);
@@ -141,26 +154,28 @@ export const FootballScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline
     ball.root.position.set(choreo.ball.x, Math.max(0.25, choreo.ball.y), choreo.ball.z);
     // Game roll (rotation.x += vz*dt*2, rotation.z -= vx*dt*2) integrated
     // in closed form so it stays a pure function of position.
-    ball.root.rotation.set(choreo.ball.z * 2, 0, -choreo.ball.x * 2);
+    if (choreo.ballSpin) ball.root.rotation.set(choreo.ballSpin.x, choreo.ballSpin.y, choreo.ballSpin.z);
+    else ball.root.rotation.set(choreo.ball.z * 2, 0, -choreo.ball.x * 2);
+    ball.root.visible = !choreo.ballHidden;
+    ball.shadow.visible = !choreo.ballHidden;
     ball.shadow.position.set(choreo.ball.x, 0.015, choreo.ball.z);
     ball.shadow.scale.setScalar(1 + Math.min(1, choreo.ball.y) * 0.45);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ball, choreo.ball.x, choreo.ball.y, choreo.ball.z]);
+  }, [ball, choreo.ball.x, choreo.ball.y, choreo.ball.z, choreo.ballSpin?.y, choreo.ballHidden]);
 
   // Canonical players: one visual per choreo actor, identity from the cast.
   const identity = choreo.actors.map((a: ChoreoActor, i: number) => {
     const member = castOf(roles[i]);
     const keeper = a.team.startsWith('keeper');
-    const country = member?.country ?? (a.team === 'home' || a.team === 'keeper-home' ? home : away);
-    return { country, number: member?.number ?? a.number ?? (i % 11) + 1, keeper };
+    const homeSide = a.team === 'home' || a.team === 'keeper-home';
+    const country = member?.country ?? (homeSide ? home : away);
+    // Shirts come from the resolved matchup kits (clash rule), identity from the cast.
+    const kit = country === home ? hColors : country === away ? aColors : countryColors(country);
+    return { country, number: member?.number ?? a.number ?? (i % 11) + 1, keeper, kit };
   });
-  const identityKey = identity.map((d) => `${d.country}:${d.number}:${d.keeper}`).join(',');
+  const identityKey = identity.map((d) => `${d.country}:${d.number}:${d.keeper}:${d.kit.primary}`).join(',');
   const players = React.useMemo(
-    () =>
-      identity.map((d) => {
-        const cc = countryColors(d.country);
-        return createHncPlayerVisual({ id: d.number, number: d.number, primary: cc.primary, secondary: cc.secondary, keeper: d.keeper });
-      }),
+    () => identity.map((d) => createHncPlayerVisual({ id: d.number, number: d.number, primary: d.kit.primary, secondary: d.kit.secondary, keeper: d.keeper })),
     // Stable per moment + cast identity; choreography length never changes mid-shot.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [moment, identityKey],
@@ -178,8 +193,9 @@ export const FootballScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline
 
   return (
     <group>
-      <HncDaylight />
+      <FootballLighting preset={preset} level={light.level} stagger={light.heads} />
       <primitive object={stadium.group} />
+      {typeof shot.set.tifo === 'string' ? <Tifo code={shot.set.tifo} t={frame / fps} level={preset === 'day' ? 1 : Math.max(0.2, light.level)} /> : null}
       <primitive object={ball.root} />
       <primitive object={ball.shadow} />
       {players.map((v, i) => (

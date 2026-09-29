@@ -10,7 +10,7 @@
  *
  * `hush` is a mix directive, not a sound: beds dip under it (comedic pause).
  */
-export type CueSource = 'game' | 'social' | 'file' | 'mix';
+export type CueSource = 'game' | 'social' | 'file' | 'filtered' | 'mix';
 export type Bus = 'ambience' | 'crowd' | 'foreground' | 'music';
 
 export interface CueDef {
@@ -29,6 +29,7 @@ export interface CueDef {
 
 const game = (recipe: string, summary: string, length = 0.25): CueDef => ({ summary, source: 'game', bus: 'foreground', recipe, length });
 const social = (summary: string, length: number, bus: Bus = 'foreground', bed = false): CueDef => ({ summary, source: 'social', bus, length, bed });
+const filtered = (summary: string, length: number, bus: Bus = 'crowd', bed = false): CueDef => ({ summary, source: 'filtered', bus, length, bed });
 const file = (f: string, summary: string, length: number, bus: Bus = 'crowd', bed = false): CueDef => ({ summary, source: 'file', bus, file: `assets/audio/crowd/${f}`, length, bed });
 
 export const CUES: Record<string, CueDef> = {
@@ -81,6 +82,47 @@ export const CUES: Record<string, CueDef> = {
   glitch: social('Digital glitch chirps', 0.3),
   'news-sting': social('Broadcast news stinger (brass-like chord hits)', 1.4, 'music'),
   'news-bed': social('Newsroom pulse bed (ticking synth)', 1, 'music', true),
+  // Stadium heard through something (low-passed recordings, audio/filtered.ts)
+  'crowd-distant': filtered('Stadium far away through an apartment wall', 4, 'ambience', true),
+  'crowd-muffled': filtered('Stadium behind a tunnel door (muffled bed)', 4, 'ambience', true),
+  'crowd-opening': filtered('Muffled stadium that opens up across the cue (walking out of a tunnel)', 4, 'crowd'),
+  'roar-muffled': filtered('A goal roar through the walls', 5),
+  'roar-opening': filtered('A roar that opens from muffled to full', 5),
+  // Campaign foley (social synth)
+  footsteps: social('Footsteps on a hard floor (walk cadence across the cue)', 2),
+  'footsteps-tunnel': social('Studs on concrete in a tunnel (reverberant)', 2),
+  'machine-grind': social('Coffee grinder burr', 1.1),
+  'machine-hiss': social('Espresso machine steam hiss (unnecessarily dramatic)', 1.4),
+  'machine-beep': social('Machine ready beep-beep', 0.4),
+  'cup-set': social('Cup set down on a counter / saucer', 0.2),
+  'cup-scrape': social('Cup dragged across a hard counter', 0.5),
+  'cup-hit': social('Paper cup hits the floor', 0.3),
+  'ceramic-spin': social('Espresso cup rattling round on its saucer', 1.2),
+  'spoon-clink': social('Spoon against a small cup', 0.3),
+  sip: social('A small sip', 0.4),
+  'ball-land': social('Ball lands on grass (thud)', 0.35),
+  'ball-roll': social('Ball rolling on grass / floor', 1.5),
+  blinds: social('Venetian blinds rattling shut', 0.9),
+  drawer: social('Drawer slides shut (thunk)', 0.5),
+  door: social('Door closing softly', 0.6),
+  knuckles: social('Knuckle crack (two pops)', 0.5),
+  cloth: social('Clothing rustle', 0.4),
+  'phone-buzz': social('Phone vibrating on a hard surface', 0.8),
+  'dramatic-sting': social('Orchestral stab (brass + timpani) — melodrama', 1.6, 'music'),
+  'horror-drone': social('Low horror drone with a slow beating', 4, 'music', true),
+  'horror-hit': social('Horror stinger (low boom + dissonant screech)', 1.5, 'music'),
+  wind: social('Morning wind, gusting', 4, 'ambience', true),
+  'flag-flap': social('Cloth flag flapping in the wind', 2),
+  'pad-swell': social('Warm restrained pad (slow swell, major)', 4, 'music'),
+  'piano-note': social('A single soft piano-like note', 2, 'music'),
+  heartbeat2: social('Slow heartbeat (loops across its duration)', 3, 'music'),
+  'stomp-clap': social('Crowd stomp-stomp-clap rhythm (grows across the cue)', 4, 'crowd'),
+  'breaking-alarm': social('Breaking-news alarm stab (escalating)', 0.9, 'music'),
+  'riser-long': social('Long cinematic riser into a cut', 3, 'music'),
+  'sub-hit': social('Deep sub hit on a cut to white', 1.5, 'music'),
+  crash: social('Ball smashes into a machine: metal crunch, glass, rattle', 1.2),
+  'tv-off': social('CRT/TV switching off (click + fading whine)', 0.6),
+  'remote-click': social('Remote control button click', 0.1),
   // Mix directive
   hush: { summary: 'Duck ambience/crowd/music beds for its duration (comedic silence)', source: 'mix', bus: 'music', length: 0.6 },
 };

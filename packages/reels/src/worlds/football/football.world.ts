@@ -3,6 +3,7 @@ import { momentTimeAt } from '../../animation/time-ramp';
 import type { Shot } from '../../engine/timeline/types';
 import type { Subject, WorldDef } from '../types';
 import { v3 } from '../types';
+import { clamp01, sceneFx, smooth01, type SceneShots } from '../events';
 import { FOOTBALL_MOMENT_IDS, MOMENT_BEATS, MOMENT_LENGTH, MOMENT_ROLES, sampleFootballMoment, type ChoreoActor, type ChoreoFrame } from './choreography';
 import { CAMERA_MOVE_IDS, cameraMoveLag, evaluateCameraMove, evaluateReelLens, isCameraMoveId, REEL_LENS_IDS, type LensAnchors } from './lenses';
 
@@ -16,6 +17,35 @@ import { CAMERA_MOVE_IDS, cameraMoveLag, evaluateCameraMove, evaluateReelLens, i
  * continues where the previous one stopped, so coverage of one action cuts
  * continuously.
  */
+
+export type FootballLightId = 'day' | 'night' | 'dawn' | 'horror';
+export const FOOTBALL_LIGHT_IDS: FootballLightId[] = ['day', 'night', 'dawn', 'horror'];
+
+export function footballLight(set: Record<string, unknown>): FootballLightId {
+  return FOOTBALL_LIGHT_IDS.includes(set.light as FootballLightId) ? (set.light as FootballLightId) : 'day';
+}
+
+/**
+ * Stadium light level at a frame (pure): `lights-out` stutters the banks to
+ * black across its window; `lights-up` strikes them back bank by bank. A scene
+ * whose first light event is `lights-up` starts dark. Returns the overall
+ * level and a per-floodlight-head level (stagger).
+ */
+export function footballLightLevel(tl: SceneShots | undefined, shot: Shot, frame: number): { level: number; heads: number[] } {
+  const evs = [...sceneFx(tl, shot, 'lights-out'), ...sceneFx(tl, shot, 'lights-up')].sort((a, b) => a.start - b.start);
+  const started = evs.filter((e) => frame >= e.start);
+  const last = started[started.length - 1];
+  const all = (v: number) => ({ level: v, heads: [v, v, v, v] });
+  if (!last) return all(evs[0]?.type === 'lights-up' ? 0 : 1);
+  const p = clamp01((frame - last.start) / Math.max(1, last.end - last.start));
+  if (last.type === 'lights-out') {
+    // Two stutters, then gone (bank 0 last: the key light dies at the end).
+    const stutter = p < 0.2 ? 0.35 : p < 0.35 ? 1 : p < 0.5 ? 0.15 : p < 0.62 ? 0.7 : 0;
+    return { level: stutter, heads: [p < 0.62 ? stutter : 0, p < 0.2 ? 1 : 0, p < 0.35 ? 1 : 0, p < 0.5 ? 0.6 : 0] };
+  }
+  const heads = [0, 1, 2, 3].map((i) => (p >= 0.12 + i * 0.16 ? 1 : 0));
+  return { level: smooth01(p / 0.7), heads };
+}
 
 export function footballMoment(set: Record<string, unknown>): string {
   return typeof set.moment === 'string' ? set.moment : 'hero-attack';
@@ -34,7 +64,27 @@ export function shotMomentTime(shot: Shot, frame: number, fps: number): number {
 }
 
 export function shotChoreo(shot: Shot, frame: number, fps: number, lagSeconds = 0): ChoreoFrame {
-  return sampleFootballMoment(footballMoment(shot.set), shotMomentTime(shot, frame, fps) - lagSeconds);
+  const t = shotMomentTime(shot, frame, fps) - lagSeconds;
+  const c = sampleFootballMoment(footballMoment(shot.set), t);
+  return typeof shot.set.dropBall === 'number' ? withDropBall(c, t, shot.set.dropBall) : c;
+}
+
+/**
+ * Referee's drop ball: before moment time `land` the ball falls (real gravity)
+ * onto its resting spot, then settles in two shrinking bounces.
+ */
+function withDropBall(c: ChoreoFrame, t: number, land: number): ChoreoFrame {
+  const R = 0.25;
+  if (t >= land + 0.9) return c;
+  const b = c.ball;
+  if (t < land) {
+    const y = R + 0.5 * 9.81 * (land - t) ** 2;
+    return { ...c, ball: { ...b, y }, ballHidden: y > 16 || c.ballHidden, ballSpin: { x: t * 3, y: t * 1.3, z: 0 } };
+  }
+  const dt = t - land;
+  // Bounces: 0.55 s (peak ~0.37 m) then 0.28 s (peak ~0.1 m).
+  const hop = dt < 0.55 ? 0.37 * Math.sin(Math.PI * (dt / 0.55)) : dt < 0.83 ? 0.1 * Math.sin(Math.PI * ((dt - 0.55) / 0.28)) : 0;
+  return { ...c, ball: { ...b, y: R + hop } };
 }
 
 function anchorsOf(c: ChoreoFrame): LensAnchors {
@@ -69,8 +119,15 @@ export const FOOTBALL_WORLD: WorldDef = {
   summary: 'Canonical HNC stadium with a deterministic choreography; cast mapped onto roles.',
   params: {
     moment: `Choreography id (${FOOTBALL_MOMENT_IDS.join(', ')})`,
-    roles: 'Cast id per role, e.g. { striker: "hero", rival: "rival" } (hero-attack roles: striker, rival, keeper, mate, holder)',
+    roles: 'Cast id per role, e.g. { striker: "hero", rival: "rival" } (roles per moment: see Moments below)',
+    light: 'day | night | dawn | horror (default day: the canonical game rig)',
+    crowd: 'full | empty (default full)',
+    dropBall: 'Moment second the ball lands from a referee drop (falls from above before it)',
+    tifo: 'Country code of a cloth tifo over the far terraces (e.g. "TR")',
+    home: 'Home country when no cast plays a home role (default TR)',
+    away: 'Away country when no cast plays an away role (default GR); kits resolve clashes with the game rule',
   },
+  effects: ['lights-out', 'lights-up'],
   marks: {},
   props: {
     'goal-away': { pos: v3(46, 1.3, 0), size: 2.5, summary: 'Goal the striker attacks' },
@@ -93,6 +150,8 @@ export const FOOTBALL_WORLD: WorldDef = {
   validateSet(set, cast) {
     const out: string[] = [];
     const moment = footballMoment(set);
+    if (set.light !== undefined && !FOOTBALL_LIGHT_IDS.includes(set.light as FootballLightId)) out.push(`unknown light "${String(set.light)}" (known: ${FOOTBALL_LIGHT_IDS.join(', ')})`);
+    if (set.crowd !== undefined && set.crowd !== 'full' && set.crowd !== 'empty') out.push('crowd must be full | empty');
     if (!FOOTBALL_MOMENT_IDS.includes(moment)) out.push(`unknown moment "${moment}" (known: ${FOOTBALL_MOMENT_IDS.join(', ')})`);
     const roles = MOMENT_ROLES[moment] ?? [];
     for (const [role, castId] of Object.entries(footballRoles(set))) {

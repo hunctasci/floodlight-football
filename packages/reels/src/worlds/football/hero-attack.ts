@@ -406,3 +406,66 @@ export function sampleHeroAttack(time: number): ChoreoFrame {
     net: scored ? { side: 1, phaseTime: t - HERO_ATTACK.goalLine } : undefined,
   };
 }
+
+// --- Variant: the same attack, the crossbar says no -------------------------
+
+// Canonical goal: crossbar centre y 2.8 (r 0.12). Ball (r 0.25) meets its front face.
+const BAR = { x: GOAL_X - 0.36, y: 2.72, z: -1.4 };
+/** After the bar: the ball kicks back up and away (toward the camera side). */
+const REBOUND_END = { x: 31, y: 0.25, z: 10.5 };
+
+function barBall(t: number): { x: number; y: number; z: number } {
+  const R = 0.25;
+  if (t < HERO_ATTACK.contact) return ballPos(t);
+  if (t < HERO_ATTACK.goalLine) {
+    const k = seg(t, HERO_ATTACK.contact, HERO_ATTACK.goalLine);
+    return {
+      x: lerp(BALL_SPOT.x, BAR.x, k),
+      y: lerp(R, BAR.y, k) + 0.45 * Math.sin(Math.PI * k),
+      z: lerp(BALL_SPOT.z, BAR.z, k) + 0.7 * Math.sin(Math.PI * k),
+    };
+  }
+  // Rebound arc: up off the bar, back over the box, one bounce.
+  const dt = t - HERO_ATTACK.goalLine;
+  const flight = 1.25;
+  if (dt < flight) {
+    const k = dt / flight;
+    return { x: lerp(BAR.x, REBOUND_END.x, easeOut(k * 0.9)), y: BAR.y + 7.5 * Math.sin(Math.PI * k) * (1 - 0.18 * k) - (BAR.y - R) * k, z: lerp(BAR.z, REBOUND_END.z, k) };
+  }
+  const b = dt - flight;
+  return { x: REBOUND_END.x - 2.5 * easeOut(b / 1.5), y: R + 1.2 * Math.abs(Math.sin(Math.PI * clamp01(b / 0.55))) * (b < 0.55 ? 1 : 0), z: REBOUND_END.z + 1.2 * easeOut(b / 1.5) };
+}
+
+/**
+ * `hero-attack-bar`: identical to `hero-attack` up to the strike (same
+ * clocks, lenses and coverage), but the shot cannons off the crossbar at
+ * `moment:barHit` and loops back out; the stadium freezes in disbelief and
+ * the striker ends hands-on-head instead of celebrating.
+ */
+export function sampleHeroAttackBar(time: number): ChoreoFrame {
+  const t = Math.min(HERO_ATTACK.length, Math.max(0, time));
+  const base = sampleHeroAttack(t);
+  if (t < HERO_ATTACK.contact) return base;
+  const hit = t >= HERO_ATTACK.goalLine;
+  const [striker, rival, keeper, mate, holder] = base.actors;
+  const stop = { x: FOLLOW_THROUGH.x + 1.6, z: FOLLOW_THROUGH.z + 0.6 };
+  const strikerAfter: ChoreoActor = t < HERO_ATTACK.contact + 0.3
+    ? striker
+    : t < HERO_ATTACK.goalLine + 0.25
+      ? { ...striker, x: lerp(FOLLOW_THROUGH.x, stop.x, easeOut(seg(t, HERO_ATTACK.contact + 0.3, HERO_ATTACK.goalLine + 0.25))), z: lerp(FOLLOW_THROUGH.z, stop.z, easeOut(seg(t, HERO_ATTACK.contact + 0.3, HERO_ATTACK.goalLine + 0.25))), pose: { action: 'idle', actionTime: 0, speed: 0, clock: t } }
+      : { ...striker, x: stop.x, z: stop.z, facing: Math.PI / 2 + 0.25, pose: undefined, procedural: 'facepalm' };
+  const keeperAfter: ChoreoActor = t < HERO_ATTACK.keeperDive ? keeper : keeper;
+  const crowd = hit
+    ? { mood: 'disbelief' as const, intensity: 0.9, moodTime: t - HERO_ATTACK.goalLine, homeSection: 1 as const }
+    : { mood: 'anticipation' as const, intensity: 1, moodTime: t, homeSection: 1 as const };
+  return {
+    ...base,
+    ball: barBall(t),
+    actors: [strikerAfter, rival, keeperAfter, { ...mate, pose: mate.pose ? { ...mate.pose, celebrating: false } : mate.pose }, holder.procedural ? { ...holder, procedural: undefined, pose: { action: 'idle', actionTime: 0, speed: 0, clock: t } } : holder],
+    crowd,
+    crowdIntensity: crowd.intensity,
+    phase: hit ? 'woodwork' : 'shot',
+    net: undefined,
+    anchors: { hero: { x: strikerAfter.x, z: strikerAfter.z }, rival: { x: rival.x, z: rival.z }, keeper: { x: keeper.x, z: keeper.z } },
+  };
+}

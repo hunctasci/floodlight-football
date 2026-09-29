@@ -116,6 +116,49 @@ export const Text: React.FC<TextProps> = ({ text, style, frame, fps, start, end,
         </div>
       );
       break;
+    case 'title': {
+      // Campaign headline: Futura Condensed ExtraBold, tight, rises in line by line.
+      const lines = text.split('\n');
+      body = (
+        <div style={{ textAlign: 'center' }}>
+          {lines.map((l, i) => {
+            const k = spring({ frame: local - i * 7, fps, config: { damping: 18, stiffness: 170 } });
+            return (
+              <div key={i} style={{ overflow: 'hidden', lineHeight: 0.95 }}>
+                <div style={{ fontFamily: HNC_UI.headline, fontWeight: 800, fontStretch: 'condensed', fontSize: 132, letterSpacing: '0.01em', color: i === lines.length - 1 && lines.length > 1 ? HNC_UI.gold : HNC_UI.cream, textTransform: 'uppercase', transform: `translateY(${(1 - k) * 110}%)`, textShadow: '0 6px 28px rgba(0,0,0,0.55)' }}>{l}</div>
+              </div>
+            );
+          })}
+        </div>
+      );
+      break;
+    }
+    case 'cinema': {
+      // Quiet serif caps, wide tracking, slow fade (film titles).
+      const k = interpolate(local, [0, Math.round(fps * 0.6)], [0, 1], clamp);
+      body = (
+        <div style={{ fontFamily: HNC_UI.cinema, fontSize: 70, letterSpacing: '0.22em', color: HNC_UI.cream, textTransform: 'uppercase', textAlign: 'center', lineHeight: 1.25, opacity: k, transform: `translateY(${(1 - k) * 10}px)`, textShadow: '0 2px 24px rgba(0,0,0,0.6)', whiteSpace: 'pre-line' }}>{text}</div>
+      );
+      break;
+    }
+    case 'broadcast':
+      body = (
+        <div style={{ fontFamily: HNC_UI.broadcast, fontSize: 96, lineHeight: 0.95, color: '#ffffff', textTransform: 'uppercase', textAlign: 'center', transform: `scaleY(${interpolate(inS, [0, 1], [0.2, 1])})`, whiteSpace: 'pre-line' }}>{text}</div>
+      );
+      break;
+    case 'horror': {
+      const jitter = Math.sin(local * 1.7) * 1.5 + (local % 17 === 0 ? 6 : 0);
+      const k = interpolate(local, [0, Math.round(fps * 0.35)], [0, 1], clamp);
+      body = (
+        <div style={{ fontFamily: HNC_UI.horror, fontStyle: 'italic', fontWeight: 700, fontSize: 104, lineHeight: 1, letterSpacing: '0.02em', color: '#f3ece0', textTransform: 'uppercase', textAlign: 'center', opacity: k * (local % 23 === 5 ? 0.35 : 1), transform: `translateX(${jitter}px)`, textShadow: '0 0 30px rgba(180,20,20,0.75), 3px 0 0 rgba(200,20,30,0.6)', whiteSpace: 'pre-line' }}>{text}</div>
+      );
+      break;
+    }
+    case 'typewriter': {
+      const n = Math.floor(interpolate(local, [0, Math.max(1, text.length * 1.4)], [0, text.length], clamp));
+      body = <div style={{ fontFamily: HNC_UI.typewriter, fontSize: 52, color: '#1d2230', background: '#f5f0e3', padding: '18px 28px', boxShadow: '8px 8px 0 rgba(0,0,0,0.35)', whiteSpace: 'pre-line' }}>{text.slice(0, n)}<span style={{ opacity: local % 20 < 10 ? 1 : 0 }}>▍</span></div>;
+      break;
+    }
     case 'whisper':
       body = <div style={{ fontFamily: 'system-ui, sans-serif', fontStyle: 'italic', fontWeight: 700, fontSize: 56, color: HNC_UI.cream, textShadow: '0 3px 12px #000c, 2px 2px 0 #101b31', opacity: inS }}>{text}</div>;
       break;

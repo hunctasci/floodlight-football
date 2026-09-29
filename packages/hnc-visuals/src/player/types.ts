@@ -59,4 +59,6 @@ export type HncWardrobeId =
   | 'commentator'
   | 'fan'
   | 'referee'
-  | 'hoodie';
+  | 'hoodie'
+  | 'tee'
+  | 'kit-trousers';

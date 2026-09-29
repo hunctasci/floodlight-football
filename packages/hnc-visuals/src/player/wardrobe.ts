@@ -74,6 +74,10 @@ export const HNC_WARDROBES: Record<HncWardrobeId, HncWardrobeSpec> = {
   fan: { shirt: '__kit__', trousers: '#34435a', scarf: true, hideNumber: true },
   referee: { shirt: '#1d1f27', trousers: '#15161c', badge: '#f7bf30', hideKitMarkings: true },
   hoodie: { shirt: '__accent__', trousers: '#2f3a4c', hood: '__accent__', hideKitMarkings: true },
+  /** At home: plain tee in the accent colour, jeans. */
+  tee: { shirt: '__accent__', trousers: '#34435a', hideKitMarkings: true },
+  /** Halfway through a change: the country shirt (number on the back) over office trousers. */
+  'kit-trousers': { shirt: '__kit__', trousers: '#23283b' },
 };
 
 export interface HncWardrobeColors {
@@ -81,6 +85,8 @@ export interface HncWardrobeColors {
   secondary: string;
   /** Personal clue colour (tie, hoodie). Defaults to `primary`. */
   accent?: string;
+  /** Optional printed badge (e.g. a national-flag ID card); replaces the badge colour. */
+  badgeMap?: THREE.Texture;
 }
 
 function disposeTree(obj: THREE.Object3D): void {
@@ -157,7 +163,10 @@ export function applyHncWardrobe(
     add(tie);
   }
   if (spec.badge) {
-    const badge = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.14), new THREE.MeshBasicMaterial({ color: swatch(spec.badge) }));
+    const badge = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.22, 0.14),
+      kit?.badgeMap ? new THREE.MeshBasicMaterial({ map: kit.badgeMap }) : new THREE.MeshBasicMaterial({ color: swatch(spec.badge) }),
+    );
     badge.position.set(spec.jacket ? -0.22 : 0.16, 1.22, spec.jacket ? 0.47 : 0.42);
     badge.rotation.x = -0.06;
     add(badge);
@@ -196,7 +205,9 @@ export function applyHncWardrobe(
   }
 }
 
-export type HncHeldProp = 'mug' | 'phone' | 'yellow-card' | 'red-card' | 'microphone';
+export type HncHeldProp = 'mug' | 'phone' | 'yellow-card' | 'red-card' | 'microphone' | 'paper-cup' | 'espresso' | 'remote' | 'scarf';
+
+export const HNC_HELD_PROPS: readonly HncHeldProp[] = ['mug', 'phone', 'yellow-card', 'red-card', 'microphone', 'paper-cup', 'espresso', 'remote', 'scarf'];
 
 /**
  * Put a small prop in the right hand (bottom end of the right arm stick, so
@@ -221,6 +232,29 @@ export function setHncHeldProp(visual: HncPlayerVisual, prop: HncHeldProp | null
     const phone = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.19, 0.025), flat('#161a24', 0.4));
     phone.position.z = 0.05;
     group.add(phone);
+  } else if (prop === 'paper-cup') {
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.06, 0.2, 8), flat('#b89572'));
+    cup.position.z = 0.06;
+    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.068, 0.08, 8), flat('#e9e1d2'));
+    sleeve.position.set(0, -0.01, 0.06);
+    const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.079, 0.079, 0.025, 8), flat('#fbf8f2'));
+    lid.position.set(0, 0.11, 0.06);
+    group.add(cup, sleeve, lid);
+  } else if (prop === 'espresso') {
+    const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.042, 0.075, 8), flat('#fbf8f2', 0.5));
+    cup.position.z = 0.06;
+    group.add(cup);
+  } else if (prop === 'remote') {
+    const r = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.2, 0.03), flat('#1d212b', 0.5));
+    r.position.z = 0.05;
+    group.add(r);
+  } else if (prop === 'scarf') {
+    // A folded supporter scarf: two stacked kit-coloured slabs.
+    const a = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.05, 0.16), flat(color));
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.04, 0.16), flat('#f3ede0'));
+    a.position.set(0, -0.02, 0.12);
+    b.position.set(0, 0.025, 0.12);
+    group.add(a, b);
   } else if (prop === 'microphone') {
     const mic = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.025, 0.24, 6), flat('#1a1d26', 0.5));
     const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.055, 0), flat('#3b4150', 0.5));

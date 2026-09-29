@@ -18,6 +18,13 @@ export const HNC_UI = {
   display: "Impact, 'Arial Black', sans-serif",
   mono: 'ui-monospace, SFMono-Regular, Menlo, monospace',
   body: 'system-ui, sans-serif',
+  /** Campaign type system (autumn 2026) — system faces rendered by the Mac renderer. */
+  headline: "'Futura', 'Avenir Next Condensed', Impact, sans-serif",
+  cinema: "'Didot', 'Bodoni 72', Georgia, serif",
+  broadcast: "'DIN Condensed', 'Avenir Next Condensed', Impact, sans-serif",
+  horror: "'Bodoni 72', Didot, Georgia, serif",
+  typewriter: "'American Typewriter', 'Courier New', monospace",
+  red: '#e30a17',
   /** .ui text-shadow (2px 2px 0 navy) at portrait scale. */
   hardShadow: '5px 5px 0 #101b31',
   /** .stadium-screen backdrop over the live stadium. */

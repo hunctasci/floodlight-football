@@ -2,7 +2,7 @@
 /**
  * reels:still — deterministic PNG stills.
  *   --content office-rivalry --frame 120
- *   --content office-rivalry --at faceoff@55%        (timing grammar, any beat)
+ *   --content office-rivalry --at faceoff@55%,goal   (timing grammar, any beats → one sheet)
  *   --content office-rivalry --key thumb             (spec keyArt marker)
  *   --content office-rivalry --beats                 (contact sheet: every beat)
  *   [--format reel|story|portrait|square] [--output file.png]
@@ -36,7 +36,8 @@ if (flag('beats')) {
   if (f === undefined) throw new Error(`No keyArt "${arg('key')}" (have: ${Object.keys(tl.markers).filter((m) => m.startsWith('key:')).join(', ')})`);
   frames = [{ frame: f, label: `key-${arg('key')}` }];
 } else if (arg('at')) {
-  frames = [{ frame: frameOf(arg('at')!), label: arg('at')!.replace(/[@%]/g, '_') }];
+  // One or more times, comma separated: --at reach@80%,stare-a@60%
+  frames = arg('at')!.split(',').map((a) => ({ frame: frameOf(a.trim()), label: a.trim().replace(/[@%]/g, '_') }));
 } else {
   frames = (arg('frame', '0') ?? '0').split(',').map((f) => ({ frame: Number(f), label: `f${f}` }));
 }

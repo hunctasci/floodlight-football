@@ -3,9 +3,11 @@
  * timing (by compiling), and creative lint (hook, pacing, readability,
  * brand). Errors block rendering; warnings are direction notes.
  */
+import { HNC_HELD_PROPS } from '@floodlight/hnc-visuals';
 import { ACTIONS } from '../../cast/actions';
 import { isValidCountryCode } from '../../cast/countries';
 import { LOOKS } from '../../cast/looks';
+import { PEOPLE, resolveCastSpec } from '../../cast/people';
 import { CUES } from '../../audio/registry';
 import { GENERIC_LENSES, LENS_SUBJECTS } from '../../camera/lenses';
 import { normalizeCamera } from '../../camera/intent';
@@ -52,6 +54,8 @@ function sceneSubjects(scene: SceneSpec): string[] {
   } else {
     for (const b of scene.beats) out.push(...Object.keys(b.cast ?? {}));
   }
+  const actors = out.filter((id) => scene.world === 'football' || scene.beats.some((b) => b.cast?.[id]));
+  for (const id of actors) out.push(`${id}.badge`, `${id}.hands`, `${id}.feet`);
   return [...new Set(out)];
 }
 
@@ -64,7 +68,14 @@ export function validateContent(spec: ContentSpec): Issue[] {
   if (spec.fps !== undefined && spec.fps !== 30 && spec.fps !== 60) err('fps', 'fps must be 30 or 60');
   if (!spec.scenes?.length) err('scenes', 'at least one scene');
 
-  for (const [id, c] of Object.entries(spec.cast ?? {})) {
+  for (const [id, raw] of Object.entries(spec.cast ?? {})) {
+    if (raw.person && !PEOPLE[raw.person]) {
+      err(`cast.${id}.person`, unknown('person', raw.person, Object.keys(PEOPLE)));
+      continue;
+    }
+    const c = resolveCastSpec(raw);
+    if (raw.person && (raw.country || raw.number)) warn(`cast.${id}`, `person "${raw.person}" owns country/number; the spec values are ignored`);
+    if (raw.person) continue;
     if (!isValidCountryCode(c.country)) err(`cast.${id}.country`, `unknown country "${c.country}"`);
     if (!Number.isInteger(c.number) || c.number < 1 || c.number > 99) err(`cast.${id}.number`, 'number must be 1..99');
     if (c.look && !LOOKS[c.look]) err(`cast.${id}.look`, unknown('look', c.look, Object.keys(LOOKS)));
@@ -79,14 +90,14 @@ export function validateContent(spec: ContentSpec): Issue[] {
       err(`${sp}.world`, unknown('world', scene.world, Object.keys(WORLDS)));
       return;
     }
-    for (const m of world.validateSet?.(scene.set ?? {}, Object.fromEntries(Object.entries(spec.cast).map(([k, v]) => [k, { id: k, name: k, accent: '', look: '', ...v }]))) ?? []) err(`${sp}.set`, m);
+    for (const m of world.validateSet?.(scene.set ?? {}, Object.fromEntries(Object.entries(spec.cast).map(([k, v]) => [k, { id: k, name: k, accent: '', look: '', ...resolveCastSpec(v) }]))) ?? []) err(`${sp}.set`, m);
     if (scene.world === 'football') {
       const moment = String(scene.set?.moment ?? 'hero-attack');
       const roles = MOMENT_ROLES[moment] ?? [];
       const actors = roles.length ? sampleFootballMoment(moment, 0).actors : [];
       for (const [role, castId] of Object.entries(footballRoles(scene.set ?? {}))) {
         const want = actors[roles.indexOf(role)]?.number;
-        const c = spec.cast[castId];
+        const c = spec.cast[castId] ? resolveCastSpec(spec.cast[castId]) : undefined;
         if (c && want !== undefined && c.number !== want) warn(`${sp}.set.roles.${role}`, `"${castId}" wears #${c.number} but the ${role} role is choreographed as #${want} (celebration move follows the choreography number)`);
       }
     }
@@ -143,7 +154,7 @@ export function validateContent(spec: ContentSpec): Issue[] {
         if (dir.at && !world.marks[dir.at]) err(`${ap}.at`, unknown(`mark in ${scene.world}`, dir.at, Object.keys(world.marks)));
         if (dir.move && !world.marks[dir.move.to]) err(`${ap}.move`, unknown(`mark in ${scene.world}`, dir.move.to, Object.keys(world.marks)));
         if (dir.look && !LOOKS[dir.look]) err(`${ap}.look`, unknown('look', dir.look, Object.keys(LOOKS)));
-        if (dir.hold && !['mug', 'phone', 'yellow-card', 'red-card', 'microphone'].includes(dir.hold)) err(`${ap}.hold`, unknown('held prop', dir.hold, ['mug', 'phone', 'yellow-card', 'red-card', 'microphone']));
+        if (dir.hold && !(HNC_HELD_PROPS as readonly string[]).includes(dir.hold)) err(`${ap}.hold`, unknown('held prop', dir.hold, [...HNC_HELD_PROPS]));
         const list = dir.do === undefined ? [] : Array.isArray(dir.do) ? dir.do : [dir.do];
         for (const s of list) {
           const a = typeof s === 'string' ? s : s.do;
@@ -219,7 +230,7 @@ export function validateContent(spec: ContentSpec): Issue[] {
     }
   }
   const lastScene = spec.scenes[spec.scenes.length - 1];
-  const brandish = (g: { kind: string }) => g.kind === 'brand-reveal' || g.kind === 'notification' || g.kind === 'live-bug';
+  const brandish = (g: { kind: string }) => g.kind === 'brand-reveal' || g.kind === 'lockup' || g.kind === 'notification' || g.kind === 'live-bug';
   const tail = [...(lastScene.graphics ?? []), ...lastScene.beats.slice(-2).flatMap((b) => b.graphics ?? [])];
   if (!tail.some(brandish)) warn('brand', 'no HNC brand moment (brand-reveal) in the final beats');
   if (!beats.some(({ b }) => b.purpose === 'payoff' || b.purpose === 'punchline')) warn('purpose', 'no beat marked payoff/punchline — what is the release?');

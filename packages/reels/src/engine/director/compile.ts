@@ -10,6 +10,7 @@
 import { frameAtMomentTime, type TimeRampId } from '../../animation/time-ramp';
 import { normalizeCamera } from '../../camera/intent';
 import { countryColors, countryName } from '../../cast/countries';
+import { resolveCastSpec } from '../../cast/people';
 import { getCue } from '../../audio/registry';
 import { getTransition } from '../../transitions/registry';
 import { getWorld } from '../../worlds/registry';
@@ -59,7 +60,8 @@ export function compileContent(spec: ContentSpec, opts: CompileOptions = {}): Ti
   const { width, height } = FORMATS[format];
 
   const cast: Record<string, CastMember> = {};
-  for (const [id, c] of Object.entries(spec.cast)) {
+  for (const [id, raw] of Object.entries(spec.cast)) {
+    const c = resolveCastSpec(raw);
     cast[id] = { id, country: c.country, number: c.number, name: c.name ?? countryName(c.country), accent: c.accent ?? countryColors(c.country).primary, look: c.look ?? '' };
   }
 

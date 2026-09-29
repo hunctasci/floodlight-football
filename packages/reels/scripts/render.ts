@@ -4,7 +4,7 @@
  *   npm run reels:render -- --content office-rivalry                    (primary format)
  *   npm run reels:render -- --content office-rivalry --format all       (every declared format)
  *   npm run reels:render -- --content ./my-idea.json --format square --output social/output/x.mp4
- *   [--scale 0.5] (fast preview)  [--frames 0-120]
+ *   [--scale 0.5] (fast preview)  [--frames 0-120]  [--concurrency 12]
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -34,8 +34,8 @@ for (const format of formats) {
   const tl = compileContent(spec, { format });
   const output = path.resolve(arg('output') && formats.length === 1 ? arg('output')! : `social/output/${spec.id}-${format}${scale !== 1 ? '-preview' : ''}.mp4`);
   console.log(`Rendering ${spec.id} [${format} ${tl.width}x${tl.height}, ${tl.totalFrames}f @ ${tl.fps}] → ${output}`);
-  await video('Content', { spec, format, sfx }, output, { scale, frameRange: range });
+  await video('Content', { spec, format, sfx }, output, { scale, frameRange: range, concurrency: arg('concurrency') ? Number(arg('concurrency')) : undefined });
   const m = master(output);
-  console.log(`  audio: ${m.lufs} LUFS, true peak ${m.truePeak} dBTP → gain ${m.gainDb.toFixed(2)} dB (ceiling -1 dBTP)`);
+  console.log(`  audio: ${m.lufs} LUFS / ${m.truePeak} dBTP → ${m.gainDb >= 0 ? '+' : ''}${m.gainDb.toFixed(2)} dB → ${m.out.lufs} LUFS / ${m.out.truePeak} dBTP${m.out.lufs < -15.5 ? '  (peak-limited: reduce transient peaks to get louder)' : ''}`);
 }
 process.exit(0);

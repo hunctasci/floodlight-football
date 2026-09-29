@@ -34,6 +34,7 @@ export const GRAPHICS: Record<string, GraphicDef> = {
   timestamp: { summary: 'Typographic time stamp ("MONDAY · 09:03")', props: { day: 'day text', time: 'time text' } },
   stamp: { summary: 'Rubber-stamp slam text ("WORTH IT")', props: { tilt: 'degrees', color: 'gold | red | cream' } },
   screen: { summary: 'Switch an in-world screen’s content from this beat', props: { surface: 'surface id', content: 'screen content id' } },
+  lockup: { summary: 'Small HNC League lockup (badge + wordmark) that settles in; optional line under it', props: { line: 'small line under the wordmark', place: 'bottom | center | top', tone: 'light | dark' } },
 };
 
 export const GRAPHIC_KINDS = Object.keys(GRAPHICS);
@@ -48,6 +49,11 @@ export const TEXT_STYLES: Record<string, string> = {
   subtitle: 'Plain subtitle (dialogue)',
   whisper: 'Small italic aside (* slow side-eye *)',
   stamp: 'Rotated stamp slam',
+  title: 'Campaign headline (Futura Condensed), lines rise in; use \\n for lines, last line gold',
+  cinema: 'Quiet serif caps (Didot), wide tracking, slow fade — film titles',
+  broadcast: 'Condensed broadcast caps (DIN), snaps open vertically',
+  horror: 'Bodoni italic caps with a red ghost glow and a nervous jitter',
+  typewriter: 'Typed-out memo line on paper',
 };
 
 export const TEXT_STYLE_IDS = Object.keys(TEXT_STYLES);

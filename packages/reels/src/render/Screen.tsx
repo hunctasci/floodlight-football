@@ -1,6 +1,9 @@
 import React from 'react';
 import * as THREE from 'three';
-import { makeCanvasTexture, SCREEN_PAINTERS, type ScreenData } from './screens';
+import { makeCanvasTexture, registerScreenPainters, SCREEN_PAINTERS, type ScreenData } from './screens';
+import { CAMPAIGN_PAINTERS } from './screens-campaign';
+
+registerScreenPainters(CAMPAIGN_PAINTERS);
 
 /**
  * An in-world screen: a plane with a canvas-painted texture (monitor, studio

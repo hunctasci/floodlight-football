@@ -77,6 +77,24 @@ function applyGamePose(v: HncPlayerVisual, a: ChoreoActor): void {
     v.armL.rotation.x = -2.7 * p.reach;
     v.armR.rotation.x = -2.7 * p.reach;
   }
+  if (p.walk) {
+    // Walking, not running: arms hang and swing gently against the legs.
+    v.armL.rotation.x *= 1 - 0.55 * p.walk;
+    v.armR.rotation.x *= 1 - 0.55 * p.walk;
+    v.armL.rotation.z = 0.1 * p.walk;
+    v.armR.rotation.z = -0.1 * p.walk;
+  }
+  if (p.cradle) {
+    v.armL.rotation.x = -1.25 * p.cradle;
+    v.armR.rotation.x = -1.25 * p.cradle;
+    v.armL.rotation.z = -0.28 * p.cradle;
+    v.armR.rotation.z = 0.28 * p.cradle;
+  }
+  if (p.headYaw !== undefined || p.headPitch !== undefined) {
+    v.head.rotation.order = 'YXZ';
+    v.head.rotation.set(p.headPitch ?? 0, p.headYaw ?? 0, 0);
+  } else v.head.rotation.set(0, 0, 0);
+  if (v.eyes) for (const e of v.eyes) e.scale.set(1, Math.max(0.12, p.eyeOpen ?? 1), 1);
   if (p.grounded) {
     v.root.position.y += (0.1 - v.root.position.y) * p.grounded;
     v.root.rotation.z *= 1 + 0.37 * p.grounded;

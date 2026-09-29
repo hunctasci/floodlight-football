@@ -7,6 +7,7 @@
 import * as THREE from 'three';
 import { countryColors, countryFlag, countryName } from '../cast/countries';
 import { HNC_UI } from '../graphics/hnc-ui';
+import { paintNationalFlag } from './flags';
 
 export interface ScreenData {
   home: string;
@@ -176,10 +177,16 @@ const PAINTERS: Record<string, Painter> = {
   },
 };
 
-export const SCREEN_PAINTERS = PAINTERS;
+export const SCREEN_PAINTERS: Record<string, Painter> = PAINTERS;
+
+// Campaign painters register lazily to avoid an import cycle (they reuse paintFlag).
+export function registerScreenPainters(extra: Record<string, Painter>): void {
+  Object.assign(PAINTERS, extra);
+}
 
 /** Country flag printed on a small desk flag (emoji flag, colour fallback). */
 export function paintFlag(ctx: CanvasRenderingContext2D, w: number, h: number, code: string): void {
+  if (paintNationalFlag(ctx, w, h, code)) return;
   const { primary, secondary } = countryColors(code);
   ctx.fillStyle = primary;
   ctx.fillRect(0, 0, w, h);

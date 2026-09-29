@@ -9,6 +9,7 @@ import type { AudioEvent, AudioEventType } from '../../../social-video/src/audio
 import type { Timeline } from '../engine/timeline/types';
 import { duckGain } from './mix';
 import { getCue } from './registry';
+import { renderFilteredCue } from './filtered';
 import { renderSocialCue, SAMPLE_RATE, SOCIAL_RECIPES } from './social-synth';
 
 /**
@@ -39,6 +40,10 @@ export function renderStemSamples(tl: Timeline): Float32Array {
   const beds = new Float32Array(n);
   tl.sounds.forEach((s, i) => {
     const def = getCue(s.cue);
+    if (def.source === 'filtered') {
+      renderFilteredCue(def.bus === 'foreground' ? fore : beds, s.cue, s.frame / tl.fps, s.duration !== undefined ? s.duration / tl.fps : def.length, s.volume);
+      return;
+    }
     if (def.source !== 'social') return;
     if (!SOCIAL_RECIPES[s.cue]) throw new Error(`Cue "${s.cue}" has no social recipe`);
     const seconds = s.duration !== undefined ? s.duration / tl.fps : def.length;

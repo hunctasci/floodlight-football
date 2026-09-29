@@ -18,7 +18,7 @@ import { applyMoves } from './moves';
 import { mixLens } from './vec';
 import { projectToScreen } from './project';
 
-type TL = Pick<Timeline, 'cast' | 'fps' | 'seed' | 'width' | 'height'>;
+type TL = Pick<Timeline, 'cast' | 'fps' | 'seed' | 'width' | 'height'> & Partial<Pick<Timeline, 'shots'>>;
 
 function baseLens(tl: TL, shot: Shot, intent: Omit<CameraIntent, 'to'>, frame: number, subject: SubjectResolver): Lens {
   const builder = GENERIC_LENSES[intent.lens];

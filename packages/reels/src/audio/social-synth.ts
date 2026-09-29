@@ -188,6 +188,205 @@ export const SOCIAL_RECIPES: Record<string, SocialRecipe> = {
     }
     for (let t = 0; t < d; t += 0.25) tone(o, s + Math.round(t * SAMPLE_RATE), 0.01, t % 1 < 0.01 ? 1200 : 1800, 1500, 0.05 * g, 'square', decay(5));
   },
+  // --- Campaign foley ------------------------------------------------------
+  footsteps: (o, s, d, g, r) => {
+    for (let t = 0.05; t < d; t += 0.52 + r() * 0.04) {
+      const at = s + Math.round(t * SAMPLE_RATE);
+      tone(o, at, 0.06, 110, 70, 0.22 * g, 'sine', hit(0.02, 7));
+      noise(o, at, 0.035, 0.12 * g, r, 0.5, decay(9), 0.9);
+    }
+  },
+  'footsteps-tunnel': (o, s, d, g, r) => {
+    for (let t = 0.05; t < d; t += 0.48 + r() * 0.03) {
+      const at = s + Math.round(t * SAMPLE_RATE);
+      for (const [delay, k] of [[0, 1], [0.07, 0.35], [0.15, 0.18], [0.24, 0.09]] as const) {
+        const a = at + Math.round(delay * SAMPLE_RATE);
+        tone(o, a, 0.07, 150, 90, 0.2 * g * k, 'sine', hit(0.01, 6));
+        noise(o, a, 0.03, 0.2 * g * k, r, 0.7, decay(10), 0.9);
+        tone(o, a, 0.015, 2400, 1800, 0.03 * g * k, 'square', decay(6));
+      }
+    }
+  },
+  'machine-grind': (o, s, d, g, r) => {
+    const n = Math.round(d * SAMPLE_RATE);
+    let y = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / SAMPLE_RATE;
+      y += 0.35 * (r() * 2 - 1 - y);
+      const am = 0.6 + 0.4 * Math.sin(2 * Math.PI * 38 * t) * Math.sin(2 * Math.PI * 7 * t);
+      put(o, s + i, y * 0.16 * g * am * env(i, n, 2000, 6000));
+    }
+    tone(o, s, d, 92, 88, 0.05 * g, 'saw', (p) => Math.sin(Math.PI * p));
+  },
+  'machine-hiss': (o, s, d, g, r) => {
+    noise(o, s, d, 0.3 * g, r, 0.9, (p) => Math.min(1, p * 8) * (1 - p) ** 0.6, 0.97);
+    noise(o, s, d, 0.12 * g, r, 0.2, (p) => Math.min(1, p * 5) * (1 - p));
+    tone(o, s, d * 0.8, 58, 45, 0.18 * g, 'sine', (p) => Math.min(1, p * 6) * (1 - p));
+  },
+  'machine-beep': (o, s, _d, g) => {
+    tone(o, s, 0.09, 1980, 1980, 0.09 * g, 'square', hit(0.02, 3));
+    tone(o, s + Math.round(0.16 * SAMPLE_RATE), 0.09, 1980, 1980, 0.09 * g, 'square', hit(0.02, 3));
+  },
+  'cup-set': (o, s, _d, g, r) => {
+    tone(o, s, 0.05, 520, 380, 0.14 * g, 'tri', decay(7));
+    noise(o, s, 0.02, 0.12 * g, r, 0.6, decay(9), 0.8);
+  },
+  'cup-scrape': (o, s, d, g, r) => noise(o, s, d, 0.09 * g, r, 0.55, (p) => Math.sin(Math.PI * p) * (0.7 + 0.3 * Math.sin(p * 70)), 0.9),
+  'cup-hit': (o, s, _d, g, r) => {
+    tone(o, s, 0.1, 190, 110, 0.3 * g, 'sine', hit(0.01, 6));
+    noise(o, s, 0.05, 0.25 * g, r, 0.35, decay(8));
+    tone(o, s + Math.round(0.11 * SAMPLE_RATE), 0.05, 230, 150, 0.08 * g, 'sine', decay(6));
+  },
+  'ceramic-spin': (o, s, d, g, r) => {
+    let t = 0;
+    let gap = 0.05;
+    while (t < d) {
+      const at = s + Math.round(t * SAMPLE_RATE);
+      tone(o, at, 0.02, 2900 + r() * 400, 2600, 0.035 * g, 'tri', decay(5));
+      noise(o, at, 0.012, 0.04 * g, r, 0.8, decay(8), 0.9);
+      t += gap;
+      gap *= 1.06;
+    }
+  },
+  'spoon-clink': (o, s, _d, g) => {
+    tone(o, s, 0.25, 3520, 3500, 0.06 * g, 'sine', hit(0.005, 6));
+    tone(o, s, 0.2, 5280, 5270, 0.025 * g, 'sine', hit(0.005, 8));
+  },
+  sip: (o, s, d, g, r) => noise(o, s, d, 0.06 * g, r, 0.25, (p) => Math.sin(Math.PI * p) * (0.5 + 0.5 * Math.sin(p * 40))),
+  'ball-land': (o, s, _d, g, r) => {
+    tone(o, s, 0.14, 95, 55, 0.5 * g, 'sine', hit(0.005, 6));
+    noise(o, s, 0.05, 0.2 * g, r, 0.3, decay(8));
+  },
+  'ball-roll': (o, s, d, g, r) => noise(o, s, d, 0.07 * g, r, 0.06, (p) => Math.min(1, p * 4) * (1 - p) * (0.75 + 0.25 * Math.sin(p * 55))),
+  blinds: (o, s, d, g, r) => {
+    for (let t = 0; t < d; t += 0.018 + r() * 0.02) {
+      tone(o, s + Math.round(t * SAMPLE_RATE), 0.012, 1800 + r() * 1400, 1500, 0.05 * g * (1 - t / d), 'tri', decay(6));
+    }
+    tone(o, s + Math.round(d * 0.92 * SAMPLE_RATE), 0.06, 300, 200, 0.12 * g, 'sine', decay(6));
+  },
+  drawer: (o, s, d, g, r) => {
+    noise(o, s, d * 0.7, 0.07 * g, r, 0.25, (p) => Math.sin(Math.PI * p));
+    tone(o, s + Math.round(d * 0.72 * SAMPLE_RATE), 0.12, 140, 80, 0.35 * g, 'sine', hit(0.005, 6));
+  },
+  door: (o, s, d, g, r) => {
+    noise(o, s, d * 0.6, 0.04 * g, r, 0.12, (p) => Math.sin(Math.PI * p));
+    tone(o, s + Math.round(d * 0.6 * SAMPLE_RATE), 0.2, 85, 55, 0.35 * g, 'sine', hit(0.005, 5));
+    tone(o, s + Math.round(d * 0.62 * SAMPLE_RATE), 0.03, 1400, 900, 0.06 * g, 'square', decay(6));
+  },
+  knuckles: (o, s, _d, g, r) => {
+    for (const at of [0.02, 0.22, 0.29]) noise(o, s + Math.round(at * SAMPLE_RATE), 0.012, 0.3 * g, r, 0.9, decay(12), 0.95);
+  },
+  cloth: (o, s, d, g, r) => noise(o, s, d, 0.05 * g, r, 0.15, (p) => Math.sin(Math.PI * p) * (0.6 + 0.4 * Math.sin(p * 23))),
+  'phone-buzz': (o, s, d, g) => {
+    for (const [a, b] of [[0, 0.3], [0.42, 0.72]]) {
+      if (a >= d) break;
+      tone(o, s + Math.round(a * SAMPLE_RATE), Math.min(b, d) - a, 175, 175, 0.12 * g, 'square', (p) => Math.min(1, p * 20) * Math.min(1, (1 - p) * 20));
+    }
+  },
+  'dramatic-sting': (o, s, d, g, r) => {
+    // Timpani + low brass stab + string tremolo swell, all descending a semitone: melodrama.
+    tone(o, s, 0.9, 73, 55, 0.55 * g, 'sine', hit(0.005, 3.2));
+    noise(o, s, 0.2, 0.2 * g, r, 0.2, decay(6));
+    for (const [f, k] of [[110, 1], [138.6, 0.8], [164.8, 0.8], [220, 0.5]] as const) {
+      tone(o, s, d, f, f * 0.94, 0.05 * g * k, 'saw', (p) => Math.min(1, p * 30) * Math.exp(-p * 2.2));
+    }
+    const n = Math.round(d * SAMPLE_RATE);
+    for (let i = 0; i < n; i++) {
+      const t = i / SAMPLE_RATE;
+      const trem = 0.5 + 0.5 * Math.sin(2 * Math.PI * 13 * t);
+      const v = (Math.sin(2 * Math.PI * 440 * t) + Math.sin(2 * Math.PI * 466 * t) * 0.6) * 0.012 * g * trem;
+      put(o, s + i, v * Math.min(1, t / 0.3) * Math.exp(-t * 1.2));
+    }
+  },
+  'horror-drone': (o, s, d, g, r) => {
+    const n = Math.round(d * SAMPLE_RATE);
+    let y = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / SAMPLE_RATE;
+      y += 0.02 * (r() * 2 - 1 - y);
+      const v = Math.sin(2 * Math.PI * 41 * t) * 0.5 + Math.sin(2 * Math.PI * 43.3 * t) * 0.5 + Math.sin(2 * Math.PI * 61.7 * t) * 0.2;
+      put(o, s + i, (v * 0.05 + y * 0.6) * g * env(i, n, SAMPLE_RATE * 0.8, SAMPLE_RATE * 0.5));
+    }
+  },
+  'horror-hit': (o, s, d, g, r) => {
+    tone(o, s, d, 60, 28, 0.7 * g, 'sine', hit(0.004, 2.5));
+    noise(o, s, 0.4, 0.3 * g, r, 0.4, decay(4));
+    for (const f of [1170, 1244, 1661]) tone(o, s, d * 0.8, f, f * 1.03, 0.025 * g, 'saw', (p) => Math.min(1, p * 50) * Math.exp(-p * 3));
+  },
+  wind: (o, s, d, g, r) => {
+    const n = Math.round(d * SAMPLE_RATE);
+    let y = 0;
+    let z = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / SAMPLE_RATE;
+      const gust = 0.55 + 0.45 * Math.sin(t * 0.9) * Math.sin(t * 0.37 + 1);
+      y += (0.01 + 0.03 * gust) * (r() * 2 - 1 - y);
+      z += 0.3 * (y - z);
+      put(o, s + i, z * 0.9 * g * gust * env(i, n, SAMPLE_RATE * 0.6, SAMPLE_RATE * 0.6));
+    }
+  },
+  'flag-flap': (o, s, d, g, r) => {
+    for (let t = 0; t < d; t += 0.11 + r() * 0.09) noise(o, s + Math.round(t * SAMPLE_RATE), 0.07, (0.06 + r() * 0.05) * g, r, 0.35, (p) => Math.sin(Math.PI * p));
+  },
+  'pad-swell': (o, s, d, g) => {
+    // Restrained major pad: root, fifth, octave, major tenth; slow attack.
+    for (const [f, k] of [[130.8, 1], [196, 0.7], [261.6, 0.6], [329.6, 0.45], [392, 0.25]] as const) {
+      for (const det of [-0.6, 0.6]) tone(o, s, d, f + det, f + det, 0.018 * g * k, 'tri', (p) => Math.min(1, p / 0.45) * Math.min(1, (1 - p) / 0.25));
+    }
+  },
+  'piano-note': (o, s, d, g) => {
+    for (const [ratio, k] of [[1, 1], [2, 0.35], [3, 0.15], [4.02, 0.08]] as const) tone(o, s, d, 392 * ratio, 392 * ratio, 0.07 * g * k, 'sine', hit(0.004, 3 + ratio));
+  },
+  heartbeat2: (o, s, d, g) => {
+    for (let t = 0; t < d; t += 0.95) {
+      const at = s + Math.round(t * SAMPLE_RATE);
+      tone(o, at, 0.12, 60, 40, 0.45 * g, 'sine', hit(0.06, 4));
+      tone(o, at + Math.round(0.2 * SAMPLE_RATE), 0.12, 55, 38, 0.32 * g, 'sine', hit(0.06, 4));
+    }
+  },
+  'stomp-clap': (o, s, d, g, r) => {
+    // "We will…" style stadium rhythm: stomp, stomp, clap — building across the cue.
+    for (let bar = 0, t = 0; t < d; bar++, t = bar * 1.0) {
+      const k = 0.35 + 0.65 * Math.min(1, t / Math.max(0.1, d));
+      for (const [at, kind] of [[0, 'stomp'], [0.25, 'stomp'], [0.5, 'clap']] as const) {
+        const a = s + Math.round((t + at) * SAMPLE_RATE);
+        if (kind === 'stomp') {
+          tone(o, a, 0.16, 70, 45, 0.5 * g * k, 'sine', hit(0.01, 5));
+          noise(o, a, 0.1, 0.25 * g * k, r, 0.08, decay(6));
+        } else {
+          for (let j = 0; j < 14; j++) noise(o, a + Math.round(r() * 0.03 * SAMPLE_RATE), 0.03, 0.07 * g * k, r, 0.8, decay(10), 0.9);
+        }
+      }
+    }
+  },
+  'breaking-alarm': (o, s, d, g) => {
+    for (const [at, f] of [[0, 880], [0.14, 1175], [0.28, 880], [0.42, 1175]] as const) {
+      if (at > d) break;
+      tone(o, s + Math.round(at * SAMPLE_RATE), 0.12, f, f, 0.07 * g, 'square', hit(0.01, 3));
+    }
+    tone(o, s, d, 55, 40, 0.3 * g, 'sine', hit(0.005, 3));
+  },
+  'riser-long': (o, s, d, g, r) => {
+    tone(o, s, d, 80, 640, 0.08 * g, 'saw', (p) => p ** 2.5);
+    tone(o, s, d, 81, 648, 0.08 * g, 'saw', (p) => p ** 2.5);
+    noise(o, s, d, 0.2 * g, r, 0.3, (p) => p ** 3);
+  },
+  'sub-hit': (o, s, d, g, r) => {
+    tone(o, s, d, 48, 30, 0.8 * g, 'sine', hit(0.004, 2.2));
+    noise(o, s, 0.3, 0.18 * g, r, 0.15, decay(5));
+  },
+  'tv-off': (o, s, d, g) => {
+    tone(o, s, 0.02, 900, 400, 0.12 * g, 'square', decay(8));
+    tone(o, s, d, 15700, 15600, 0.02 * g, 'sine', decay(4));
+    tone(o, s, 0.2, 90, 40, 0.2 * g, 'sine', decay(6));
+  },
+  crash: (o, s, d, g, r) => {
+    tone(o, s, 0.35, 70, 38, 0.6 * g, 'sine', hit(0.003, 4));
+    noise(o, s, 0.25, 0.45 * g, r, 0.7, decay(5), 0.6);
+    for (const f of [612, 1377, 2293, 3150]) tone(o, s, d * 0.7, f, f * 0.98, 0.03 * g, 'tri', hit(0.002, 5));
+    for (let t = 0.12; t < d; t += 0.06 + r() * 0.09) tone(o, s + Math.round(t * SAMPLE_RATE), 0.02, 2600 + r() * 2400, 2000, 0.03 * g * (1 - t / d), 'tri', decay(6));
+  },
+  'remote-click': (o, s, _d, g, r) => noise(o, s, 0.008, 0.25 * g, r, 0.9, decay(10), 0.95),
 };
 
 /** Render one social cue (seeded per cue index) into `out`. */

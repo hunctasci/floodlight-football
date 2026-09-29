@@ -92,7 +92,7 @@ export interface WorldDef {
   /** Cast subjects driven by the world itself (football choreography). */
   castSubjects?: (shot: Shot, frame: number, fps: number, timeline: Pick<Timeline, 'cast'>) => Record<string, Subject> | undefined;
   /** Extra world subjects at a frame (ball, keeper...). */
-  dynamicSubjects?: (shot: Shot, frame: number, fps: number) => Record<string, Subject>;
+  dynamicSubjects?: (shot: Shot, frame: number, fps: number, tl?: Pick<Timeline, 'shots'>) => Record<string, Subject>;
   /** Named world-clock beats for `moment:` times. */
   momentBeats?: (set: Record<string, unknown>) => Record<string, number>;
   /** World clock length (seconds) for clocked beats. */

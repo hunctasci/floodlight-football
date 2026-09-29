@@ -48,10 +48,12 @@ export interface ContentSpec {
  * footballer self are recognisably the same HNC person.
  */
 export interface CastSpec {
-  /** Canonical game country code (apps/game city-league/countries). */
-  country: string;
-  /** Shirt number 1..99: HNC identity (skin palette = number % 4, back number). */
-  number: number;
+  /** Recurring person (cast/people.ts): fills identity, name and look. */
+  person?: string;
+  /** Canonical game country code (apps/game city-league/countries). Required without `person`. */
+  country?: string;
+  /** Shirt number 1..99: HNC identity (skin palette = number % 4, back number). Required without `person`. */
+  number?: number;
   /** On-screen name (chat, lower thirds). */
   name?: string;
   /** Default look; scenes may override. */
