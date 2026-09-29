@@ -305,7 +305,7 @@ export const SOCIAL_RECIPES: Record<string, SocialRecipe> = {
       const t = i / SAMPLE_RATE;
       y += 0.02 * (r() * 2 - 1 - y);
       const v = Math.sin(2 * Math.PI * 41 * t) * 0.5 + Math.sin(2 * Math.PI * 43.3 * t) * 0.5 + Math.sin(2 * Math.PI * 61.7 * t) * 0.2;
-      put(o, s + i, (v * 0.05 + y * 0.6) * g * env(i, n, SAMPLE_RATE * 0.8, SAMPLE_RATE * 0.5));
+      put(o, s + i, (v * 0.05 + y * 0.22) * g * env(i, n, SAMPLE_RATE * 0.8, SAMPLE_RATE * 0.5));
     }
   },
   'horror-hit': (o, s, d, g, r) => {
@@ -322,7 +322,7 @@ export const SOCIAL_RECIPES: Record<string, SocialRecipe> = {
       const gust = 0.55 + 0.45 * Math.sin(t * 0.9) * Math.sin(t * 0.37 + 1);
       y += (0.01 + 0.03 * gust) * (r() * 2 - 1 - y);
       z += 0.3 * (y - z);
-      put(o, s + i, z * 0.9 * g * gust * env(i, n, SAMPLE_RATE * 0.6, SAMPLE_RATE * 0.6));
+      put(o, s + i, z * 0.38 * g * gust * env(i, n, SAMPLE_RATE * 0.6, SAMPLE_RATE * 0.6));
     }
   },
   'flag-flap': (o, s, d, g, r) => {

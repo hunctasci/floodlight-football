@@ -21,6 +21,8 @@ export const EFFECTS: Record<string, EffectDef> = {
   'stadium-grade': { summary: 'The game menu backdrop over the picture (end-card plate)', layer: 'screen' },
   flash: { summary: 'White flash decaying from `at`', layer: 'screen' },
   vignette: { summary: 'Soft dark vignette', layer: 'screen' },
+  'shade-top': { summary: 'Dark gradient from the top edge (type legibility over bright plates)', layer: 'screen' },
+  'shade-bottom': { summary: 'Dark gradient from the bottom edge (type legibility over bright plates)', layer: 'screen' },
   'speed-lines': { summary: 'Radial anime speed lines', layer: 'screen' },
   'rival-grade': { summary: 'Tense cold grade + vignette (escalation)', layer: 'screen' },
   'freeze-grade': { summary: 'Desaturated freeze-frame look with film border', layer: 'screen' },

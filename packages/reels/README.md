@@ -21,10 +21,17 @@ npm run reels:render   -- --content packages/reels/specs/passed-you.json   # any
 npm run reels:vocab                                            # regenerate docs/VOCABULARY.md
 npm run reels:studio                                           # Remotion Studio
 npm run reels:test
+npm run reels:still    -- --content autumn-02-coffee-machine --at reach@80%,stare-a@60%   # several beats → one sheet
+npm run reels:poster   -- --poster autumn-07-poster                 # one 4:5 key-art post (or --poster all)
+npm run reels:campaign                                              # autumn 2026: every reel.mp4 / post.png / storyboard.md / qa/
+npm run reels:campaign -- --only 2,9                                # some items
+npm run reels:campaign-overview                                     # brand-consistency grids
 ```
 
 Registered content: `office-rivalry`, `group-chat`, `breaking-news`, `hnc-hero`
-(`src/content/`); JSON specs in `specs/`.
+and the ten `autumn-*` campaign reels (`src/content/`, `src/content/autumn-2026/`);
+JSON specs in `specs/`. The campaign's outputs and posting plan live in
+`social/output/autumn-2026/` (see `CAMPAIGN.md` there).
 
 ## Layout
 

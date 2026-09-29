@@ -15,7 +15,8 @@
     "qa": "tsx scripts/qa.ts",
     "vocab": "tsx scripts/vocab.ts",
     "poster": "tsx scripts/poster.ts",
-    "campaign": "tsx scripts/campaign.ts"
+    "campaign": "tsx scripts/campaign.ts",
+    "campaign-overview": "tsx scripts/campaign-overview.ts"
   },
   "dependencies": {
     "@floodlight/hnc-visuals": "1.0.0",

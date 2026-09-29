@@ -181,6 +181,7 @@ export const EUROPEAN_NIGHT: ContentSpec = {
           duration: 2.0,
           camera: { lens: 'crane-up', move: ['rise'], amount: 0.4 },
           cast: { emre: { do: 'cheer' }, mateo: { do: 'cheer' }, giulia: { do: 'cheer' }, yuki: { do: 'cheer' } },
+          fx: [{ type: 'shade-top', intensity: 1 }, { type: 'shade-bottom', intensity: 0.7 }],
           text: [{ say: 'everyone has\na match tonight.\nso do you.', style: 'title', at: 0.05, place: 'top' }],
           graphics: [{ kind: 'lockup', at: 0.6, props: { place: 'bottom' } }],
           sound: [{ cue: 'crowd-bed', duration: 2.0, volume: 0.6 }, { cue: 'brand-sting', at: 0.6, volume: 2 }],

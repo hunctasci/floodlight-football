@@ -83,7 +83,8 @@ export const PhoneScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline })
   const inputH = 150;
   const headerH = 250;
   const bottom = height - inputH - 24;
-  const pops = items.map((ev) => spring({ frame: frame - ev.start, fps, config: { damping: 15, stiffness: 230, mass: 0.7 } }));
+  // History messages are already in the thread on the first frame (no pop-in).
+  const pops = items.map((ev) => (ev.props.history ? 1 : spring({ frame: frame - ev.start, fps, config: { damping: 15, stiffness: 230, mass: 0.7 } })));
   // Newer items push older ones up by their (animated) height.
   const offsets = items.map((_, i) => items.slice(i + 1).reduce((acc, ev, j) => acc + itemHeight(ev, String(ev.props.from) === me) * pops[i + 1 + j], 0));
   const t = frame / fps;

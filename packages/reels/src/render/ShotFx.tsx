@@ -8,7 +8,7 @@ import type { Lens } from '../worlds/types';
 import { useLayout } from './layout';
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
-const ORDER = ['ball-trail', 'impact-burst', 'speed-lines', 'confetti', 'rival-grade', 'freeze-grade', 'vignette', 'stadium-grade', 'cinebars', 'lights-on', 'flash'];
+const ORDER = ['ball-trail', 'impact-burst', 'speed-lines', 'confetti', 'rival-grade', 'freeze-grade', 'vignette', 'shade-top', 'shade-bottom', 'stadium-grade', 'cinebars', 'lights-on', 'flash'];
 
 /** CSS filter for the world layer from active grade effects (never touches graphics). */
 export function worldFilter(shot: Shot, frame: number): string | undefined {
@@ -43,6 +43,14 @@ export const ShotFx: React.FC<{ shot: Shot; frame: number; fps: number; lens?: L
       case 'flash':
         els.push(<div key={key} style={{ position: 'absolute', inset: 0, background: '#fffbef', opacity: interpolate(local, [0, Math.round(fps * 0.25)], [0.85 * e.intensity, 0], clamp) }} />);
         break;
+      case 'shade-top':
+      case 'shade-bottom': {
+        // A dark gradient behind type over a bright plate (legibility, not a look).
+        const k = interpolate(local, [0, Math.round(fps * 0.3)], [0, e.intensity], clamp);
+        const dir = e.type === 'shade-top' ? 'to bottom' : 'to top';
+        els.push(<div key={key} style={{ position: 'absolute', inset: 0, background: `linear-gradient(${dir}, rgba(4,8,16,${0.82 * k}) 0%, rgba(4,8,16,${0.55 * k}) 26%, rgba(4,8,16,0) 48%)` }} />);
+        break;
+      }
       case 'vignette':
         els.push(<div key={key} style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 50% 45%, transparent 50%, rgba(3,8,16,${0.55 * e.intensity}) 100%)` }} />);
         break;

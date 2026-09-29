@@ -39,11 +39,13 @@ export const SAY_IT: ContentSpec = {
           duration: 1.2,
           camera: 'static',
           graphics: [
-            { kind: 'chat', at: 0.08, props: { from: 'nikos', say: 'easy win' } },
+            { kind: 'chat', at: 0, props: { from: 'nikos', say: 'big night tonight 👀', history: true } },
+            { kind: 'chat', at: 0, props: { from: 'emre', say: 'we’re ready', history: true } },
+            { kind: 'chat', at: 0.12, props: { from: 'nikos', say: 'easy win' } },
             { kind: 'chat', at: 0.7, props: { from: 'emre', say: '😂' } },
           ],
-          text: [{ say: 'european week in the group chat', style: 'pov', at: 0.05, until: 'escalate.end', place: 'upper' }],
-          sound: [{ cue: 'message-in', at: 0.08 }, { cue: 'message-out', at: 0.7 }],
+          text: [{ say: 'european week in the group chat', style: 'pov', at: 0, until: 'escalate.end', place: 'upper' }],
+          sound: [{ cue: 'message-in', at: 0.12 }, { cue: 'message-out', at: 0.7 }],
         },
         {
           id: 'escalate',

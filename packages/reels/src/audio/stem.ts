@@ -19,6 +19,8 @@ import { renderSocialCue, SAMPLE_RATE, SOCIAL_RECIPES } from './social-synth';
  */
 const GAME_GAIN = 2.6;
 const LIMIT = 0.96;
+/** Stem peak ceiling (−6 dBFS): headroom for the file cues mixed on top in Remotion. */
+const LIMITER_CEILING = 0.5;
 
 export function gameEvents(tl: Pick<Timeline, 'sounds' | 'fps'>): AudioEvent[] {
   return tl.sounds
@@ -49,12 +51,39 @@ export function renderStemSamples(tl: Timeline): Float32Array {
     const seconds = s.duration !== undefined ? s.duration / tl.fps : def.length;
     renderSocialCue(def.bus === 'foreground' ? fore : beds, s.cue, s.frame / tl.fps, seconds, s.volume, tl.seed, i);
   });
-  const out = new Float32Array(n);
+  const mix = new Float32Array(n);
   const spf = SAMPLE_RATE / tl.fps;
+  for (let i = 0; i < n; i++) mix[i] = game[i] * GAME_GAIN + fore[i] + beds[i] * duckGain(tl, i / spf);
+  return lookaheadLimit(mix);
+}
+
+/**
+ * Look-ahead peak limiter (deterministic): the gain starts falling 3 ms before
+ * a peak so it lands exactly at the ceiling, and recovers over ~80 ms. Only
+ * the extreme transients (a save, a slam) are touched; the mix under them —
+ * and every comedic silence — keeps its level, so mastering can bring every
+ * piece to social loudness with one static gain. A final soft clip guards
+ * the last sample of overshoot.
+ */
+export function lookaheadLimit(x: Float32Array, ceiling = LIMITER_CEILING): Float32Array {
+  const n = x.length;
+  const la = Math.round(0.003 * SAMPLE_RATE);
+  const release = Math.exp(-1 / (0.08 * SAMPLE_RATE));
+  // Required gain per sample, then a running minimum over the look-ahead window.
+  const need = new Float32Array(n);
   for (let i = 0; i < n; i++) {
-    const v = game[i] * GAME_GAIN + fore[i] + beds[i] * duckGain(tl, i / spf);
-    // Soft limit: transparent below ~0.7, never clips.
-    out[i] = Math.abs(v) < 0.7 ? v : Math.sign(v) * (0.7 + (LIMIT - 0.7) * Math.tanh((Math.abs(v) - 0.7) / (LIMIT - 0.7)));
+    const a = Math.abs(x[i]);
+    need[i] = a > ceiling ? ceiling / a : 1;
+  }
+  const out = new Float32Array(n);
+  let g = 1;
+  for (let i = 0; i < n; i++) {
+    let target = 1;
+    for (let j = i; j < Math.min(n, i + la); j++) if (need[j] < target) target = need[j];
+    g = target < g ? g + (target - g) * (1 / Math.max(1, Math.min(la, 8))) : 1 - (1 - g) * release;
+    if (g > target && target < 1 && need[i] < 1) g = Math.min(g, need[i]);
+    const v = x[i] * g;
+    out[i] = Math.abs(v) < 0.7 * LIMIT ? v : Math.sign(v) * Math.min(LIMIT, Math.abs(v));
   }
   return out;
 }

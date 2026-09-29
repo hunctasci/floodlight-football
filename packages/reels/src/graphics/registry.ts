@@ -26,7 +26,7 @@ export const GRAPHICS: Record<string, GraphicDef> = {
   'lower-third': { summary: 'News lower third: name + role, country flag', props: { cast: 'cast id', role: 'role line' } },
   ticker: { summary: 'Scrolling news ticker along the bottom', props: { items: 'array of strings' } },
   'live-bug': { summary: 'LIVE bug + channel mark in the corner', props: { channel: 'channel name (default HNC SPORTS)' } },
-  chat: { summary: 'Chat message in the phone thread (stacks up)', props: { from: 'cast id', say: 'message text', reply: 'quoted text', image: 'goal | table (attachment card)' }, worlds: ['phone'] },
+  chat: { summary: 'Chat message in the phone thread (stacks up)', props: { from: 'cast id', say: 'message text', reply: 'quoted text', image: 'goal | table (attachment card)', history: 'true: already in the thread on its first frame (no pop)' }, worlds: ['phone'] },
   typing: { summary: 'Typing indicator in the phone thread', props: { from: 'cast id' }, worlds: ['phone'] },
   'system-note': { summary: 'Grey system line in the thread ("Nikos left the group")', props: { say: 'text' }, worlds: ['phone'] },
   notification: { summary: 'Push notification banner drops from the top', props: { app: 'app name', title: 'title', body: 'body' } },
