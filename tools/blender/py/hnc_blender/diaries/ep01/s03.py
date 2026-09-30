@@ -48,6 +48,7 @@ def S03_SH01(sh):
     oil = look.flat("Oil", "#e9c46a", rough=0.02, coat=1.0, alpha=0.35)
     props.cyl(c["PROPS"], "PROP_Oil", 0.11, 0.002, oil, tuple(centre + Vector((0, 0, -0.004))), segs=32)
     t_hit = 0.32
+    base = tuple(fried.scale)
     tracks = {}
     for f in range(1, sh.frames + 1):
         t = (f - 1) / sh.fps
@@ -57,7 +58,8 @@ def S03_SH01(sh):
             tracks.setdefault((egg, "location", i), []).append(v)
         spread = 0.0 if t < t_hit else min(1.0, 0.35 + (t - t_hit) / 0.12)
         s = max(0.001, spread)
-        for i, v in enumerate((s, s, 1.0)):
+        # relative to the white's own flattened shape (the yolk is a child: absolute keys would stretch it)
+        for i, v in enumerate((base[0] * s, base[1] * s, base[2] * max(0.001, spread ** 0.5))):
             tracks.setdefault((fried, "scale", i), []).append(v)
         tracks.setdefault((egg, "hide_render", 0), []).append(1.0 if t >= t_hit else 0.0)
     write_tracks(tracks, sh.frames)

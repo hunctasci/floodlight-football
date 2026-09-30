@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Remotion assembly of a Player Diaries episode (plates + cards + grain + stems).
- *   npx tsx scripts/diaries-render.ts --episode ep01 --quality animatic --out <mp4> [--review] [--captions] [--scale 0.5]
+ *   npx tsx scripts/diaries-render.ts --episode ep01 --quality animatic --out <mp4> [--review] [--captions] [--scale 0.5] [--frames 0-705]
  */
 import path from 'node:path';
 import { arg } from './lib/args';
@@ -13,5 +13,6 @@ const out = path.resolve(arg('out')!);
 const review = process.argv.includes('--review') || quality === 'animatic';
 const captions = process.argv.includes('--captions');
 console.log(`PlayerDiaries ${episode} [${quality}${review ? ', review' : ''}${captions ? ', captions' : ''}] → ${out}`);
-await video('PlayerDiaries', { episode, quality, review, captions }, out, { scale: Number(arg('scale', '1')) });
+const range = arg('frames')?.split('-').map(Number) as [number, number] | undefined;
+await video('PlayerDiaries', { episode, quality, review, captions }, out, { scale: Number(arg('scale', '1')), frameRange: range });
 process.exit(0);

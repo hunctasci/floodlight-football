@@ -39,11 +39,12 @@ def _child(sh, a, pos=(-1.0, 1.08), face=90.0):
 def S02_SH01(sh):
     a = _bedroom(sh)
     clk = a["clock"]
-    front = clk.matrix_world @ Vector((0, -0.85, 0.07))
+    # the digits sit right of the body's centre (06:47 runs x -0.066 … +0.10): frame the digits, not the box
+    front = clk.matrix_world @ Vector((0.018, -0.95, 0.07))
     cam = sh.camera(100, fstop=2.8)
-    tgt = clk.matrix_world @ Vector((0, 0, 0.045))
+    tgt = clk.matrix_world @ Vector((0.018, 0, 0.045))
     cam.place(0.0, front, tgt)
-    cam.place(sh.dur, clk.matrix_world @ Vector((0, -0.78, 0.065)), tgt, e="linear")
+    cam.place(sh.dur, clk.matrix_world @ Vector((0.018, -0.88, 0.066)), tgt, e="linear")
     cam.handheld("locked", 1.0)
     sh.finish(glare=0.6, threshold=0.7)
 

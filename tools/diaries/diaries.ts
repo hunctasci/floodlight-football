@@ -4,7 +4,7 @@
  *
  *   npm run diaries -- voices                     dialogue takes (Kokoro, ASR-verified)
  *   npm run diaries -- plates --quality animatic  Blender shots -> PNG sequences (cached, parallel)
- *        [--only S01_SH02,S02_SH01] [--jobs 3] [--force]
+ *        [--only S01_SH02,S02_SH01] [--jobs 3] [--force] [--adopt] [--rekey] [--dry]   (interrupted shots resume mid-shot)
  *   npm run diaries -- ui                         Remotion stills Blender needs (phone World Table)
  *   npm run diaries -- audio                      SFX + score + mix -> stems
  *   npm run diaries -- edit --quality animatic    Remotion assembly -> MP4
@@ -74,11 +74,25 @@ function walk(dir: string, ext: string): string[] {
   return out.sort();
 }
 
+/** Shared kit sources (everything except the episode's per-scene shot modules) + canonical assets. */
 function sourcesHash(): string {
-  const files = walk(path.join(REPO, 'tools/blender/py/hnc_blender'), '.py');
+  const files = walk(path.join(REPO, 'tools/blender/py/hnc_blender'), '.py').filter((f) => !/diaries[\\/]ep\d+[\\/]s\d+\.py$/.test(f));
   const manifest = JSON.parse(readFileSync(path.join(REPO, 'social/blender/generated/manifest.json'), 'utf8'));
   const assets = manifest.assets.map((a: { assetId: string; sha256: string }) => `${a.assetId}:${a.sha256}`).join(',');
   return sha(files.map((f) => sha(readFileSync(f))).join('') + assets);
+}
+
+/**
+ * A shot's own builder source: its scene module's shared helpers + its own `def Sxx_SHyy` block.
+ * Fixing one shot never invalidates its siblings.
+ */
+function shotSourceHash(id: string): string {
+  const file = path.join(REPO, 'tools/blender/py/hnc_blender/diaries', EP, `s${id.slice(1, 3)}.py`);
+  const text = readFileSync(file, 'utf8');
+  const blocks = text.split(/\n(?=\S)/);
+  const shared = blocks.filter((b) => !/^def S\d\d_SH\d\d\(/.test(b)).join('\n');
+  const own = blocks.filter((b) => b.startsWith(`def ${id}(`)).join('\n');
+  return sha(shared + own);
 }
 
 /** Remotion stills that Blender maps into hybrid shots are inputs of those shots only. */
@@ -113,15 +127,27 @@ async function plates(): Promise<void> {
     const takes = (s.dialogue ?? []).map((d) => `${d.line}:${v[d.line]?.seconds ?? '?'}`).join(',');
     // Sound edits never re-render pictures — except the cues builders time picture to.
     const pictureCues = ((s.sfx as { cue: string }[] | undefined) ?? []).filter((c) => PICTURE_CUES.has(c.cue));
-    const key = sha(JSON.stringify({ ...s, sfx: pictureCues }) + takes + src + bv + quality + e.fps + (s.renderer === 'hybrid' ? uiHash() : ''));
+    const key = sha(JSON.stringify({ ...s, sfx: pictureCues }) + takes + src + shotSourceHash(s.id) + bv + quality + e.fps + (s.renderer === 'hybrid' ? uiHash() : ''));
     const dir = plateDir(quality, s.id);
     const frames = Math.max(1, Math.round(s.dur * e.fps));
     const keyFile = path.join(dir, '.key');
-    const complete = existsSync(keyFile) && readFileSync(keyFile, 'utf8') === key && existsSync(path.join(dir, `${String(frames).padStart(4, '0')}.png`));
+    const lastFrame = existsSync(path.join(dir, `${String(frames).padStart(4, '0')}.png`));
+    // --rekey: complete shots (key file + every frame) adopt the current key without re-rendering
+    // (used once when the key scheme changes; delete a shot's .key to force it).
+    if (flag('rekey') && existsSync(keyFile) && lastFrame) writeFileSync(keyFile, key);
+    const complete = existsSync(keyFile) && readFileSync(keyFile, 'utf8') === key && lastFrame;
     if (complete && !flag('force')) continue;
     todo.push({ id: s.id, key, frames });
   }
   console.log(`plates [${quality}]: ${todo.length} to render (${e.shots.filter((s) => s.renderer !== 'remotion').length - todo.length} cached), ${jobs} jobs`);
+  if (flag('dry')) {
+    for (const j of todo) {
+      const dir = plateDir(quality, j.id);
+      const have = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.png')).length : 0;
+      console.log(`  todo ${j.id} ${j.frames}f${have ? ` (${have} frames on disk)` : ''}`);
+    }
+    return;
+  }
   let next = 0;
   let failed = 0;
   const t0 = Date.now();
@@ -129,13 +155,25 @@ async function plates(): Promise<void> {
     while (next < todo.length) {
       const job = todo[next++];
       const dir = plateDir(quality, job.id);
-      rmSync(dir, { recursive: true, force: true });
-      mkdirSync(dir, { recursive: true });
-      const log = path.join(dir, 'render.log');
+      // Resume: an interrupted shot with the same key keeps its frames; only the missing tail renders.
+      const pending = path.join(dir, '.key.pending');
+      let from = 1;
+      // --adopt: accept frames from a run that predates resume markers (same inputs, interrupted).
+      if (flag('adopt') && !existsSync(pending) && existsSync(path.join(dir, '0001.png'))) writeFileSync(pending, job.key);
+      if (existsSync(pending) && readFileSync(pending, 'utf8') === job.key) {
+        while (from <= job.frames && existsSync(path.join(dir, `${String(from).padStart(4, '0')}.png`))) from++;
+        from = Math.max(1, from - 1); // the last written frame may be truncated: redo it
+      } else {
+        rmSync(dir, { recursive: true, force: true });
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(pending, job.key);
+      }
+      const log = path.join(dir, from > 1 ? `render-resume-${from}.log` : 'render.log');
       const started = Date.now();
+      if (from > 1) console.log(`  resume ${job.id} from frame ${from}/${job.frames}`);
       const code = await new Promise<number>((resolve) => {
         const p = spawn(BLENDER, ['-b', '--factory-startup', '--python', path.join(REPO, 'tools/blender/py/hnc_cli.py'), '--', 'diaries-shot',
-          '--episode', EP, '--shot', job.id, '--quality', quality, '--out', dir], { cwd: REPO });
+          '--episode', EP, '--shot', job.id, '--quality', quality, '--out', dir, ...(from > 1 ? ['--frames', `${from}-${job.frames}`] : [])], { cwd: REPO });
         const chunks: Buffer[] = [];
         p.stdout.on('data', (d) => chunks.push(d));
         p.stderr.on('data', (d) => chunks.push(d));
@@ -145,7 +183,10 @@ async function plates(): Promise<void> {
         });
       });
       const ok = code === 0 && existsSync(path.join(dir, `${String(job.frames).padStart(4, '0')}.png`));
-      if (ok) writeFileSync(path.join(dir, '.key'), job.key);
+      if (ok) {
+        writeFileSync(path.join(dir, '.key'), job.key);
+        rmSync(pending, { force: true });
+      }
       else failed++;
       console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${job.id} ${job.frames}f ${((Date.now() - started) / 1000).toFixed(1)}s${ok ? '' : `  (see ${path.relative(REPO, log)})`}`);
     }
