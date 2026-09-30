@@ -63,7 +63,8 @@ def _outward_fraction(obj):
     return good / max(1, len(me.polygons))
 
 
-def inspect_asset(asset, scene):
+def inspect_asset(asset, scene, root=None):
+    """``root``: inspect this imported instance (several copies of one identity may share a scene)."""
     exp = asset["expected"]
     checks = []
 
@@ -71,7 +72,7 @@ def inspect_asset(asset, scene):
         checks.append({"check": name, "node": node, "pass": bool(ok), "expected": expected, "actual": actual})
 
     # Scene-local, suffix-tolerant: another scene in the same file may own the plain name.
-    root = scene.objects.get(exp["root"]) or next((o for o in scene.objects if o.parent is None and base_name(o.name) == exp["root"]), None)
+    root = root or scene.objects.get(exp["root"]) or next((o for o in scene.objects if o.parent is None and base_name(o.name) == exp["root"]), None)
     check("root present", root is not None, exp["root"], root.name if root else None)
     if root is None:
         return _summary(asset, None, checks, None)
@@ -91,7 +92,9 @@ def inspect_asset(asset, scene):
         parent = base_name(o.parent.name) if o.parent else None
         check("parent", parent == n["parent"], n["parent"], parent, n["name"])
         check("canonical handle", o.get("hncPart") == n["part"], n["part"], o.get("hncPart"), n["name"])
-        check("unit scale", _close(o.scale, (1, 1, 1), 1e-6), [1, 1, 1], _r(o.scale), n["name"])
+        # glTF scale (x, y, z) -> Blender (x, z, y); non-unit only for re-proportioned characters.
+        sx, sy, sz = n.get("scale", (1, 1, 1))
+        check("canonical scale", _close(o.scale, (sx, sz, sy), 1e-5), [sx, sz, sy], _r(o.scale), n["name"])
         want_pos = Vector(gltf_to_blender(n["worldPosition"])) + offset
         got_pos = o.matrix_world.translation
         check("world position", _close(got_pos, want_pos, TOL_POS), _r(want_pos), _r(got_pos), n["name"])
@@ -133,7 +136,10 @@ def inspect_asset(asset, scene):
         check("no degenerate faces", degenerate == 0, 0, degenerate, n["name"])
         if n["part"] != "number":  # the decal is an open single-sided plane
             frac = _outward_fraction(o)
-            check("normals face outward", frac >= 0.99, ">= 0.99", round(frac, 4), n["name"])
+            # Convex parts must be ~1; non-convex wardrobe (a torus scarf) must match the exporter's value.
+            want = n.get("outward", 1.0)
+            ok = frac >= 0.99 if want >= 0.99 else abs(frac - want) <= 0.02
+            check("normals face outward", ok, ">= 0.99" if want >= 0.99 else f"{want} ± 0.02", round(frac, 4), n["name"])
         mat = o.material_slots[0].material if o.material_slots else None
         check("material", mat is not None and base_name(mat.name) == n["material"], n["material"],
               mat.name if mat else None, n["name"])
@@ -170,16 +176,17 @@ def inspect_asset(asset, scene):
           [_r(lo), _r(hi)], [_r(got_lo), _r(got_hi)])
     dims = _r(got_hi - got_lo, 4)
 
-    if asset["assetId"].startswith("hnc-player"):
+    if asset.get("sourceFactory") == "createHncPlayerVisual":
         tag = exp["root"].replace("HNC_Player_", "").replace("_", "")
         head, body = objs.get(f"{tag}.Head"), objs.get(f"{tag}.Body")
         eye, number = objs.get(f"{tag}.Eye.L"), objs.get(f"{tag}.ShirtNumber")
-        if head and eye and body and number:
+        if head and eye and body:
             check("faces -Y (Blender front): eyes in front of head",
                   eye.matrix_world.translation.y < head.matrix_world.translation.y,
                   "eye.y < head.y", [round(eye.matrix_world.translation.y, 4), round(head.matrix_world.translation.y, 4)])
-            check("shirt number on the back (+Y)", number.matrix_world.translation.y > body.matrix_world.translation.y,
-                  "number.y > body.y", [round(number.matrix_world.translation.y, 4), round(body.matrix_world.translation.y, 4)])
+            if number:  # wardrobes without a back number (tee, office) do not export it
+                check("shirt number on the back (+Y)", number.matrix_world.translation.y > body.matrix_world.translation.y,
+                      "number.y > body.y", [round(number.matrix_world.translation.y, 4), round(body.matrix_world.translation.y, 4)])
             check("anatomical left is +X", objs[f"{tag}.Leg.L"].matrix_world.translation.x > 0, "> 0",
                   round(objs[f"{tag}.Leg.L"].matrix_world.translation.x, 4))
 

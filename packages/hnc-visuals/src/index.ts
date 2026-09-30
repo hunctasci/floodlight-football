@@ -13,6 +13,7 @@ export * from './player/number-texture.ts';
 export * from './player/create-player.ts';
 export * from './player/pose-player.ts';
 export * from './player/wardrobe.ts';
+export * from './player/proportions.ts';
 export * from './ball/ball-texture.ts';
 export * from './ball/create-ball.ts';
 export * from './stadium/constants.ts';

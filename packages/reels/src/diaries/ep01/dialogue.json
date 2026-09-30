@@ -1,0 +1,222 @@
+{
+  "schema": "hnc-diaries-dialogue/1",
+  "episode": "ep01-belgium",
+  "note": "Locked screenplay lines. Voices are fictional synthetic HNC voices (Kokoro-82M, Apache-2.0) — no real person is imitated. `phon` swaps a word for explicit phonemes (Türkiye).",
+  "speakers": {
+    "INT": {
+      "who": "Interviewer (off camera)",
+      "voice": "af_heart",
+      "lang": "en-us",
+      "speed": 0.96,
+      "pitch": 1.0,
+      "fx": "room"
+    },
+    "NINE": {
+      "who": "TR-PLAYER-09",
+      "voice": "am_michael",
+      "lang": "en-us",
+      "speed": 0.9,
+      "pitch": 0.97,
+      "fx": "dry"
+    },
+    "CHILD": {
+      "who": "TR-FAMILY-CHILD-01",
+      "voice": "af_bella",
+      "lang": "en-us",
+      "speed": 0.84,
+      "pitch": 1.24,
+      "fx": "dry"
+    },
+    "PARTNER": {
+      "who": "TR-FAMILY-PARTNER-01",
+      "voice": "bf_isabella",
+      "lang": "en-gb",
+      "speed": 0.95,
+      "pitch": 1.0,
+      "fx": "dry"
+    },
+    "ELDER": {
+      "who": "TR-SUPPORTER-ELDER-01",
+      "voice": "bm_george",
+      "lang": "en-gb",
+      "speed": 0.86,
+      "pitch": 0.9,
+      "fx": "dry"
+    },
+    "RADIO": {
+      "who": "Radio presenter (fictional)",
+      "voice": "am_puck",
+      "lang": "en-us",
+      "speed": 1.08,
+      "pitch": 1.0,
+      "fx": "radio"
+    }
+  },
+  "phonemes": {
+    "Türkiye": "tˈʊɹkiˌjeɪ"
+  },
+  "lines": [
+    {
+      "id": "L01",
+      "speaker": "INT",
+      "text": "Are you nervous?"
+    },
+    {
+      "id": "L02",
+      "speaker": "NINE",
+      "text": "Ask Belgium.",
+      "speed": 0.86
+    },
+    {
+      "id": "L03",
+      "speaker": "CHILD",
+      "text": "You're late."
+    },
+    {
+      "id": "L04",
+      "speaker": "NINE",
+      "text": "I'm not late.",
+      "speed": 0.82,
+      "pitch": 0.95
+    },
+    {
+      "id": "L05",
+      "speaker": "CHILD",
+      "text": "You're late.",
+      "speed": 0.78
+    },
+    {
+      "id": "L06",
+      "speaker": "INT",
+      "text": "Special diet before Belgium?"
+    },
+    {
+      "id": "L07",
+      "speaker": "NINE",
+      "text": "Eggs."
+    },
+    {
+      "id": "L08",
+      "speaker": "INT",
+      "text": "That's it?"
+    },
+    {
+      "id": "L09",
+      "speaker": "NINE",
+      "text": "And coffee."
+    },
+    {
+      "id": "L10",
+      "speaker": "RADIO",
+      "text": "Belgium against Türkiye, this Friday. And the whole country is asking one question"
+    },
+    {
+      "id": "L11",
+      "speaker": "INT",
+      "text": "You don't listen to that stuff?"
+    },
+    {
+      "id": "L12",
+      "speaker": "NINE",
+      "text": "No."
+    },
+    {
+      "id": "L13",
+      "speaker": "NINE",
+      "text": "My mother sends me all of it anyway.",
+      "speed": 0.95
+    },
+    {
+      "id": "L14",
+      "speaker": "ELDER",
+      "text": "Two goals."
+    },
+    {
+      "id": "L15",
+      "speaker": "NINE",
+      "text": "Good morning."
+    },
+    {
+      "id": "L16",
+      "speaker": "ELDER",
+      "text": "Two!",
+      "speed": 0.8
+    },
+    {
+      "id": "L17",
+      "speaker": "INT",
+      "text": "Everyone wants to know what's going to happen Friday.",
+      "speed": 1.06
+    },
+    {
+      "id": "L18",
+      "speaker": "NINE",
+      "text": "So do I."
+    },
+    {
+      "id": "L19",
+      "speaker": "NINE",
+      "text": "Not now."
+    },
+    {
+      "id": "L20",
+      "speaker": "PARTNER",
+      "text": "Careful!"
+    },
+    {
+      "id": "L21",
+      "speaker": "NINE",
+      "text": "Well?"
+    },
+    {
+      "id": "L22",
+      "speaker": "PARTNER",
+      "text": "Needs salt."
+    },
+    {
+      "id": "L23",
+      "speaker": "NINE",
+      "text": "Pressure doesn't really affect me.",
+      "speed": 0.94
+    },
+    {
+      "id": "L24",
+      "speaker": "INT",
+      "text": "Last one."
+    },
+    {
+      "id": "L25",
+      "speaker": "NINE",
+      "text": "Finally."
+    },
+    {
+      "id": "L26",
+      "speaker": "INT",
+      "text": "What does playing for Türkiye mean to you?",
+      "speed": 0.96
+    },
+    {
+      "id": "L27",
+      "speaker": "NINE",
+      "text": "You feel like everyone's coming with you.",
+      "speed": 0.9
+    },
+    {
+      "id": "L28",
+      "speaker": "NINE",
+      "text": "Even when you're playing away.",
+      "speed": 0.84
+    },
+    {
+      "id": "L29",
+      "speaker": "INT",
+      "text": "Still not nervous?"
+    },
+    {
+      "id": "L30",
+      "speaker": "NINE",
+      "text": "Ask Belgium.",
+      "speed": 0.86
+    }
+  ]
+}

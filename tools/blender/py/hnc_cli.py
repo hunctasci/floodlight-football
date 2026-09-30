@@ -7,6 +7,8 @@ Commands:
          [--engine CYCLES --samples N --percentage P --suffix S] [--turntable]
   plate --track T --out D  build a Reel Factory plate from a pose track and render PNGs
          [--preview] [--frames A-B] [--stills 1,48] [--save-blend]
+  acting-test --out D   cinematic-rig QA shot (stand / look / walk / sit / hold a cup)
+         [--quality animatic|preview|final] [--stills 1,200] [--frames A-B] [--save-blend]
 
 Normally invoked through `npm run blender:*` (tools/blender/blender.ts).
 """
@@ -101,6 +103,42 @@ def cmd_plate(args):
     return 0
 
 
+def cmd_acting_test(args):
+    from hnc_blender.cine import acting_test
+    sc = _fresh_scene("HNC_ActingTest")
+    acting_test.build(sc, args.quality)
+    if args.save_blend:
+        _save(REPO_ROOT / "social" / "blender" / "verification" / "acting-test.blend")
+    frames = tuple(int(x) for x in args.frames.split("-")) if args.frames else None
+    stills = [int(x) for x in args.stills.split(",")] if args.stills else None
+    info = {"render": plates.render_plate(sc, args.out, frames=frames, stills=stills)}
+    print("HNC_RESULT " + json.dumps(info))
+    return 0
+
+
+def cmd_diaries_shot(args):
+    import importlib
+    from hnc_blender.diaries.shot import Shot
+    ep = importlib.import_module(f"hnc_blender.diaries.{args.episode}")
+    sc = _fresh_scene(f"HNC_{args.episode}_{args.shot}")
+    sh = Shot(sc, args.episode, args.shot, args.quality)
+    ep.SHOTS[args.shot](sh)
+    if args.save_blend:
+        _save(REPO_ROOT / "social" / "blender" / "diaries" / args.episode / f"{args.shot}.blend")
+    frames = tuple(int(x) for x in args.frames.split("-")) if args.frames else None
+    stills = [int(x) for x in args.stills.split(",")] if args.stills else None
+    info = {"shot": args.shot, "frames": sh.frames, "render": plates.render_plate(sc, args.out, frames=frames, stills=stills)}
+    print("HNC_RESULT " + json.dumps(info))
+    return 0
+
+
+def cmd_rig_selftest(_args):
+    from hnc_blender.cine import selftest
+    ok = selftest.run(_fresh_scene("HNC_RigSelftest"))
+    print("HNC_RESULT " + json.dumps({"pass": ok}))
+    return 0 if ok else 1
+
+
 def main():
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     parser = argparse.ArgumentParser(prog="hnc_cli")
@@ -122,9 +160,26 @@ def main():
     pl.add_argument("--stills")
     pl.add_argument("--save-blend", action="store_true")
     pl.add_argument("--hero-samples", type=int, help="Cycles hero still at N samples (Metal) instead of EEVEE")
+    at = sub.add_parser("acting-test")
+    at.add_argument("--out", required=True)
+    at.add_argument("--quality", default="preview", choices=["animatic", "preview", "final"])
+    at.add_argument("--frames")
+    at.add_argument("--stills")
+    at.add_argument("--save-blend", action="store_true")
+    sub.add_parser("rig-selftest")
+    ds = sub.add_parser("diaries-shot")
+    ds.add_argument("--episode", default="ep01")
+    ds.add_argument("--shot", required=True)
+    ds.add_argument("--quality", default="preview", choices=["animatic", "preview", "final"])
+    ds.add_argument("--out", required=True)
+    ds.add_argument("--frames")
+    ds.add_argument("--stills")
+    ds.add_argument("--save-blend", action="store_true")
     # parse_known_args: Cycles reads its own `--cycles-device METAL` from the same argv.
     args, _unknown = parser.parse_known_args(argv)
-    code = {"build": cmd_build, "inspect": cmd_inspect, "render": cmd_render, "plate": cmd_plate}[args.command](args)
+    code = {"build": cmd_build, "inspect": cmd_inspect, "render": cmd_render, "plate": cmd_plate,
+            "acting-test": cmd_acting_test, "rig-selftest": cmd_rig_selftest,
+            "diaries-shot": cmd_diaries_shot}[args.command](args)
     sys.exit(code)
 
 

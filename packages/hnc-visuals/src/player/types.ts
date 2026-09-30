@@ -61,4 +61,7 @@ export type HncWardrobeId =
   | 'referee'
   | 'hoodie'
   | 'tee'
-  | 'kit-trousers';
+  | 'kit-trousers'
+  | 'tee-bun'
+  | 'replica'
+  | 'elder';

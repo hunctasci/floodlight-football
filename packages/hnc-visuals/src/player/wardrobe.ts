@@ -29,6 +29,16 @@ export interface HncWardrobeSpec {
   hideKitMarkings?: boolean;
   /** Keep the chest stripe but hide the back number (replica shirts). */
   hideNumber?: boolean;
+  /** Keep the chest stripe in the kit trim even though the legs are recoloured (replica shirt + jeans). */
+  stripeTrim?: boolean;
+  /** Hair colour (default: the canonical #28283b). Grey for older characters. */
+  hair?: Swatch;
+  /** Flat cap on the head (turns with it). */
+  cap?: Swatch;
+  /** Chunky moustache block under the eyes (turns with the head). */
+  moustache?: Swatch;
+  /** Hair bun at the back of the head, in the hair colour. */
+  bun?: boolean;
 }
 
 /**
@@ -78,7 +88,25 @@ export const HNC_WARDROBES: Record<HncWardrobeId, HncWardrobeSpec> = {
   tee: { shirt: '__accent__', trousers: '#34435a', hideKitMarkings: true },
   /** Halfway through a change: the country shirt (number on the back) over office trousers. */
   'kit-trousers': { shirt: '__kit__', trousers: '#23283b' },
+  /** At home, hair up: tee in the accent colour, jeans, a bun (Player Diaries partner). */
+  'tee-bun': { shirt: '__accent__', trousers: '#34435a', hair: '#3a2a22', bun: true, hideKitMarkings: true },
+  /** A replica country shirt WITH the back number, over jeans (a young fan wearing a player's number). */
+  replica: { shirt: '__kit__', trousers: '#34435a', stripeTrim: true },
+  /** Older supporter: knit shirt, tweed jacket, country scarf, flat cap, grey hair + moustache. */
+  elder: {
+    shirt: '#7d6f5f',
+    trousers: '#4a4a4f',
+    jacket: '#5a4636',
+    scarf: true,
+    cap: '#3f3a35',
+    hair: '#b9b5ad',
+    moustache: '#cfcac0',
+    hideKitMarkings: true,
+  },
 };
+
+/** Canonical hair colour (create-player.ts). */
+const HNC_HAIR = '#28283b';
 
 export interface HncWardrobeColors {
   primary: string;
@@ -130,6 +158,8 @@ export function applyHncWardrobe(
 
   for (const m of visual.kitParts) (m.material as THREE.MeshStandardMaterial).color.set(swatch(spec.shirt));
   for (const m of visual.trimParts) (m.material as THREE.MeshStandardMaterial).color.set(swatch(spec.trousers));
+  const hair = visual.head.children.find((c) => !visual.eyes?.includes(c as THREE.Mesh)) as THREE.Mesh | undefined;
+  if (hair) (hair.material as THREE.MeshStandardMaterial).color.set(swatch(spec.hair ?? HNC_HAIR));
 
   // Footballers keep stripe + number visible; office hides them.
   const stripe = visual.trimParts[3];
@@ -139,13 +169,15 @@ export function applyHncWardrobe(
   if (stripe) {
     stripe.visible = !spec.hideKitMarkings;
     // Replica shirts keep the stripe in the kit trim, not the trouser colour.
-    if (spec.hideNumber) (stripe.material as THREE.MeshStandardMaterial).color.set(swatch('__trim__'));
+    if (spec.hideNumber || spec.stripeTrim) (stripe.material as THREE.MeshStandardMaterial).color.set(swatch('__trim__'));
   }
   if (numberMesh) numberMesh.visible = !spec.hideKitMarkings && !spec.hideNumber;
 
   const flat = (color: string, roughness = 0.9): THREE.MeshStandardMaterial =>
     new THREE.MeshStandardMaterial({ color, roughness, flatShading: true });
-  const add = (obj: THREE.Object3D, parent: THREE.Object3D = visual.root): void => {
+  // Names are stable handles (the Blender exporter names nodes after them).
+  const add = (obj: THREE.Object3D, parent: THREE.Object3D = visual.root, name = ''): void => {
+    obj.name = name;
     parent.add(obj);
     visual.extras.push(obj);
   };
@@ -154,13 +186,13 @@ export function applyHncWardrobe(
     // Blazer shell: slightly wider short cylinder over the torso.
     const jacket = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.62, 6), flat(swatch(spec.jacket)));
     jacket.position.y = 1.1;
-    add(jacket);
+    add(jacket, visual.root, 'jacket');
   }
   if (spec.tie) {
     const tie = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.42, 0.04), flat(swatch(spec.tie), 0.7));
     tie.position.set(0, 1.08, spec.jacket ? 0.46 : 0.4);
     tie.rotation.x = 0.06;
-    add(tie);
+    add(tie, visual.root, 'tie');
   }
   if (spec.badge) {
     const badge = new THREE.Mesh(
@@ -169,24 +201,24 @@ export function applyHncWardrobe(
     );
     badge.position.set(spec.jacket ? -0.22 : 0.16, 1.22, spec.jacket ? 0.47 : 0.42);
     badge.rotation.x = -0.06;
-    add(badge);
+    add(badge, visual.root, 'badge');
   }
   if (spec.scarf) {
     // Chunky ring + hanging tail in the two kit colours.
     const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.09, 5, 8), flat(swatch('__kit__')));
     ring.rotation.x = Math.PI / 2;
     ring.position.y = 1.44;
-    add(ring);
+    add(ring, visual.root, 'scarf');
     const tail = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.42, 0.05), flat(swatch('__trim__')));
     tail.position.set(0.14, 1.2, 0.42);
     tail.rotation.set(0.08, 0, -0.08);
-    add(tail);
+    add(tail, visual.root, 'scarf-tail');
   }
   if (spec.hood) {
     const hood = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.1, 5, 8, Math.PI * 1.3), flat(swatch(spec.hood)));
     hood.rotation.set(Math.PI / 2, 0, Math.PI * 0.85);
     hood.position.set(0, 1.46, -0.06);
-    add(hood);
+    add(hood, visual.root, 'hood');
   }
   if (spec.headset) {
     // On the head so it turns with it: band, ear cup, mic boom.
@@ -194,14 +226,37 @@ export function applyHncWardrobe(
     const band = new THREE.Mesh(new THREE.TorusGeometry(0.33, 0.025, 4, 10, Math.PI), dark);
     band.rotation.y = Math.PI / 2;
     band.position.y = 0.02;
-    add(band, visual.head);
+    add(band, visual.head, 'headset');
     const cup = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.16, 0.14), dark);
     cup.position.set(-0.33, 0, 0);
-    add(cup, visual.head);
+    add(cup, visual.head, 'headset-cup');
     const boom = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.26), dark);
     boom.position.set(-0.3, -0.1, 0.15);
     boom.rotation.y = -0.35;
-    add(boom, visual.head);
+    add(boom, visual.head, 'headset-mic');
+  }
+  if (spec.cap) {
+    // Flat cap: a low crown over the hair plus a short brim over the eyes (head-local, head r = 0.32).
+    const cloth = flat(swatch(spec.cap), 0.95);
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.34, 0.09, 8), cloth);
+    crown.position.set(0, 0.19, -0.01);
+    crown.rotation.x = -0.14;
+    add(crown, visual.head, 'cap');
+    const brim = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.03, 0.19), cloth);
+    brim.position.set(0, 0.155, 0.31);
+    brim.rotation.x = 0.26;
+    add(brim, visual.head, 'cap-brim');
+  }
+  if (spec.moustache) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.06), flat(swatch(spec.moustache), 1));
+    m.position.set(0, -0.08, 0.3);
+    m.rotation.x = -0.25;
+    add(m, visual.head, 'moustache');
+  }
+  if (spec.bun) {
+    const bun = new THREE.Mesh(new THREE.IcosahedronGeometry(0.13, 0), flat(swatch(spec.hair ?? HNC_HAIR), 1));
+    bun.position.set(0, 0.37, -0.14);
+    add(bun, visual.head, 'bun');
   }
 }
 

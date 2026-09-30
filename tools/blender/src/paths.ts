@@ -18,6 +18,8 @@ export const CANONICAL_SOURCES = [
   'packages/hnc-visuals/src/player/create-player.ts',
   'packages/hnc-visuals/src/player/types.ts',
   'packages/hnc-visuals/src/player/number-texture.ts',
+  'packages/hnc-visuals/src/player/wardrobe.ts',
+  'packages/hnc-visuals/src/player/proportions.ts',
   'packages/hnc-visuals/src/ball/create-ball.ts',
   'packages/hnc-visuals/src/ball/ball-texture.ts',
   'packages/hnc-visuals/src/stadium/create-goals.ts',

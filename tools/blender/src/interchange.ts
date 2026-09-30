@@ -1,10 +1,14 @@
 import * as THREE from 'three';
 import {
   HNC_SKIN_PALETTE,
+  applyHncProportions,
+  applyHncWardrobe,
   createHncBallVisual,
   createHncGoals,
   createHncPlayerVisual,
   type HncPlayerVisual,
+  type HncProportionsId,
+  type HncWardrobeId,
 } from '@floodlight/hnc-visuals';
 import { getCountry } from '../../../apps/game/src/city-league/countries.ts';
 
@@ -35,8 +39,28 @@ import { getCountry } from '../../../apps/game/src/city-league/countries.ts';
  */
 export type HncExportPurpose = 'verification' | 'cast';
 
+/**
+ * A player fixture is one canonical build. Optional fields only change what
+ * the canonical helpers already support: `look` = applyHncWardrobe(),
+ * `proportions` = applyHncProportions(), `tag` = a unique Blender prefix for
+ * people who are not a numbered player (family, supporters).
+ */
+export interface HncPlayerFixture {
+  kind: 'player';
+  assetId: string;
+  country: string;
+  number: number;
+  id: number;
+  keeper: boolean;
+  purpose: HncExportPurpose;
+  look?: HncWardrobeId;
+  accent?: string;
+  proportions?: HncProportionsId;
+  tag?: string;
+}
+
 export type HncExportFixture =
-  | { kind: 'player'; assetId: string; country: string; number: number; id: number; keeper: boolean; purpose: HncExportPurpose }
+  | HncPlayerFixture
   | { kind: 'ball'; assetId: string; purpose: HncExportPurpose }
   | { kind: 'goal'; assetId: string; purpose: HncExportPurpose };
 
@@ -47,6 +71,23 @@ export const HNC_EXPORT_FIXTURES: readonly HncExportFixture[] = [
   { kind: 'player', assetId: 'hnc-player-gr-04', country: 'GR', number: 4, id: 4, keeper: false, purpose: 'cast' },
   { kind: 'player', assetId: 'hnc-player-gr-01-keeper', country: 'GR', number: 1, id: 1, keeper: true, purpose: 'cast' },
   { kind: 'goal', assetId: 'hnc-goal', purpose: 'cast' },
+  // HNC Player Diaries (social/player-diaries/CAST.md): TR #9 off the pitch + his world.
+  // Same person as hnc-player-tr-09 (id 9 → skin 1); only the wardrobe changes.
+  { kind: 'player', assetId: 'hnc-player-tr-09--tee', country: 'TR', number: 9, id: 9, keeper: false, purpose: 'cast', look: 'tee', accent: '#e4ded2' },
+  { kind: 'player', assetId: 'hnc-player-tr-09--hoodie', country: 'TR', number: 9, id: 9, keeper: false, purpose: 'cast', look: 'hoodie', accent: '#2c313b' },
+  { kind: 'player', assetId: 'hnc-player-tr-09--interview', country: 'TR', number: 9, id: 9, keeper: false, purpose: 'cast', look: 'tee', accent: '#2a2d33' },
+  { kind: 'player', assetId: 'hnc-player-tr-09--travel', country: 'TR', number: 9, id: 9, keeper: false, purpose: 'cast', look: 'hoodie', accent: '#b3121b' },
+  { kind: 'player', assetId: 'hnc-player-tr-01-keeper', country: 'TR', number: 1, id: 1, keeper: true, purpose: 'cast' },
+  // TR-FAMILY-CHILD-01 shares #9's skin (id 5 → skin 1); child proportions. Wears Dad's #9 from the evening on.
+  { kind: 'player', assetId: 'hnc-family-tr-child-01--tee', country: 'TR', number: 9, id: 5, keeper: false, purpose: 'cast', look: 'tee', accent: '#f0b429', proportions: 'child', tag: 'TRCH' },
+  { kind: 'player', assetId: 'hnc-family-tr-child-01--kit', country: 'TR', number: 9, id: 5, keeper: false, purpose: 'cast', look: 'replica', proportions: 'child', tag: 'TRCH' },
+  // TR-FAMILY-PARTNER-01 (id 6 → skin 2).
+  { kind: 'player', assetId: 'hnc-family-tr-partner-01', country: 'TR', number: 6, id: 6, keeper: false, purpose: 'cast', look: 'tee-bun', accent: '#6f8f7a', tag: 'TRPT' },
+  // TR-SUPPORTER-ELDER-01, the bakery regular (id 12 → skin 0).
+  { kind: 'player', assetId: 'hnc-supporter-tr-elder-01', country: 'TR', number: 12, id: 12, keeper: false, purpose: 'cast', look: 'elder', tag: 'TREL' },
+  // Matchday crowd: one TR and one BE supporter build, instanced by the set.
+  { kind: 'player', assetId: 'hnc-fan-tr', country: 'TR', number: 2, id: 3, keeper: false, purpose: 'cast', look: 'fan', tag: 'TRFN' },
+  { kind: 'player', assetId: 'hnc-fan-be', country: 'BE', number: 2, id: 2, keeper: false, purpose: 'cast', look: 'fan', tag: 'BEFN' },
 ];
 
 export interface HncExpectedMaterial {
@@ -82,6 +123,10 @@ export interface HncExpectedNode {
   /** World-space AABB in HNC/glTF coordinates (Y-up). */
   worldMin: [number, number, number] | null;
   worldMax: [number, number, number] | null;
+  /** Share of triangles facing away from the part's vertex centroid (1 for convex parts; tori are lower). */
+  outward?: number;
+  /** Local scale in HNC/glTF axes (non-unit only for re-proportioned characters, e.g. the child). */
+  scale: [number, number, number];
 }
 
 export interface HncExpected {
@@ -141,6 +186,11 @@ export function playerRoles(v: HncPlayerVisual, tag: string): Map<THREE.Object3D
     if (!obj) throw new Error(`hnc-visuals structure changed: missing ${part} — update interchange roles`);
     roles.set(obj, { name: part === 'root' ? name : `${tag}.${name}`, part });
   }
+  // Wardrobe accessories (applyHncWardrobe names them); scarf pieces etc. ride on root or head.
+  v.extras.forEach((e, i) => {
+    const handle = e.name || `extra${i}`;
+    roles.set(e, { name: `${tag}.Wear.${handle}`, part: `extras.${handle}` });
+  });
   let count = 0;
   v.root.traverse(() => count++);
   if (count !== roles.size) {
@@ -150,20 +200,29 @@ export function playerRoles(v: HncPlayerVisual, tag: string): Map<THREE.Object3D
 }
 
 /** Material names keyed by the canonical material instance. */
-function playerMaterialNames(v: HncPlayerVisual, country: string, number: number, skinIndex: number): Map<THREE.Material, string> {
+function playerMaterialNames(v: HncPlayerVisual, country: string, number: number, skinIndex: number, look?: string): Map<THREE.Material, string> {
   const mat = (o: THREE.Object3D | undefined): THREE.Material => (o as THREE.Mesh).material as THREE.Material;
   const hair = v.head.children.find((c) => !v.eyes?.includes(c as THREE.Mesh));
   const numberMesh = v.root.children.find((c) => (c as THREE.Mesh).geometry?.type === 'PlaneGeometry');
-  return new Map<THREE.Material, string>([
-    [mat(v.body), `HNC_Kit_${v.keeper ? 'Keeper' : country}`],
-    [mat(v.trimParts[3]), `HNC_TrimStripe_${country}`],
-    [mat(v.legL), `HNC_Trim_${country}`],
+  // Recoloured wardrobe materials carry the look so two looks never share a name.
+  const w = look && look !== 'footballer' ? `--${look}` : '';
+  const names = new Map<THREE.Material, string>([
+    [mat(v.body), `HNC_Kit_${v.keeper ? 'Keeper' : country}${w}`],
+    [mat(v.trimParts[3]), `HNC_TrimStripe_${country}${w}`],
+    [mat(v.legL), `HNC_Trim_${country}${w}`],
     [mat(v.head), `HNC_Skin_${skinIndex}`],
-    [mat(hair), 'HNC_Hair'],
+    [mat(hair), `HNC_Hair${w}`],
     [mat(v.legL.children[0]), 'HNC_Boot'],
     [mat(v.eyes?.[0]), 'HNC_Eye'],
     [mat(numberMesh), `HNC_Number_${String(number).padStart(2, '0')}`],
   ]);
+  v.extras.forEach((e, i) => {
+    e.traverse((o) => {
+      const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+      if (m && !names.has(m)) names.set(m, `HNC_Wear_${e.name || `extra${i}`}${w}`);
+    });
+  });
+  return names;
 }
 
 /**
@@ -211,7 +270,8 @@ function cloneForExport(
     out.scale.copy(o.scale);
     out.visible = o.visible;
     out.userData = { hncPart: role.part };
-    for (const child of o.children) out.add(visit(child));
+    // Hidden canonical parts (office looks hide the stripe/number) are not exported (GLTFExporter onlyVisible).
+    for (const child of o.children) if (child.visible) out.add(visit(child));
     return out;
   };
   return visit(src);
@@ -243,6 +303,34 @@ function countSmoothTriangles(g: THREE.BufferGeometry): number {
 }
 const vec = (v: THREE.Vector3): [number, number, number] => [round(v.x), round(v.y), round(v.z)];
 
+/** Same metric as inspect_parity._outward_fraction (flipped-normal check), in local space. */
+function outwardFraction(g: THREE.BufferGeometry): number {
+  const pos = g.attributes.position;
+  const idx = g.index;
+  const count = idx ? idx.count : pos.count;
+  // Centroid of the unique vertex positions (Blender merges nothing: merge_vertices=False keeps glTF vertices).
+  const centre = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) centre.add(new THREE.Vector3().fromBufferAttribute(pos, i));
+  centre.divideScalar(Math.max(1, pos.count));
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  let good = 0;
+  let tris = 0;
+  for (let t = 0; t < count; t += 3) {
+    const ids = [0, 1, 2].map((k) => (idx ? idx.getX(t + k) : t + k));
+    a.fromBufferAttribute(pos, ids[0]);
+    b.fromBufferAttribute(pos, ids[1]);
+    c.fromBufferAttribute(pos, ids[2]);
+    const n = new THREE.Vector3().subVectors(b, a).cross(new THREE.Vector3().subVectors(c, a));
+    if (n.lengthSq() < 1e-20) continue;
+    const mid = a.clone().add(b).add(c).divideScalar(3);
+    if (mid.sub(centre).dot(n) > 0) good++;
+    tris++;
+  }
+  return round(good / Math.max(1, tris));
+}
+
 /** Machine-readable description of an export tree (what Blender must reproduce). */
 export function describeExport(root: THREE.Object3D): HncExpected {
   root.updateMatrixWorld(true);
@@ -258,6 +346,7 @@ export function describeExport(root: THREE.Object3D): HncExpected {
     let hasNormals = false;
     let smoothTriangles: number | undefined;
     let lines: number | undefined;
+    let outward: number | undefined;
     const line = o as THREE.LineSegments;
     if (line.isLineSegments) {
       const g = line.geometry;
@@ -286,10 +375,13 @@ export function describeExport(root: THREE.Object3D): HncExpected {
     }
     if (mesh.isMesh) {
       const g = mesh.geometry;
-      g.computeBoundingBox();
-      const box = g.boundingBox!.clone().applyMatrix4(mesh.matrixWorld);
+      // Tight world bounds (transformed vertices), matching what Blender measures on rotated parts.
+      const box = new THREE.Box3();
+      const p = new THREE.Vector3();
+      for (let i = 0; i < g.attributes.position.count; i++) box.expandByPoint(p.fromBufferAttribute(g.attributes.position, i).applyMatrix4(mesh.matrixWorld));
       worldMin = vec(box.min);
       worldMax = vec(box.max);
+      outward = outwardFraction(g);
       vertices = g.attributes.position.count;
       triangles = (g.index ? g.index.count : vertices) / 3;
       hasNormals = !!g.attributes.normal;
@@ -318,6 +410,7 @@ export function describeExport(root: THREE.Object3D): HncExpected {
       mesh: !!mesh.isMesh,
       ...(lines !== undefined ? { lines } : {}),
       ...(smoothTriangles !== undefined ? { smoothTriangles } : {}),
+      ...(outward !== undefined ? { outward } : {}),
       material,
       vertices,
       triangles,
@@ -325,9 +418,16 @@ export function describeExport(root: THREE.Object3D): HncExpected {
       worldPosition: vec(new THREE.Vector3().setFromMatrixPosition(o.matrixWorld)),
       worldMin,
       worldMax,
+      scale: vec(o.scale),
     });
   });
-  const bounds = new THREE.Box3().setFromObject(root);
+  const bounds = new THREE.Box3();
+  for (const n of nodes) {
+    if (n.worldMin && n.worldMax) {
+      bounds.expandByPoint(new THREE.Vector3(...n.worldMin));
+      bounds.expandByPoint(new THREE.Vector3(...n.worldMax));
+    }
+  }
   return {
     root: root.name,
     nodes,
@@ -338,18 +438,20 @@ export function describeExport(root: THREE.Object3D): HncExpected {
 }
 
 /** Build the export clone of one canonical player (no geometry authored here). */
-export function buildHncPlayerExport(f: Omit<Extract<HncExportFixture, { kind: 'player' }>, 'purpose'>): HncExportBuild {
+export function buildHncPlayerExport(f: Omit<HncPlayerFixture, 'purpose'>): HncExportBuild {
   const country = getCountry(f.country);
   if (!country) throw new Error(`Unknown HNC country code: ${f.country}`);
   const { primary, secondary } = country.colors;
   // Same call the game (renderer.ts) and Reels (CastActor) make.
   const visual = createHncPlayerVisual({ id: f.id, number: f.number, primary, secondary, keeper: f.keeper });
+  if (f.proportions) applyHncProportions(visual, f.proportions);
+  if (f.look) applyHncWardrobe(visual, f.look, { primary, secondary, accent: f.accent });
   const skinIndex = ((f.id % 4) + 4) % 4;
-  const tag = playerTag(f.country, f.number);
+  const tag = f.tag ?? playerTag(f.country, f.number);
   const root = cloneForExport(
     visual.root,
     playerRoles(visual, tag),
-    playerMaterialNames(visual, f.country, f.number, skinIndex),
+    playerMaterialNames(visual, f.country, f.number, skinIndex, f.look),
   );
   const params = {
     country: f.country,
@@ -360,6 +462,10 @@ export function buildHncPlayerExport(f: Omit<Extract<HncExportFixture, { kind: '
     secondary,
     skin: HNC_SKIN_PALETTE[skinIndex],
     skinIndex,
+    // Only non-default builds carry these, so the verification assets stay byte-identical.
+    ...(f.look ? { look: f.look } : {}),
+    ...(f.proportions ? { proportions: f.proportions } : {}),
+    ...(f.accent ? { accent: f.accent } : {}),
   };
   root.userData = { ...root.userData, hncAsset: f.assetId, hncFactory: 'createHncPlayerVisual', ...params };
   return { root, params, sourceFactory: 'createHncPlayerVisual', expected: describeExport(root) };

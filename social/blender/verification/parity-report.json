@@ -1,6 +1,6 @@
 {
   "schema": "hnc-blender-parity/1",
-  "inspectedAt": "2026-09-30T10:36:28+00:00",
+  "inspectedAt": "2026-09-30T12:49:01+00:00",
   "blender": "5.2.2 LTS",
   "blendFile": "social/blender/verification/hnc-parity.blend",
   "scene": "HNC_Parity",
@@ -9,7 +9,8 @@
     "hnc-player-tr-09": "10dd326458fd9552d3bbdc738dfc3083dd3fd7d5fb5239a6205bffb00fa22252",
     "hnc-ball": "f267325d8be15f15aa366f1d1ae63ccb82bc63fbf86fd363bbd6053e55a4ad49",
     "hnc-player-gr-04": "5520c989dfe667c44cf89250eddc63d3a60df84813b85bdd65e8f9123dffa75c",
-    "hnc-player-gr-01-keeper": "75b52c7e3be7b47298169e472952d24e4478e37227b3314e8e4b363504e39307"
+    "hnc-player-gr-01-keeper": "75b52c7e3be7b47298169e472952d24e4478e37227b3314e8e4b363504e39307",
+    "hnc-goal": "fc4efecdfa1ea3904779e59142d0146a12da91ab7b8ac1afcde1fcbeca5e1b17"
   },
   "missingTextures": [],
   "builtFromCurrentAssets": true,
@@ -835,7 +836,7 @@
           "check": "canonical normals kept (smooth/unlit part)",
           "node": "TR09.Eye.R",
           "pass": true,
-          "expected": "custom normals + all smooth",
+          "expected": "custom normals + 30 smooth",
           "actual": {
             "smooth": 30,
             "polys": 30,
@@ -961,7 +962,7 @@
           "check": "canonical normals kept (smooth/unlit part)",
           "node": "TR09.Eye.L",
           "pass": true,
-          "expected": "custom normals + all smooth",
+          "expected": "custom normals + 30 smooth",
           "actual": {
             "smooth": 30,
             "polys": 30,
@@ -2429,7 +2430,7 @@
           "check": "canonical normals kept (smooth/unlit part)",
           "node": "HNC_Ball.Leather",
           "pass": true,
-          "expected": "custom normals + all smooth",
+          "expected": "custom normals + 352 smooth",
           "actual": {
             "smooth": 352,
             "polys": 352,

@@ -46,7 +46,7 @@ export const THE_CURRENT: ContentSpec = {
       duration: 4 * B,
       text: [{ say: 'The last night of the season.', style: 'cinema', at: 0.85, until: 'end-0.05', place: 'top' }],
       // Eyes open on beat 3: the picture punches in with a crimson flash.
-      fx: [{ type: 'zoom-punch', at: 0.8, intensity: 0.5 }, { type: 'flash', at: 0.8, intensity: 0.3 }, { type: 'chroma', at: 0.8, intensity: 0.6 }, { type: 'vignette', intensity: 0.6 }],
+      fx: [{ type: 'motes', intensity: 0.6, props: { color: 'TR' } }, { type: 'zoom-punch', at: 0.8, intensity: 0.5 }, { type: 'flash', at: 0.8, intensity: 0.3 }, { type: 'chroma', at: 0.8, intensity: 0.6 }, { type: 'vignette', intensity: 0.6 }],
       // The original score runs the whole piece (audio/score/the-current.ts, bar-mapped to this edit).
       sound: [{ cue: 'score-the-current', at: 0, volume: 0.7 }, { cue: 'sub-hit', at: 0, volume: 1.3 }, { cue: 'heartbeat', at: 0.15, volume: 1.2 }, { cue: 'zap', at: 0.8, volume: 0.9 }],
     }),

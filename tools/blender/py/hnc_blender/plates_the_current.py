@@ -107,12 +107,12 @@ def current_eye(scene, cols, roots, track):
     studio.fog(cols["SET"], head - fwd * 2.0, (7, 5, 5), 0.014, "#5a6480")
     back = -fwd
     side = Vector((fwd.y, -fwd.x, 0))
-    studio.spot(cols["LGT"], "LGT_RimCrimson", head + back * 1.5 + side * 1.0 + Vector((0, 0, 0.35)), head, red, 4200, 22, 0.3, 0.12)
-    studio.spot(cols["LGT"], "LGT_RimCrimsonLow", head + back * 1.2 + side * 1.1 + Vector((0, 0, -0.25)), head, red, 2200, 22, 0.3, 0.12)
+    studio.spot(cols["LGT"], "LGT_RimCrimson", head + back * 1.5 + side * 1.0 + Vector((0, 0, 0.35)), head, red, 7500, 22, 0.3, 0.12)
+    studio.spot(cols["LGT"], "LGT_RimCrimsonLow", head + back * 1.2 + side * 1.1 + Vector((0, 0, -0.25)), head, red, 4000, 22, 0.3, 0.12)
     studio.spot(cols["LGT"], "LGT_RimCool", head + back * 1.3 - side * 1.1 + Vector((0, 0, 0.4)), head, "#cfe0ff", 900, 22, 0.4, 0.12)
     strike = studio.spot(cols["LGT"], "LGT_Strike", head + fwd * 1.3 - side * 1.0 + Vector((0, 0, 1.15)), head, "#fff1dc", 8, 28, 0.25, 0.05)
     # The floodlight stutters, then strikes as the eyes open (beat 3 = frame 49).
-    studio.key_power(strike, [(1, 12), (17, 12), (19, 40), (21, 4), (30, 4), (31, 25), (33, 3), (47, 5), (49, 520), (54, 380), (96, 420)])
+    studio.key_power(strike, [(1, 38), (17, 30), (19, 40), (21, 4), (30, 4), (31, 25), (33, 3), (47, 5), (49, 520), (54, 380), (96, 420)])
     studio.bokeh(cols["SET"], 7, 30, head - fwd * 16 + Vector((0, 0, -0.2)), (26, 4, 6), ["#fff3dc", "#fff3dc", "#fff3dc", red], radius=0.07, strength=30)
     # Motes rise BEHIND the head (in front of the lens they bloom into discs over the face).
     studio.embers(cols["FX"], 11, 44, head - fwd * 1.1 + Vector((0, 0, -1.1)), 1.1, 2.4, red, 96, rise=0.35, size=0.01)

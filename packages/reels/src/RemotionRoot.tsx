@@ -4,6 +4,8 @@ import { CONTENT, compositionId } from './content';
 import { ContentComposition, contentMetadata } from './render/ContentComposition';
 import { PosterType } from './posters/PosterType';
 import type { PosterDef } from './posters/types';
+import { PlayerDiaries, playerDiariesMetadata, type PlayerDiariesProps } from './diaries/PlayerDiaries';
+import { DiariesPhoneUI } from './diaries/PhoneUI';
 
 /**
  * One composition per registered piece (Studio browsing) plus `Content`,
@@ -35,6 +37,17 @@ export const RemotionRoot: React.FC = () => (
       width={1080}
       height={1350}
     />
+    <Composition
+      id="PlayerDiaries"
+      component={PlayerDiaries}
+      defaultProps={{ episode: 'ep01', quality: 'animatic', review: true } as PlayerDiariesProps}
+      calculateMetadata={playerDiariesMetadata}
+      durationInFrames={1}
+      fps={60}
+      width={1080}
+      height={1920}
+    />
+    <Composition id="DiariesPhoneUI" component={DiariesPhoneUI} durationInFrames={1} fps={60} width={1080} height={2340} />
     <Composition
       id="Content"
       component={ContentComposition}

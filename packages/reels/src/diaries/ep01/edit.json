@@ -1,0 +1,1533 @@
+{
+  "schema": "hnc-diaries-edit/1",
+  "episode": "ep01-belgium",
+  "title": "48 Hours Before Belgium",
+  "fps": 60,
+  "version": "v2",
+  "note": "Single source of the cut. `dur` seconds (rounded to frames); dialogue/sfx `at` are shot-relative seconds (negative = pre-lap from the previous shot, > dur = runs over the next). Blender shot builders (tools/blender/py/hnc_blender/diaries/ep01), the mixer (tools/diaries/py/mix.py) and the Remotion edit (packages/reels/src/diaries) all read this file; storyboard.md is generated from it.",
+  "shots": [
+    {
+      "id": "S01_SH01",
+      "scene": "S01",
+      "dur": 0.85,
+      "renderer": "remotion",
+      "location": "black",
+      "framing": "black",
+      "lens": "-",
+      "move": "-",
+      "action": "Black. A question in the dark.",
+      "light": "none",
+      "transition": "cut",
+      "purpose": "Hook: a voice before a picture.",
+      "dialogue": [
+        {
+          "line": "L01",
+          "at": 0.05
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "car-night-bed",
+          "at": 0.55,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S01_SH02",
+      "scene": "S01",
+      "dur": 1.65,
+      "renderer": "blender",
+      "location": "car-night",
+      "framing": "ECU profile, right side, eyes on the road",
+      "lens": "85mm f/1.8",
+      "move": "locked-off, road vibration; streetlights sweep across the face",
+      "action": "#9 drives. Eyes flick toward the voice, back to the road; the half-smile arrives before the line.",
+      "light": "cool night; sodium streetlight sweeps; dash glow",
+      "transition": "smash cut",
+      "purpose": "First premium frame: confidence without breaking realism.",
+      "dialogue": [
+        {
+          "line": "L02",
+          "at": 0.4
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "car-night-bed",
+          "at": 0.0,
+          "gain": 0.6
+        },
+        {
+          "cue": "indicator",
+          "at": 0.1,
+          "gain": 0.25
+        }
+      ]
+    },
+    {
+      "id": "S01_SH03",
+      "scene": "S01",
+      "dur": 0.95,
+      "renderer": "remotion",
+      "location": "title",
+      "framing": "title card",
+      "lens": "-",
+      "move": "title punches in, floodlight flare",
+      "action": "48 HOURS BEFORE BELGIUM",
+      "light": "stadium white on black",
+      "transition": "hard cut to silence",
+      "purpose": "Promise of stakes.",
+      "sfx": [
+        {
+          "cue": "crowd-roar",
+          "at": 0.0,
+          "gain": 0.9
+        },
+        {
+          "cue": "sub-hit",
+          "at": 0.0,
+          "gain": 0.8
+        }
+      ]
+    },
+    {
+      "id": "S02_SH01",
+      "scene": "S02",
+      "dur": 0.6,
+      "renderer": "blender",
+      "location": "bedroom",
+      "framing": "macro: bedside clock 06:47",
+      "lens": "100mm macro f/2.8",
+      "move": "tiny push",
+      "action": "Clock reads 06:47, alarm going.",
+      "light": "blue pre-dawn through curtains, red digits",
+      "transition": "cut",
+      "purpose": "Time + place in one beat.",
+      "sfx": [
+        {
+          "cue": "alarm",
+          "at": 0.0,
+          "gain": 0.7
+        }
+      ]
+    },
+    {
+      "id": "S02_SH02",
+      "scene": "S02",
+      "dur": 3.0,
+      "renderer": "blender",
+      "location": "bedroom",
+      "framing": "MCU #9 on the pillow from the child's eye-line (child off-screen)",
+      "lens": "50mm f/2",
+      "move": "locked-off, faint handheld",
+      "action": "Alarm stops. One eye opens. Off-screen: You're late. His eye slides to the clock. I'm not late.",
+      "light": "soft blue window, warm lamp spill from the hall",
+      "transition": "cut",
+      "purpose": "Character through restraint; the child outranks the star.",
+      "dialogue": [
+        {
+          "line": "L03",
+          "at": 0.7
+        },
+        {
+          "line": "L04",
+          "at": 1.8
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "alarm",
+          "at": -0.6,
+          "gain": 0.7,
+          "dur": 0.78
+        },
+        {
+          "cue": "sheets",
+          "at": 0.3,
+          "gain": 0.5
+        },
+        {
+          "cue": "room-morning",
+          "at": 0.0,
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S02_SH03",
+      "scene": "S02",
+      "dur": 0.9,
+      "renderer": "blender",
+      "location": "bedroom",
+      "framing": "reverse, low from the pillow: the child, pointing at the clock (clock soft at frame right)",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "The reveal: the child has been standing there. Points at the clock. Says nothing.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Comedy beat: evidence.",
+      "sfx": [
+        {
+          "cue": "cloth",
+          "at": 0.1,
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S02_SH04",
+      "scene": "S02",
+      "dur": 1.25,
+      "renderer": "blender",
+      "location": "bedroom",
+      "framing": "MCU as SH02",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "You're late. He stares at the ceiling. Exhales.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Button.",
+      "dialogue": [
+        {
+          "line": "L05",
+          "at": 0.1
+        }
+      ]
+    },
+    {
+      "id": "S03_SH01",
+      "scene": "S03",
+      "dur": 0.75,
+      "renderer": "blender",
+      "location": "kitchen",
+      "framing": "ECU egg dropping into the pan",
+      "lens": "100mm f/2.8",
+      "move": "slow push",
+      "action": "An egg lands in hot oil.",
+      "light": "warm morning window, steam backlight",
+      "transition": "cut",
+      "purpose": "Sound-led location change.",
+      "dialogue": [
+        {
+          "line": "L06",
+          "at": 0.12
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "sizzle",
+          "at": 0.28,
+          "gain": 0.8,
+          "dur": 3.6
+        },
+        {
+          "cue": "egg-crack",
+          "at": 0.3,
+          "gain": 0.6
+        },
+        {
+          "cue": "room-morning",
+          "at": 0.0,
+          "gain": 0.35,
+          "dur": 7
+        }
+      ]
+    },
+    {
+      "id": "S03_SH02",
+      "scene": "S03",
+      "dur": 2.45,
+      "renderer": "blender",
+      "location": "kitchen",
+      "framing": "MS #9 at the stove, partner soft behind at the counter",
+      "lens": "35mm f/2.8",
+      "move": "observational handheld, slight drift",
+      "action": "He looks at the pan. Eggs. That's it?",
+      "light": "warm key from window, soft fill",
+      "transition": "cut",
+      "purpose": "Dry answer, zero performance.",
+      "dialogue": [
+        {
+          "line": "L07",
+          "at": 1.02
+        },
+        {
+          "line": "L08",
+          "at": 1.68
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "pan-shuffle",
+          "at": 0.5,
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S03_SH03",
+      "scene": "S03",
+      "dur": 2.65,
+      "renderer": "blender",
+      "location": "kitchen",
+      "framing": "MCU: #9 pours coffee, mug on the counter in the foreground",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "And coffee. He pours. Keeps pouring. The partner's hand slides the mug away mid-pour; she walks off with it. His eyes follow the cup.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "The coffee joke — undersold.",
+      "dialogue": [
+        {
+          "line": "L09",
+          "at": 0.02
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "coffee-pour",
+          "at": 0.6,
+          "gain": 0.7,
+          "dur": 1.7
+        },
+        {
+          "cue": "cup-scrape",
+          "at": 2.05,
+          "gain": 0.6
+        },
+        {
+          "cue": "footsteps-soft",
+          "at": 2.3,
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S04_SH01",
+      "scene": "S04",
+      "dur": 1.3,
+      "renderer": "blender",
+      "location": "car-day",
+      "framing": "MS from the passenger seat: #9 driving, radio in frame, TR pennant on the mirror",
+      "lens": "28mm f/4",
+      "move": "car vibration, city passing",
+      "action": "Radio talk. He reaches and lowers the volume.",
+      "light": "neutral daylight, window contrast",
+      "transition": "cut",
+      "purpose": "The outside world is loud; he turns it down.",
+      "dialogue": [
+        {
+          "line": "L10",
+          "at": -0.1
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "car-day-bed",
+          "at": 0.0,
+          "gain": 0.6,
+          "dur": 6.8
+        },
+        {
+          "cue": "knob",
+          "at": 1.2,
+          "gain": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S04_SH02",
+      "scene": "S04",
+      "dur": 2.1,
+      "renderer": "blender",
+      "location": "car-day",
+      "framing": "MCU from the dashboard, eyes on the road (never the lens)",
+      "lens": "50mm f/2.8",
+      "move": "car vibration",
+      "action": "You don't listen to that stuff? No. Clicks the radio off.",
+      "light": "daylight, moving reflections",
+      "transition": "cut",
+      "purpose": "Silence as a punchline.",
+      "dialogue": [
+        {
+          "line": "L11",
+          "at": 0.0
+        },
+        {
+          "line": "L12",
+          "at": 1.45
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "radio-off",
+          "at": 1.8,
+          "gain": 0.6
+        }
+      ]
+    },
+    {
+      "id": "S04_SH03",
+      "scene": "S04",
+      "dur": 2.5,
+      "renderer": "blender",
+      "location": "car-day",
+      "framing": "profile CU",
+      "lens": "85mm f/2",
+      "move": "vibration",
+      "action": "Beat. My mother sends me all of it anyway. The phone on the dash lights up.",
+      "light": "daylight",
+      "transition": "cut",
+      "purpose": "Family warmth under the dryness.",
+      "dialogue": [
+        {
+          "line": "L13",
+          "at": 0.25
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "phone-buzz",
+          "at": 2.45,
+          "gain": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S05_SH01",
+      "scene": "S05",
+      "dur": 1.15,
+      "renderer": "blender",
+      "location": "bakery",
+      "framing": "wide: counter, #9 taking a paper bag; older supporter at the window table in the background",
+      "lens": "28mm f/4",
+      "move": "static",
+      "action": "Door bell. #9 takes his bag. The older man looks up.",
+      "light": "natural window light + warm pendants",
+      "transition": "cut",
+      "purpose": "New world, new character in one frame.",
+      "sfx": [
+        {
+          "cue": "shop-bell",
+          "at": 0.0,
+          "gain": 0.6
+        },
+        {
+          "cue": "bakery-room",
+          "at": 0.0,
+          "gain": 0.5,
+          "dur": 7
+        },
+        {
+          "cue": "paper-bag",
+          "at": 0.6,
+          "gain": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S05_SH02",
+      "scene": "S05",
+      "dur": 1.0,
+      "renderer": "blender",
+      "location": "bakery",
+      "framing": "MS #9 turning; elder approaching",
+      "lens": "35mm f/2.8",
+      "move": "handheld",
+      "action": "The man stands and comes over. #9 expects the selfie — half-turns, shoulders set.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Set up the expectation.",
+      "sfx": [
+        {
+          "cue": "chair-scrape",
+          "at": 0.05,
+          "gain": 0.4
+        },
+        {
+          "cue": "footsteps-soft",
+          "at": 0.35,
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S05_SH03",
+      "scene": "S05",
+      "dur": 1.45,
+      "renderer": "blender",
+      "location": "bakery",
+      "framing": "MCU elder, slight low angle, pointing at #9",
+      "lens": "50mm f/2",
+      "move": "static",
+      "action": "He points. Two goals.",
+      "light": "window key",
+      "transition": "cut",
+      "purpose": "Subvert: a demand, not a selfie.",
+      "dialogue": [
+        {
+          "line": "L14",
+          "at": 0.22
+        }
+      ]
+    },
+    {
+      "id": "S05_SH04",
+      "scene": "S05",
+      "dur": 1.25,
+      "renderer": "blender",
+      "location": "bakery",
+      "framing": "MCU #9",
+      "lens": "50mm f/2",
+      "move": "static",
+      "action": "Good morning. He walks off.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Dry exit.",
+      "dialogue": [
+        {
+          "line": "L15",
+          "at": 0.18
+        }
+      ]
+    },
+    {
+      "id": "S05_SH05",
+      "scene": "S05",
+      "dur": 1.3,
+      "renderer": "blender",
+      "location": "bakery",
+      "framing": "from outside the door: #9 walks toward us, elder behind",
+      "lens": "35mm f/2.8",
+      "move": "slow push back",
+      "action": "TWO. A small smile as he reaches the door.",
+      "light": "daylight outside, warm inside",
+      "transition": "cut on the music rise",
+      "purpose": "He likes it.",
+      "dialogue": [
+        {
+          "line": "L16",
+          "at": 0.22
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "shop-bell",
+          "at": 1.18,
+          "gain": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S06_SH01",
+      "scene": "S06",
+      "dur": 0.5,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "ECU boot laces pulled tight",
+      "lens": "100mm",
+      "move": "static",
+      "action": "Laces.",
+      "light": "crisp overcast morning, high contrast",
+      "transition": "cut",
+      "purpose": "Montage: switch on.",
+      "sfx": [
+        {
+          "cue": "lace-pull",
+          "at": 0.1,
+          "gain": 0.6
+        },
+        {
+          "cue": "training-bed",
+          "at": 0.0,
+          "gain": 0.4,
+          "dur": 10
+        }
+      ]
+    },
+    {
+      "id": "S06_SH02",
+      "scene": "S06",
+      "dur": 0.45,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "ball drops into frame onto grass",
+      "lens": "50mm",
+      "move": "static",
+      "action": "Ball drop.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "The canonical ball, hero lit.",
+      "sfx": [
+        {
+          "cue": "ball-land",
+          "at": 0.25,
+          "gain": 0.8
+        }
+      ]
+    },
+    {
+      "id": "S06_SH03",
+      "scene": "S06",
+      "dur": 0.6,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "low: first touch kills the ball",
+      "lens": "35mm",
+      "move": "tiny tilt",
+      "action": "First touch.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Softness of touch.",
+      "sfx": [
+        {
+          "cue": "touch",
+          "at": 0.22,
+          "gain": 0.8
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L17",
+          "at": 0.1
+        }
+      ]
+    },
+    {
+      "id": "S06_SH04",
+      "scene": "S06",
+      "dur": 0.8,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "low tracking side-on sprint with the ball",
+      "lens": "85mm",
+      "move": "tracking pan",
+      "action": "Sprint.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Speed.",
+      "dialogue": [],
+      "sfx": [
+        {
+          "cue": "grass-run",
+          "at": 0.0,
+          "gain": 0.6
+        },
+        {
+          "cue": "breath",
+          "at": 0.3,
+          "gain": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S06_SH05",
+      "scene": "S06",
+      "dur": 0.7,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "MS feint / drag-back",
+      "lens": "50mm",
+      "move": "handheld follow",
+      "action": "Feint and control.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Skill.",
+      "sfx": [
+        {
+          "cue": "touch",
+          "at": 0.15,
+          "gain": 0.6
+        },
+        {
+          "cue": "touch",
+          "at": 0.48,
+          "gain": 0.6
+        }
+      ]
+    },
+    {
+      "id": "S06_SH06",
+      "scene": "S06",
+      "dur": 2.0,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "MCU #9 over the ball, looks up at the goal",
+      "lens": "85mm f/2",
+      "move": "slow push",
+      "action": "Controls the ball. Looks at the goal. So do I.",
+      "light": "same",
+      "transition": "cut into silence",
+      "purpose": "The quiet man switches mode.",
+      "dialogue": [
+        {
+          "line": "L18",
+          "at": 0.8
+        }
+      ]
+    },
+    {
+      "id": "S06_SH07",
+      "scene": "S06",
+      "dur": 1.1,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "telephoto behind #9: ball, goal, keeper set",
+      "lens": "135mm f/2.8",
+      "move": "static",
+      "action": "Breath. Keeper sets.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Silence before the strike.",
+      "sfx": [
+        {
+          "cue": "breath",
+          "at": 0.2,
+          "gain": 0.7
+        }
+      ]
+    },
+    {
+      "id": "S06_SH08",
+      "scene": "S06",
+      "dur": 0.7,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "low 3/4: plant, hip rotation, strike",
+      "lens": "35mm f/2",
+      "move": "static",
+      "action": "Strike.",
+      "light": "same",
+      "transition": "cut on contact +2f",
+      "purpose": "Power.",
+      "sfx": [
+        {
+          "cue": "strike",
+          "at": 0.5,
+          "gain": 1.0
+        }
+      ]
+    },
+    {
+      "id": "S06_SH09",
+      "scene": "S06",
+      "dur": 0.75,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "behind the goal: ball hits the net, net bulges",
+      "lens": "50mm",
+      "move": "static",
+      "action": "Net.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Payoff.",
+      "sfx": [
+        {
+          "cue": "net",
+          "at": 0.12,
+          "gain": 0.9
+        }
+      ]
+    },
+    {
+      "id": "S06_SH10",
+      "scene": "S06",
+      "dur": 0.9,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "wide: #9 turns away, breathing; keeper on the ground",
+      "lens": "85mm",
+      "move": "static",
+      "action": "He turns away. Nothing to celebrate yet.",
+      "light": "same",
+      "transition": "cut to quiet",
+      "purpose": "Understated menace.",
+      "sfx": [
+        {
+          "cue": "breath",
+          "at": 0.1,
+          "gain": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S07_SH01",
+      "scene": "S07",
+      "dur": 1.1,
+      "renderer": "blender",
+      "location": "living",
+      "framing": "wide: #9 on the sofa, ice on the knee, phone face-down",
+      "lens": "28mm f/4",
+      "move": "static",
+      "action": "Recovery. Stillness.",
+      "light": "soft afternoon, slightly desaturated",
+      "transition": "cut",
+      "purpose": "Quiet reset.",
+      "sfx": [
+        {
+          "cue": "home-quiet",
+          "at": 0.0,
+          "gain": 0.4,
+          "dur": 7
+        },
+        {
+          "cue": "ice-crinkle",
+          "at": 0.5,
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S07_SH02",
+      "scene": "S07",
+      "dur": 1.7,
+      "renderer": "blender",
+      "location": "living",
+      "framing": "MS: child enters, places the ball beside him",
+      "lens": "35mm f/2.8",
+      "move": "static",
+      "action": "The ball appears next to him. Without looking: Not now.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "The child's challenge.",
+      "dialogue": [
+        {
+          "line": "L19",
+          "at": 1.1
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "kid-steps",
+          "at": 0.1,
+          "gain": 0.4
+        },
+        {
+          "cue": "ball-set",
+          "at": 0.95,
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S07_SH03",
+      "scene": "S07",
+      "dur": 1.0,
+      "renderer": "blender",
+      "location": "living",
+      "framing": "CU child, staring",
+      "lens": "50mm f/2",
+      "move": "static",
+      "action": "Stare.",
+      "light": "same",
+      "transition": "hard cut",
+      "purpose": "The pause that wins.",
+      "sfx": []
+    },
+    {
+      "id": "S07_SH04",
+      "scene": "S07",
+      "dur": 1.3,
+      "renderer": "blender",
+      "location": "living",
+      "framing": "wide: living-room football; the ball clips a lamp",
+      "lens": "24mm f/4",
+      "move": "handheld",
+      "action": "They're playing. Small kick, bounce, the lamp wobbles.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Everyday joy.",
+      "sfx": [
+        {
+          "cue": "ball-bounce",
+          "at": 0.15,
+          "gain": 0.6
+        },
+        {
+          "cue": "ball-bounce",
+          "at": 0.55,
+          "gain": 0.5
+        },
+        {
+          "cue": "lamp-wobble",
+          "at": 0.98,
+          "gain": 0.6
+        },
+        {
+          "cue": "ball-bounce",
+          "at": 1.12,
+          "gain": 0.45
+        }
+      ]
+    },
+    {
+      "id": "S07_SH05",
+      "scene": "S07",
+      "dur": 1.0,
+      "renderer": "blender",
+      "location": "living",
+      "framing": "MS #9 frozen mid-move",
+      "lens": "35mm",
+      "move": "static",
+      "action": "Careful! (off). He freezes.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Button.",
+      "dialogue": [
+        {
+          "line": "L20",
+          "at": 0.0
+        }
+      ]
+    },
+    {
+      "id": "S08_SH01",
+      "scene": "S08",
+      "dur": 0.45,
+      "renderer": "blender",
+      "location": "kitchen-evening",
+      "framing": "ECU knife through a pepper",
+      "lens": "100mm",
+      "move": "static",
+      "action": "Chop.",
+      "light": "warmest: pendant + candle warmth",
+      "transition": "cut",
+      "purpose": "Montage.",
+      "sfx": [
+        {
+          "cue": "knife-chop",
+          "at": 0.13,
+          "gain": 0.7
+        },
+        {
+          "cue": "kitchen-evening",
+          "at": 0.0,
+          "gain": 0.4,
+          "dur": 9
+        }
+      ]
+    },
+    {
+      "id": "S08_SH02",
+      "scene": "S08",
+      "dur": 0.45,
+      "renderer": "blender",
+      "location": "kitchen-evening",
+      "framing": "pan steam backlit",
+      "lens": "85mm",
+      "move": "static",
+      "action": "Steam.",
+      "light": "backlit steam",
+      "transition": "cut",
+      "purpose": "Montage.",
+      "sfx": [
+        {
+          "cue": "sizzle",
+          "at": 0.0,
+          "gain": 0.6,
+          "dur": 0.6
+        }
+      ]
+    },
+    {
+      "id": "S08_SH03",
+      "scene": "S08",
+      "dur": 0.5,
+      "renderer": "blender",
+      "location": "kitchen-evening",
+      "framing": "top-down plating",
+      "lens": "50mm",
+      "move": "static",
+      "action": "Plate.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Montage.",
+      "sfx": [
+        {
+          "cue": "plate-set",
+          "at": 0.3,
+          "gain": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S08_SH04",
+      "scene": "S08",
+      "dur": 1.2,
+      "renderer": "blender",
+      "location": "kitchen-evening",
+      "framing": "MS: #9 presents the plate to the partner at the table",
+      "lens": "35mm f/2.8",
+      "move": "static",
+      "action": "Proud. Places it down.",
+      "light": "warm pendant over the table",
+      "transition": "cut",
+      "purpose": "Pride before the fall.",
+      "sfx": [
+        {
+          "cue": "plate-set",
+          "at": 1.0,
+          "gain": 0.6
+        }
+      ]
+    },
+    {
+      "id": "S08_SH05",
+      "scene": "S08",
+      "dur": 1.55,
+      "renderer": "blender",
+      "location": "kitchen-evening",
+      "framing": "two-shot: partner tastes, #9 waits",
+      "lens": "50mm f/2",
+      "move": "static",
+      "action": "She tastes. Silence. Well?",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "The wait.",
+      "dialogue": [
+        {
+          "line": "L21",
+          "at": 0.95
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "cutlery",
+          "at": 0.25,
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S08_SH06",
+      "scene": "S08",
+      "dur": 1.7,
+      "renderer": "blender",
+      "location": "kitchen-evening",
+      "framing": "CU partner",
+      "lens": "85mm f/2",
+      "move": "static",
+      "action": "Beat. Needs salt.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "The line.",
+      "dialogue": [
+        {
+          "line": "L22",
+          "at": 0.55
+        }
+      ]
+    },
+    {
+      "id": "S08_SH07",
+      "scene": "S08",
+      "dur": 1.1,
+      "renderer": "blender",
+      "location": "kitchen-evening",
+      "framing": "CU #9, devastated (small)",
+      "lens": "85mm f/2",
+      "move": "static",
+      "action": "His shoulders sink a millimetre.",
+      "light": "same",
+      "transition": "SMASH CUT",
+      "purpose": "The reaction is the joke.",
+      "sfx": []
+    },
+    {
+      "id": "S09_SH01",
+      "scene": "S09",
+      "dur": 2.1,
+      "renderer": "blender",
+      "location": "interview",
+      "framing": "formal interview MCU, off-centre, negative space",
+      "lens": "85mm f/2",
+      "move": "locked-off",
+      "action": "Pressure doesn't really affect me.",
+      "light": "dark; single warm practical; cool fill; edge light",
+      "transition": "cut",
+      "purpose": "Comedy edit against the salt.",
+      "dialogue": [
+        {
+          "line": "L23",
+          "at": 0.1
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.45,
+          "dur": 14
+        }
+      ]
+    },
+    {
+      "id": "S09_SH02",
+      "scene": "S09",
+      "dur": 1.85,
+      "renderer": "blender",
+      "location": "interview",
+      "framing": "same, slightly wider",
+      "lens": "70mm f/2",
+      "move": "locked-off",
+      "action": "Last one. Finally. (a breath of a smile)",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Gear change to sincerity.",
+      "dialogue": [
+        {
+          "line": "L24",
+          "at": 0.1
+        },
+        {
+          "line": "L25",
+          "at": 0.98
+        }
+      ]
+    },
+    {
+      "id": "S09_SH03",
+      "scene": "S09",
+      "dur": 2.2,
+      "renderer": "blender",
+      "location": "interview",
+      "framing": "CU, very slow push",
+      "lens": "85mm f/2",
+      "move": "imperceptible push",
+      "action": "What does playing for Türkiye mean to you? He looks down. Thinks.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "The question lands.",
+      "dialogue": [
+        {
+          "line": "L26",
+          "at": 0.08
+        }
+      ]
+    },
+    {
+      "id": "S09_SH04",
+      "scene": "S09",
+      "dur": 0.5,
+      "renderer": "blender",
+      "location": "child-room",
+      "framing": "insert: child asleep in the #9 shirt",
+      "lens": "50mm f/2",
+      "move": "static",
+      "action": "Child asleep.",
+      "light": "night-light",
+      "transition": "cut",
+      "purpose": "Who comes with him.",
+      "sfx": [
+        {
+          "cue": "night-room",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S09_SH05",
+      "scene": "S09",
+      "dur": 0.45,
+      "renderer": "blender",
+      "location": "bedroom-night",
+      "framing": "insert: TR shirt on a hanger, #9",
+      "lens": "50mm",
+      "move": "static",
+      "action": "Shirt.",
+      "light": "moonlight + hall spill",
+      "transition": "cut",
+      "purpose": "Identity.",
+      "sfx": []
+    },
+    {
+      "id": "S09_SH06",
+      "scene": "S09",
+      "dur": 0.4,
+      "renderer": "blender",
+      "location": "entry-night",
+      "framing": "insert: boots by the door",
+      "lens": "50mm",
+      "move": "static",
+      "action": "Boots.",
+      "light": "hall light",
+      "transition": "cut",
+      "purpose": "Tomorrow.",
+      "sfx": [],
+      "dialogue": [
+        {
+          "line": "L27",
+          "at": 0.05
+        }
+      ]
+    },
+    {
+      "id": "S09_SH07",
+      "scene": "S09",
+      "dur": 0.4,
+      "renderer": "blender",
+      "location": "entry-night",
+      "framing": "insert: packed bag",
+      "lens": "50mm",
+      "move": "static",
+      "action": "Bag.",
+      "light": "hall light",
+      "transition": "cut",
+      "purpose": "Leaving.",
+      "sfx": []
+    },
+    {
+      "id": "S09_SH08",
+      "scene": "S09",
+      "dur": 0.55,
+      "renderer": "hybrid",
+      "location": "living-night",
+      "framing": "insert: phone on the table showing the HNC World Table",
+      "lens": "50mm",
+      "move": "tiny push",
+      "action": "World Table.",
+      "light": "screen glow",
+      "transition": "cut",
+      "purpose": "HNC as a world.",
+      "dialogue": []
+    },
+    {
+      "id": "S09_SH09",
+      "scene": "S09",
+      "dur": 0.6,
+      "renderer": "blender",
+      "location": "tunnel-empty",
+      "framing": "insert: empty tunnel, pitch light at the end",
+      "lens": "35mm",
+      "move": "slow push",
+      "action": "Empty tunnel.",
+      "light": "dark, bright end",
+      "transition": "cut",
+      "purpose": "Where it goes.",
+      "sfx": [
+        {
+          "cue": "tunnel-tone",
+          "at": 0.0,
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S09_SH10",
+      "scene": "S09",
+      "dur": 3.0,
+      "renderer": "blender",
+      "location": "interview",
+      "framing": "CU as SH03",
+      "lens": "85mm f/2",
+      "move": "locked-off",
+      "action": "…coming with you. Pause. Even when you're playing away.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Sincere, unforced.",
+      "dialogue": [
+        {
+          "line": "L28",
+          "at": 1.05
+        }
+      ]
+    },
+    {
+      "id": "S10_SH01",
+      "scene": "S10",
+      "dur": 0.35,
+      "renderer": "blender",
+      "location": "bedroom-morning",
+      "framing": "insert: shirt folded into the bag",
+      "lens": "50mm",
+      "move": "static",
+      "action": "Shirt.",
+      "light": "clean cool morning",
+      "transition": "cut",
+      "purpose": "Matchday montage.",
+      "sfx": [
+        {
+          "cue": "cloth",
+          "at": 0.05,
+          "gain": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S10_SH02",
+      "scene": "S10",
+      "dur": 0.35,
+      "renderer": "blender",
+      "location": "bedroom-morning",
+      "framing": "insert: bag zipped",
+      "lens": "50mm",
+      "move": "static",
+      "action": "Zip.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Montage.",
+      "sfx": [
+        {
+          "cue": "zip",
+          "at": 0.0,
+          "gain": 0.7
+        }
+      ]
+    },
+    {
+      "id": "S10_SH03",
+      "scene": "S10",
+      "dur": 0.35,
+      "renderer": "blender",
+      "location": "entry-morning",
+      "framing": "insert: trainers on",
+      "lens": "50mm",
+      "move": "static",
+      "action": "Shoes.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Montage.",
+      "sfx": [
+        {
+          "cue": "lace-pull",
+          "at": 0.05,
+          "gain": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S10_SH04",
+      "scene": "S10",
+      "dur": 0.4,
+      "renderer": "blender",
+      "location": "entry-morning",
+      "framing": "insert: watch on the wrist",
+      "lens": "85mm",
+      "move": "static",
+      "action": "Watch.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Montage.",
+      "sfx": [
+        {
+          "cue": "watch-click",
+          "at": 0.15,
+          "gain": 0.6
+        }
+      ]
+    },
+    {
+      "id": "S10_SH05",
+      "scene": "S10",
+      "dur": 1.3,
+      "renderer": "blender",
+      "location": "entry-morning",
+      "framing": "MS at the door: #9 kneels, the child runs in, hug; partner in the doorway",
+      "lens": "35mm f/2.8",
+      "move": "static",
+      "action": "Goodbye hug.",
+      "light": "doorway daylight",
+      "transition": "cut",
+      "purpose": "What he carries.",
+      "sfx": [
+        {
+          "cue": "kid-steps",
+          "at": 0.0,
+          "gain": 0.4
+        },
+        {
+          "cue": "cloth",
+          "at": 0.5,
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S10_SH06",
+      "scene": "S10",
+      "dur": 0.7,
+      "renderer": "blender",
+      "location": "street-home",
+      "framing": "exterior: car door swings shut toward frame right",
+      "lens": "35mm",
+      "move": "static",
+      "action": "CAR DOOR CLOSES.",
+      "light": "clean cool morning",
+      "transition": "MATCH CUT (door direction)",
+      "purpose": "The expensive cut.",
+      "sfx": [
+        {
+          "cue": "car-door",
+          "at": 0.45,
+          "gain": 0.9
+        }
+      ]
+    },
+    {
+      "id": "S10_SH07",
+      "scene": "S10",
+      "dur": 1.1,
+      "renderer": "blender",
+      "location": "stadium-arrival",
+      "framing": "exterior: team bus door opens toward frame right; #9 steps out",
+      "lens": "35mm",
+      "move": "static",
+      "action": "Bus door opens. He steps out in the red travel top.",
+      "light": "stronger contrast",
+      "transition": "cut",
+      "purpose": "Same door, new world.",
+      "sfx": [
+        {
+          "cue": "bus-door",
+          "at": 0.0,
+          "gain": 0.8
+        },
+        {
+          "cue": "crowd-grow",
+          "at": 0.1,
+          "gain": 0.7,
+          "dur": 3.0
+        }
+      ]
+    },
+    {
+      "id": "S10_SH08",
+      "scene": "S10",
+      "dur": 0.7,
+      "renderer": "blender",
+      "location": "stadium-arrival",
+      "framing": "tracking past supporters behind a barrier, phone flashes",
+      "lens": "85mm f/2",
+      "move": "tracking",
+      "action": "Crowd. Flashes. He keeps walking.",
+      "light": "flashes",
+      "transition": "cut",
+      "purpose": "Scale.",
+      "sfx": [
+        {
+          "cue": "flashes",
+          "at": 0.1,
+          "gain": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S10_SH09",
+      "scene": "S10",
+      "dur": 1.05,
+      "renderer": "hybrid",
+      "location": "tunnel",
+      "framing": "match graphic over the tunnel mouth",
+      "lens": "35mm",
+      "move": "slow push",
+      "action": "BELGIUM vs TÜRKİYE",
+      "light": "tunnel",
+      "transition": "cut",
+      "purpose": "Stakes named.",
+      "sfx": [
+        {
+          "cue": "sub-hit",
+          "at": 0.0,
+          "gain": 0.6
+        },
+        {
+          "cue": "crowd-muffled",
+          "at": 0.0,
+          "gain": 0.6,
+          "dur": 6
+        }
+      ]
+    },
+    {
+      "id": "S11_SH01",
+      "scene": "S11",
+      "dur": 1.6,
+      "renderer": "blender",
+      "location": "tunnel",
+      "framing": "from behind: #9 walking toward the pitch light",
+      "lens": "35mm f/2",
+      "move": "slow follow",
+      "action": "Still not nervous? He stops.",
+      "light": "dark, high contrast, pitch ahead",
+      "transition": "cut",
+      "purpose": "Callback set-up.",
+      "dialogue": [
+        {
+          "line": "L29",
+          "at": 0.18
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "tunnel-steps",
+          "at": 0.0,
+          "gain": 0.6
+        }
+      ]
+    },
+    {
+      "id": "S11_SH02",
+      "scene": "S11",
+      "dur": 1.75,
+      "renderer": "blender",
+      "location": "tunnel",
+      "framing": "CU backlit: he looks slightly back",
+      "lens": "85mm f/1.8",
+      "move": "locked-off",
+      "action": "Same half-smile. Ask Belgium.",
+      "light": "rim from the pitch",
+      "transition": "cut",
+      "purpose": "Closure.",
+      "dialogue": [
+        {
+          "line": "L30",
+          "at": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S11_SH03",
+      "scene": "S11",
+      "dur": 0.8,
+      "renderer": "blender",
+      "location": "tunnel",
+      "framing": "wide from behind: he walks into the light",
+      "lens": "35mm",
+      "move": "static",
+      "action": "Into the light. WHITE.",
+      "light": "blooms to white",
+      "transition": "white",
+      "purpose": "Release.",
+      "sfx": [
+        {
+          "cue": "crowd-roar",
+          "at": 0.35,
+          "gain": 1.0
+        }
+      ]
+    },
+    {
+      "id": "S11_SH04",
+      "scene": "S11",
+      "dur": 1.2,
+      "renderer": "remotion",
+      "location": "end",
+      "framing": "HNC LEAGUE end card on white",
+      "lens": "-",
+      "move": "-",
+      "action": "HNC LEAGUE.",
+      "light": "white",
+      "transition": "end",
+      "purpose": "Brand, once.",
+      "sfx": [
+        {
+          "cue": "brand-sting",
+          "at": 0.25,
+          "gain": 0.7
+        }
+      ]
+    }
+  ]
+}
