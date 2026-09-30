@@ -13,6 +13,7 @@ import { OFFICE_WORLD } from './office/office.world';
 import { PHONE_WORLD } from './phone/phone.world';
 import { STUDIO_WORLD } from './studio/studio.world';
 import { TITLE_WORLD } from './title/title.world';
+import { PLATE_WORLD } from './plate/plate.world';
 import type { WorldDef } from './types';
 
 export const WORLDS: Record<string, WorldDef> = {
@@ -27,6 +28,7 @@ export const WORLDS: Record<string, WorldDef> = {
   cafe: CAFE_WORLD,
   rooftop: ROOFTOP_WORLD,
   stage: STAGE_WORLD,
+  plate: PLATE_WORLD,
 };
 
 export const WORLD_IDS = Object.keys(WORLDS);

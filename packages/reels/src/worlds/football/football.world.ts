@@ -35,16 +35,17 @@ export function footballLightLevel(tl: SceneShots | undefined, shot: Shot, frame
   const evs = [...sceneFx(tl, shot, 'lights-out'), ...sceneFx(tl, shot, 'lights-up')].sort((a, b) => a.start - b.start);
   const started = evs.filter((e) => frame >= e.start);
   const last = started[started.length - 1];
-  const all = (v: number) => ({ level: v, heads: [v, v, v, v] });
+  const k = typeof shot.set.floodLevel === 'number' ? Math.min(1, Math.max(0, shot.set.floodLevel)) : 1;
+  const all = (v: number) => ({ level: v * k, heads: [v, v, v, v].map((h) => h * k) });
   if (!last) return all(evs[0]?.type === 'lights-up' ? 0 : 1);
   const p = clamp01((frame - last.start) / Math.max(1, last.end - last.start));
   if (last.type === 'lights-out') {
     // Two stutters, then gone (bank 0 last: the key light dies at the end).
     const stutter = p < 0.2 ? 0.35 : p < 0.35 ? 1 : p < 0.5 ? 0.15 : p < 0.62 ? 0.7 : 0;
-    return { level: stutter, heads: [p < 0.62 ? stutter : 0, p < 0.2 ? 1 : 0, p < 0.35 ? 1 : 0, p < 0.5 ? 0.6 : 0] };
+    return { level: stutter * k, heads: [p < 0.62 ? stutter : 0, p < 0.2 ? 1 : 0, p < 0.35 ? 1 : 0, p < 0.5 ? 0.6 : 0].map((h) => h * k) };
   }
-  const heads = [0, 1, 2, 3].map((i) => (p >= 0.12 + i * 0.16 ? 1 : 0));
-  return { level: smooth01(p / 0.7), heads };
+  const heads = [0, 1, 2, 3].map((i) => (p >= 0.12 + i * 0.16 ? k : 0));
+  return { level: smooth01(p / 0.7) * k, heads };
 }
 
 export function footballMoment(set: Record<string, unknown>): string {
@@ -94,6 +95,7 @@ function anchorsOf(c: ChoreoFrame): LensAnchors {
     hero: c.anchors?.hero ?? ground,
     rival: c.anchors?.rival ?? ground,
     keeper: c.anchors?.keeper ?? { x: 43.4, z: 0 },
+    heroLift: c.anchors?.heroLift ?? 0,
   };
 }
 
@@ -126,8 +128,11 @@ export const FOOTBALL_WORLD: WorldDef = {
     tifo: 'Country code of a cloth tifo over the far terraces (e.g. "TR")',
     home: 'Home country when no cast plays a home role (default TR)',
     away: 'Away country when no cast plays an away role (default GR); kits resolve clashes with the game rule',
+    floodTint: 'Hex colour the floodlights carry (e.g. a nation’s Current after a re-light); heads, beams and halos',
+    crowdLight: '"follow": the (unlit) crowd dims with the floodlights during lights-out (default: stays lit)',
+    floodLevel: '0..1 overall floodlight level for a moodier night (default 1)',
   },
-  effects: ['lights-out', 'lights-up'],
+  effects: ['lights-out', 'lights-up', 'aura', 'current-lines', 'crowd-current'],
   marks: {},
   props: {
     'goal-away': { pos: v3(46, 1.3, 0), size: 2.5, summary: 'Goal the striker attacks' },

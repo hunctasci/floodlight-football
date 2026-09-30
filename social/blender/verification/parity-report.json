@@ -1,0 +1,2532 @@
+{
+  "schema": "hnc-blender-parity/1",
+  "inspectedAt": "2026-09-30T10:36:28+00:00",
+  "blender": "5.2.2 LTS",
+  "blendFile": "social/blender/verification/hnc-parity.blend",
+  "scene": "HNC_Parity",
+  "manifestGitHead": "b0a78bef5d57e28e8ea5bb042e43102eeb40fa09",
+  "manifestAssets": {
+    "hnc-player-tr-09": "10dd326458fd9552d3bbdc738dfc3083dd3fd7d5fb5239a6205bffb00fa22252",
+    "hnc-ball": "f267325d8be15f15aa366f1d1ae63ccb82bc63fbf86fd363bbd6053e55a4ad49",
+    "hnc-player-gr-04": "5520c989dfe667c44cf89250eddc63d3a60df84813b85bdd65e8f9123dffa75c",
+    "hnc-player-gr-01-keeper": "75b52c7e3be7b47298169e472952d24e4478e37227b3314e8e4b363504e39307"
+  },
+  "missingTextures": [],
+  "builtFromCurrentAssets": true,
+  "pass": true,
+  "assets": [
+    {
+      "assetId": "hnc-player-tr-09",
+      "root": "HNC_Player_TR_09",
+      "pass": true,
+      "checks_total": 211,
+      "checks_failed": 0,
+      "dimensions_m": {
+        "x_width": 1.2073,
+        "y_depth": 0.96,
+        "z_height": 2.145
+      },
+      "failures": [],
+      "checks": [
+        {
+          "check": "root present",
+          "node": null,
+          "pass": true,
+          "expected": "HNC_Player_TR_09",
+          "actual": "HNC_Player_TR_09"
+        },
+        {
+          "check": "node count",
+          "node": null,
+          "pass": true,
+          "expected": 15,
+          "actual": 15
+        },
+        {
+          "check": "root transform is identity (coordinate conversion lives in the importer)",
+          "node": null,
+          "pass": true,
+          "expected": "identity rotation/scale",
+          "actual": {
+            "rot": [
+              0.0,
+              -0.0,
+              0.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          }
+        },
+        {
+          "check": "node present",
+          "node": "HNC_Player_TR_09",
+          "pass": true,
+          "expected": "HNC_Player_TR_09",
+          "actual": "HNC_Player_TR_09"
+        },
+        {
+          "check": "parent",
+          "node": "HNC_Player_TR_09",
+          "pass": true,
+          "expected": null,
+          "actual": null
+        },
+        {
+          "check": "canonical handle",
+          "node": "HNC_Player_TR_09",
+          "pass": true,
+          "expected": "root",
+          "actual": "root"
+        },
+        {
+          "check": "unit scale",
+          "node": "HNC_Player_TR_09",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "HNC_Player_TR_09",
+          "pass": true,
+          "expected": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "actual": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "check": "is empty",
+          "node": "HNC_Player_TR_09",
+          "pass": true,
+          "expected": "EMPTY",
+          "actual": "EMPTY"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": "TR09.Body",
+          "actual": "TR09.Body"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": "HNC_Player_TR_09",
+          "actual": "HNC_Player_TR_09"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": "body",
+          "actual": "body"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": [
+            0.0,
+            0.0,
+            1.02
+          ],
+          "actual": [
+            0.0,
+            0.0,
+            1.02
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": 24,
+          "actual": 24
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": [
+            [
+              -0.41569,
+              -0.48,
+              0.595
+            ],
+            [
+              0.41569,
+              0.48,
+              1.445
+            ]
+          ],
+          "actual": [
+            [
+              -0.41569,
+              -0.48,
+              0.595
+            ],
+            [
+              0.41569,
+              0.48,
+              1.445
+            ]
+          ]
+        },
+        {
+          "check": "flat shading kept (low-poly HNC style)",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": "0 smooth faces, no custom normals",
+          "actual": {
+            "smooth": 0,
+            "custom": false
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Body",
+          "pass": true,
+          "expected": "HNC_Kit_TR",
+          "actual": "HNC_Kit_TR"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": "TR09.ChestStripe",
+          "actual": "TR09.ChestStripe"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": "HNC_Player_TR_09",
+          "actual": "HNC_Player_TR_09"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": "stripe",
+          "actual": "stripe"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": [
+            0.0,
+            0.0,
+            1.28
+          ],
+          "actual": [
+            0.0,
+            0.0,
+            1.28
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": 24,
+          "actual": 24
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": [
+            [
+              -0.4027,
+              -0.465,
+              1.18
+            ],
+            [
+              0.4027,
+              0.465,
+              1.38
+            ]
+          ],
+          "actual": [
+            [
+              -0.4027,
+              -0.465,
+              1.18
+            ],
+            [
+              0.4027,
+              0.465,
+              1.38
+            ]
+          ]
+        },
+        {
+          "check": "flat shading kept (low-poly HNC style)",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": "0 smooth faces, no custom normals",
+          "actual": {
+            "smooth": 0,
+            "custom": false
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.ChestStripe",
+          "pass": true,
+          "expected": "HNC_TrimStripe_TR",
+          "actual": "HNC_TrimStripe_TR"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.ShirtNumber",
+          "pass": true,
+          "expected": "TR09.ShirtNumber",
+          "actual": "TR09.ShirtNumber"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.ShirtNumber",
+          "pass": true,
+          "expected": "HNC_Player_TR_09",
+          "actual": "HNC_Player_TR_09"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.ShirtNumber",
+          "pass": true,
+          "expected": "number",
+          "actual": "number"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.ShirtNumber",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.ShirtNumber",
+          "pass": true,
+          "expected": [
+            0.0,
+            0.44,
+            1.04
+          ],
+          "actual": [
+            0.0,
+            0.44,
+            1.04
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.ShirtNumber",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.ShirtNumber",
+          "pass": true,
+          "expected": 2,
+          "actual": 2
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.ShirtNumber",
+          "pass": true,
+          "expected": [
+            [
+              -0.26,
+              0.44,
+              0.78
+            ],
+            [
+              0.26,
+              0.44,
+              1.3
+            ]
+          ],
+          "actual": [
+            [
+              -0.26,
+              0.44,
+              0.78
+            ],
+            [
+              0.26,
+              0.44,
+              1.3
+            ]
+          ]
+        },
+        {
+          "check": "canonical normals kept (smooth/unlit part)",
+          "node": "TR09.ShirtNumber",
+          "pass": true,
+          "expected": "custom normals",
+          "actual": {
+            "smooth": 0,
+            "polys": 2,
+            "custom": true
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.ShirtNumber",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "material",
+          "node": "TR09.ShirtNumber",
+          "pass": true,
+          "expected": "HNC_Number_09",
+          "actual": "HNC_Number_09"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": "TR09.Head",
+          "actual": "TR09.Head"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": "HNC_Player_TR_09",
+          "actual": "HNC_Player_TR_09"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": "head",
+          "actual": "head"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": [
+            0.0,
+            0.0,
+            1.7
+          ],
+          "actual": [
+            0.0,
+            0.0,
+            1.7
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": 80,
+          "actual": 80
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": [
+            [
+              -0.32,
+              -0.32,
+              1.38
+            ],
+            [
+              0.32,
+              0.32,
+              2.02
+            ]
+          ],
+          "actual": [
+            [
+              -0.32,
+              -0.32,
+              1.38
+            ],
+            [
+              0.32,
+              0.32,
+              2.02
+            ]
+          ]
+        },
+        {
+          "check": "flat shading kept (low-poly HNC style)",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": "0 smooth faces, no custom normals",
+          "actual": {
+            "smooth": 0,
+            "custom": false
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Head",
+          "pass": true,
+          "expected": "HNC_Skin_1",
+          "actual": "HNC_Skin_1"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": "TR09.Hair",
+          "actual": "TR09.Hair"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": "TR09.Head",
+          "actual": "TR09.Head"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": "hair",
+          "actual": "hair"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": [
+            0.0,
+            0.0,
+            1.81
+          ],
+          "actual": [
+            0.0,
+            0.0,
+            1.81
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": 72,
+          "actual": 72
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": [
+            [
+              -0.31479,
+              -0.31479,
+              1.89082
+            ],
+            [
+              0.31479,
+              0.31479,
+              2.135
+            ]
+          ],
+          "actual": [
+            [
+              -0.31479,
+              -0.31479,
+              1.89082
+            ],
+            [
+              0.31479,
+              0.31479,
+              2.135
+            ]
+          ]
+        },
+        {
+          "check": "flat shading kept (low-poly HNC style)",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": "0 smooth faces, no custom normals",
+          "actual": {
+            "smooth": 0,
+            "custom": false
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Hair",
+          "pass": true,
+          "expected": "HNC_Hair",
+          "actual": "HNC_Hair"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": "TR09.Eye.R",
+          "actual": "TR09.Eye.R"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": "TR09.Head",
+          "actual": "TR09.Head"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": "eyes[0]",
+          "actual": "eyes[0]"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": [
+            -0.11,
+            -0.3,
+            1.72
+          ],
+          "actual": [
+            -0.11,
+            -0.3,
+            1.72
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": 30,
+          "actual": 30
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": [
+            [
+              -0.145,
+              -0.33329,
+              1.685
+            ],
+            [
+              -0.08168,
+              -0.26671,
+              1.755
+            ]
+          ],
+          "actual": [
+            [
+              -0.145,
+              -0.33329,
+              1.685
+            ],
+            [
+              -0.08168,
+              -0.26671,
+              1.755
+            ]
+          ]
+        },
+        {
+          "check": "canonical normals kept (smooth/unlit part)",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": "custom normals + all smooth",
+          "actual": {
+            "smooth": 30,
+            "polys": 30,
+            "custom": true
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Eye.R",
+          "pass": true,
+          "expected": "HNC_Eye",
+          "actual": "HNC_Eye"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": "TR09.Eye.L",
+          "actual": "TR09.Eye.L"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": "TR09.Head",
+          "actual": "TR09.Head"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": "eyes[1]",
+          "actual": "eyes[1]"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": [
+            0.11,
+            -0.3,
+            1.72
+          ],
+          "actual": [
+            0.11,
+            -0.3,
+            1.72
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": 30,
+          "actual": 30
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": [
+            [
+              0.075,
+              -0.33329,
+              1.685
+            ],
+            [
+              0.13832,
+              -0.26671,
+              1.755
+            ]
+          ],
+          "actual": [
+            [
+              0.075,
+              -0.33329,
+              1.685
+            ],
+            [
+              0.13832,
+              -0.26671,
+              1.755
+            ]
+          ]
+        },
+        {
+          "check": "canonical normals kept (smooth/unlit part)",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": "custom normals + all smooth",
+          "actual": {
+            "smooth": 30,
+            "polys": 30,
+            "custom": true
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Eye.L",
+          "pass": true,
+          "expected": "HNC_Eye",
+          "actual": "HNC_Eye"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": "TR09.Leg.R",
+          "actual": "TR09.Leg.R"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": "HNC_Player_TR_09",
+          "actual": "HNC_Player_TR_09"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": "legL",
+          "actual": "legL"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": [
+            -0.2,
+            0.0,
+            0.38
+          ],
+          "actual": [
+            -0.2,
+            0.0,
+            0.38
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": 20,
+          "actual": 20
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": [
+            [
+              -0.32364,
+              -0.13,
+              0.045
+            ],
+            [
+              -0.07636,
+              0.10517,
+              0.715
+            ]
+          ],
+          "actual": [
+            [
+              -0.32364,
+              -0.13,
+              0.045
+            ],
+            [
+              -0.07636,
+              0.10517,
+              0.715
+            ]
+          ]
+        },
+        {
+          "check": "flat shading kept (low-poly HNC style)",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": "0 smooth faces, no custom normals",
+          "actual": {
+            "smooth": 0,
+            "custom": false
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Leg.R",
+          "pass": true,
+          "expected": "HNC_Trim_TR",
+          "actual": "HNC_Trim_TR"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": "TR09.Boot.R",
+          "actual": "TR09.Boot.R"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": "TR09.Leg.R",
+          "actual": "TR09.Leg.R"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": "legL.boot",
+          "actual": "legL.boot"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": [
+            -0.2,
+            -0.07,
+            0.05
+          ],
+          "actual": [
+            -0.2,
+            -0.07,
+            0.05
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": 12,
+          "actual": 12
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": [
+            [
+              -0.285,
+              -0.23,
+              -0.01
+            ],
+            [
+              -0.115,
+              0.09,
+              0.11
+            ]
+          ],
+          "actual": [
+            [
+              -0.285,
+              -0.23,
+              -0.01
+            ],
+            [
+              -0.115,
+              0.09,
+              0.11
+            ]
+          ]
+        },
+        {
+          "check": "flat shading kept (low-poly HNC style)",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": "0 smooth faces, no custom normals",
+          "actual": {
+            "smooth": 0,
+            "custom": false
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Boot.R",
+          "pass": true,
+          "expected": "HNC_Boot",
+          "actual": "HNC_Boot"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": "TR09.Leg.L",
+          "actual": "TR09.Leg.L"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": "HNC_Player_TR_09",
+          "actual": "HNC_Player_TR_09"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": "legR",
+          "actual": "legR"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": [
+            0.2,
+            0.0,
+            0.38
+          ],
+          "actual": [
+            0.2,
+            0.0,
+            0.38
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": 20,
+          "actual": 20
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": [
+            [
+              0.07636,
+              -0.13,
+              0.045
+            ],
+            [
+              0.32364,
+              0.10517,
+              0.715
+            ]
+          ],
+          "actual": [
+            [
+              0.07636,
+              -0.13,
+              0.045
+            ],
+            [
+              0.32364,
+              0.10517,
+              0.715
+            ]
+          ]
+        },
+        {
+          "check": "flat shading kept (low-poly HNC style)",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": "0 smooth faces, no custom normals",
+          "actual": {
+            "smooth": 0,
+            "custom": false
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Leg.L",
+          "pass": true,
+          "expected": "HNC_Trim_TR",
+          "actual": "HNC_Trim_TR"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": "TR09.Boot.L",
+          "actual": "TR09.Boot.L"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": "TR09.Leg.L",
+          "actual": "TR09.Leg.L"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": "legR.boot",
+          "actual": "legR.boot"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": [
+            0.2,
+            -0.07,
+            0.05
+          ],
+          "actual": [
+            0.2,
+            -0.07,
+            0.05
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": 12,
+          "actual": 12
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": [
+            [
+              0.115,
+              -0.23,
+              -0.01
+            ],
+            [
+              0.285,
+              0.09,
+              0.11
+            ]
+          ],
+          "actual": [
+            [
+              0.115,
+              -0.23,
+              -0.01
+            ],
+            [
+              0.285,
+              0.09,
+              0.11
+            ]
+          ]
+        },
+        {
+          "check": "flat shading kept (low-poly HNC style)",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": "0 smooth faces, no custom normals",
+          "actual": {
+            "smooth": 0,
+            "custom": false
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Boot.L",
+          "pass": true,
+          "expected": "HNC_Boot",
+          "actual": "HNC_Boot"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": "TR09.Arm.R",
+          "actual": "TR09.Arm.R"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": "HNC_Player_TR_09",
+          "actual": "HNC_Player_TR_09"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": "armL",
+          "actual": "armL"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": [
+            -0.48,
+            0.0,
+            1.08
+          ],
+          "actual": [
+            -0.48,
+            0.0,
+            1.08
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": 20,
+          "actual": 20
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": [
+            [
+              -0.60364,
+              -0.13,
+              0.745
+            ],
+            [
+              -0.35636,
+              0.10517,
+              1.415
+            ]
+          ],
+          "actual": [
+            [
+              -0.60364,
+              -0.13,
+              0.745
+            ],
+            [
+              -0.35636,
+              0.10517,
+              1.415
+            ]
+          ]
+        },
+        {
+          "check": "flat shading kept (low-poly HNC style)",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": "0 smooth faces, no custom normals",
+          "actual": {
+            "smooth": 0,
+            "custom": false
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Arm.R",
+          "pass": true,
+          "expected": "HNC_Kit_TR",
+          "actual": "HNC_Kit_TR"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": "TR09.Arm.L",
+          "actual": "TR09.Arm.L"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": "HNC_Player_TR_09",
+          "actual": "HNC_Player_TR_09"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": "armR",
+          "actual": "armR"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": [
+            0.48,
+            0.0,
+            1.08
+          ],
+          "actual": [
+            0.48,
+            0.0,
+            1.08
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": 20,
+          "actual": 20
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": [
+            [
+              0.35636,
+              -0.13,
+              0.745
+            ],
+            [
+              0.60364,
+              0.10517,
+              1.415
+            ]
+          ],
+          "actual": [
+            [
+              0.35636,
+              -0.13,
+              0.745
+            ],
+            [
+              0.60364,
+              0.10517,
+              1.415
+            ]
+          ]
+        },
+        {
+          "check": "flat shading kept (low-poly HNC style)",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": "0 smooth faces, no custom normals",
+          "actual": {
+            "smooth": 0,
+            "custom": false
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Arm.L",
+          "pass": true,
+          "expected": "HNC_Kit_TR",
+          "actual": "HNC_Kit_TR"
+        },
+        {
+          "check": "node present",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": "TR09.Shorts",
+          "actual": "TR09.Shorts"
+        },
+        {
+          "check": "parent",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": "HNC_Player_TR_09",
+          "actual": "HNC_Player_TR_09"
+        },
+        {
+          "check": "canonical handle",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": "shorts",
+          "actual": "shorts"
+        },
+        {
+          "check": "unit scale",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": [
+            0.0,
+            0.0,
+            0.68
+          ],
+          "actual": [
+            0.0,
+            0.0,
+            0.68
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": 24,
+          "actual": 24
+        },
+        {
+          "check": "world bounds",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": [
+            [
+              -0.40703,
+              -0.47,
+              0.545
+            ],
+            [
+              0.40703,
+              0.47,
+              0.815
+            ]
+          ],
+          "actual": [
+            [
+              -0.40703,
+              -0.47,
+              0.545
+            ],
+            [
+              0.40703,
+              0.47,
+              0.815
+            ]
+          ]
+        },
+        {
+          "check": "flat shading kept (low-poly HNC style)",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": "0 smooth faces, no custom normals",
+          "actual": {
+            "smooth": 0,
+            "custom": false
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "TR09.Shorts",
+          "pass": true,
+          "expected": "HNC_Trim_TR",
+          "actual": "HNC_Trim_TR"
+        },
+        {
+          "check": "material present",
+          "node": "HNC_Kit_TR",
+          "pass": true,
+          "expected": "HNC_Kit_TR",
+          "actual": "HNC_Kit_TR"
+        },
+        {
+          "check": "unlit flag",
+          "node": "HNC_Kit_TR",
+          "pass": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "check": "base colour (linear)",
+          "node": "HNC_Kit_TR",
+          "pass": true,
+          "expected": {
+            "linear": [
+              0.768151,
+              0.003035,
+              0.008568
+            ],
+            "hex": "#e30a17"
+          },
+          "actual": [
+            0.768151,
+            0.003035,
+            0.008568
+          ]
+        },
+        {
+          "check": "roughness",
+          "node": "HNC_Kit_TR",
+          "pass": true,
+          "expected": 0.85,
+          "actual": 0.8500000238418579
+        },
+        {
+          "check": "material present",
+          "node": "HNC_TrimStripe_TR",
+          "pass": true,
+          "expected": "HNC_TrimStripe_TR",
+          "actual": "HNC_TrimStripe_TR"
+        },
+        {
+          "check": "unlit flag",
+          "node": "HNC_TrimStripe_TR",
+          "pass": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "check": "base colour (linear)",
+          "node": "HNC_TrimStripe_TR",
+          "pass": true,
+          "expected": {
+            "linear": [
+              1,
+              1,
+              1
+            ],
+            "hex": "#ffffff"
+          },
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "roughness",
+          "node": "HNC_TrimStripe_TR",
+          "pass": true,
+          "expected": 0.9,
+          "actual": 0.8999999761581421
+        },
+        {
+          "check": "material present",
+          "node": "HNC_Number_09",
+          "pass": true,
+          "expected": "HNC_Number_09",
+          "actual": "HNC_Number_09"
+        },
+        {
+          "check": "unlit flag",
+          "node": "HNC_Number_09",
+          "pass": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "check": "texture baked + packed",
+          "node": "HNC_Number_09",
+          "pass": true,
+          "expected": {
+            "width": 64,
+            "height": 64
+          },
+          "actual": {
+            "name": "HNC_Number_09.png",
+            "size": [
+              64,
+              64
+            ],
+            "packed": true,
+            "has_data": true,
+            "colorspace": "sRGB"
+          }
+        },
+        {
+          "check": "alpha blended",
+          "node": "HNC_Number_09",
+          "pass": true,
+          "expected": "BLENDED",
+          "actual": "BLENDED"
+        },
+        {
+          "check": "material present",
+          "node": "HNC_Skin_1",
+          "pass": true,
+          "expected": "HNC_Skin_1",
+          "actual": "HNC_Skin_1"
+        },
+        {
+          "check": "unlit flag",
+          "node": "HNC_Skin_1",
+          "pass": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "check": "base colour (linear)",
+          "node": "HNC_Skin_1",
+          "pass": true,
+          "expected": {
+            "linear": [
+              0.313989,
+              0.107023,
+              0.045186
+            ],
+            "hex": "#985c3c"
+          },
+          "actual": [
+            0.313989,
+            0.107023,
+            0.045186
+          ]
+        },
+        {
+          "check": "roughness",
+          "node": "HNC_Skin_1",
+          "pass": true,
+          "expected": 1,
+          "actual": 1.0
+        },
+        {
+          "check": "material present",
+          "node": "HNC_Hair",
+          "pass": true,
+          "expected": "HNC_Hair",
+          "actual": "HNC_Hair"
+        },
+        {
+          "check": "unlit flag",
+          "node": "HNC_Hair",
+          "pass": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "check": "base colour (linear)",
+          "node": "HNC_Hair",
+          "pass": true,
+          "expected": {
+            "linear": [
+              0.021219,
+              0.021219,
+              0.043735
+            ],
+            "hex": "#28283b"
+          },
+          "actual": [
+            0.021219,
+            0.021219,
+            0.043735
+          ]
+        },
+        {
+          "check": "roughness",
+          "node": "HNC_Hair",
+          "pass": true,
+          "expected": 1,
+          "actual": 1.0
+        },
+        {
+          "check": "material present",
+          "node": "HNC_Eye",
+          "pass": true,
+          "expected": "HNC_Eye",
+          "actual": "HNC_Eye"
+        },
+        {
+          "check": "unlit flag",
+          "node": "HNC_Eye",
+          "pass": true,
+          "expected": true,
+          "actual": true
+        },
+        {
+          "check": "base colour (linear)",
+          "node": "HNC_Eye",
+          "pass": true,
+          "expected": {
+            "linear": [
+              0.009134,
+              0.015996,
+              0.029557
+            ],
+            "hex": "#182230"
+          },
+          "actual": [
+            0.009134,
+            0.015996,
+            0.029557
+          ]
+        },
+        {
+          "check": "material present",
+          "node": "HNC_Trim_TR",
+          "pass": true,
+          "expected": "HNC_Trim_TR",
+          "actual": "HNC_Trim_TR"
+        },
+        {
+          "check": "unlit flag",
+          "node": "HNC_Trim_TR",
+          "pass": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "check": "base colour (linear)",
+          "node": "HNC_Trim_TR",
+          "pass": true,
+          "expected": {
+            "linear": [
+              1,
+              1,
+              1
+            ],
+            "hex": "#ffffff"
+          },
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "roughness",
+          "node": "HNC_Trim_TR",
+          "pass": true,
+          "expected": 0.9,
+          "actual": 0.8999999761581421
+        },
+        {
+          "check": "material present",
+          "node": "HNC_Boot",
+          "pass": true,
+          "expected": "HNC_Boot",
+          "actual": "HNC_Boot"
+        },
+        {
+          "check": "unlit flag",
+          "node": "HNC_Boot",
+          "pass": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "check": "base colour (linear)",
+          "node": "HNC_Boot",
+          "pass": true,
+          "expected": {
+            "linear": [
+              0.006995,
+              0.006995,
+              0.011612
+            ],
+            "hex": "#14141c"
+          },
+          "actual": [
+            0.006995,
+            0.006995,
+            0.011612
+          ]
+        },
+        {
+          "check": "roughness",
+          "node": "HNC_Boot",
+          "pass": true,
+          "expected": 0.6,
+          "actual": 0.6000000238418579
+        },
+        {
+          "check": "asset bounds",
+          "node": null,
+          "pass": true,
+          "expected": [
+            [
+              -0.60364,
+              -0.48,
+              -0.01
+            ],
+            [
+              0.60364,
+              0.48,
+              2.135
+            ]
+          ],
+          "actual": [
+            [
+              -0.60364,
+              -0.48,
+              -0.01
+            ],
+            [
+              0.60364,
+              0.48,
+              2.135
+            ]
+          ]
+        },
+        {
+          "check": "faces -Y (Blender front): eyes in front of head",
+          "node": null,
+          "pass": true,
+          "expected": "eye.y < head.y",
+          "actual": [
+            -0.3,
+            0.0
+          ]
+        },
+        {
+          "check": "shirt number on the back (+Y)",
+          "node": null,
+          "pass": true,
+          "expected": "number.y > body.y",
+          "actual": [
+            0.44,
+            0.0
+          ]
+        },
+        {
+          "check": "anatomical left is +X",
+          "node": null,
+          "pass": true,
+          "expected": "> 0",
+          "actual": 0.2
+        }
+      ]
+    },
+    {
+      "assetId": "hnc-ball",
+      "root": "HNC_Ball",
+      "pass": true,
+      "checks_total": 26,
+      "checks_failed": 0,
+      "dimensions_m": {
+        "x_width": 0.5,
+        "y_depth": 0.5,
+        "z_height": 0.5
+      },
+      "failures": [],
+      "checks": [
+        {
+          "check": "root present",
+          "node": null,
+          "pass": true,
+          "expected": "HNC_Ball",
+          "actual": "HNC_Ball"
+        },
+        {
+          "check": "node count",
+          "node": null,
+          "pass": true,
+          "expected": 2,
+          "actual": 2
+        },
+        {
+          "check": "root transform is identity (coordinate conversion lives in the importer)",
+          "node": null,
+          "pass": true,
+          "expected": "identity rotation/scale",
+          "actual": {
+            "rot": [
+              0.0,
+              -0.0,
+              0.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ]
+          }
+        },
+        {
+          "check": "node present",
+          "node": "HNC_Ball",
+          "pass": true,
+          "expected": "HNC_Ball",
+          "actual": "HNC_Ball"
+        },
+        {
+          "check": "parent",
+          "node": "HNC_Ball",
+          "pass": true,
+          "expected": null,
+          "actual": null
+        },
+        {
+          "check": "canonical handle",
+          "node": "HNC_Ball",
+          "pass": true,
+          "expected": "root",
+          "actual": "root"
+        },
+        {
+          "check": "unit scale",
+          "node": "HNC_Ball",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "HNC_Ball",
+          "pass": true,
+          "expected": [
+            0.62,
+            -0.32,
+            0.25
+          ],
+          "actual": [
+            0.62,
+            -0.32,
+            0.25
+          ]
+        },
+        {
+          "check": "is empty",
+          "node": "HNC_Ball",
+          "pass": true,
+          "expected": "EMPTY",
+          "actual": "EMPTY"
+        },
+        {
+          "check": "node present",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": "HNC_Ball.Leather",
+          "actual": "HNC_Ball.Leather"
+        },
+        {
+          "check": "parent",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": "HNC_Ball",
+          "actual": "HNC_Ball"
+        },
+        {
+          "check": "canonical handle",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": "leather",
+          "actual": "leather"
+        },
+        {
+          "check": "unit scale",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": [
+            1,
+            1,
+            1
+          ],
+          "actual": [
+            1.0,
+            1.0,
+            1.0
+          ]
+        },
+        {
+          "check": "world position",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": [
+            0.62,
+            -0.32,
+            0.25
+          ],
+          "actual": [
+            0.62,
+            -0.32,
+            0.25
+          ]
+        },
+        {
+          "check": "is mesh",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": "MESH",
+          "actual": "MESH"
+        },
+        {
+          "check": "triangles",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": 352,
+          "actual": 352
+        },
+        {
+          "check": "world bounds",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": [
+            [
+              0.37,
+              -0.57,
+              0.0
+            ],
+            [
+              0.87,
+              -0.07,
+              0.5
+            ]
+          ],
+          "actual": [
+            [
+              0.37,
+              -0.57,
+              0.0
+            ],
+            [
+              0.87,
+              -0.07,
+              0.5
+            ]
+          ]
+        },
+        {
+          "check": "canonical normals kept (smooth/unlit part)",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": "custom normals + all smooth",
+          "actual": {
+            "smooth": 352,
+            "polys": 352,
+            "custom": true
+          }
+        },
+        {
+          "check": "no degenerate faces",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": 0,
+          "actual": 0
+        },
+        {
+          "check": "normals face outward",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": ">= 0.99",
+          "actual": 1.0
+        },
+        {
+          "check": "material",
+          "node": "HNC_Ball.Leather",
+          "pass": true,
+          "expected": "HNC_Ball_Leather",
+          "actual": "HNC_Ball_Leather"
+        },
+        {
+          "check": "material present",
+          "node": "HNC_Ball_Leather",
+          "pass": true,
+          "expected": "HNC_Ball_Leather",
+          "actual": "HNC_Ball_Leather"
+        },
+        {
+          "check": "unlit flag",
+          "node": "HNC_Ball_Leather",
+          "pass": true,
+          "expected": false,
+          "actual": false
+        },
+        {
+          "check": "texture baked + packed",
+          "node": "HNC_Ball_Leather",
+          "pass": true,
+          "expected": {
+            "width": 256,
+            "height": 128
+          },
+          "actual": {
+            "name": "HNC_Ball_Leather.png",
+            "size": [
+              256,
+              128
+            ],
+            "packed": true,
+            "has_data": true,
+            "colorspace": "sRGB"
+          }
+        },
+        {
+          "check": "roughness",
+          "node": "HNC_Ball_Leather",
+          "pass": true,
+          "expected": 0.55,
+          "actual": 0.550000011920929
+        },
+        {
+          "check": "asset bounds",
+          "node": null,
+          "pass": true,
+          "expected": [
+            [
+              0.37,
+              -0.57,
+              0.0
+            ],
+            [
+              0.87,
+              -0.07,
+              0.5
+            ]
+          ],
+          "actual": [
+            [
+              0.37,
+              -0.57,
+              0.0
+            ],
+            [
+              0.87,
+              -0.07,
+              0.5
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

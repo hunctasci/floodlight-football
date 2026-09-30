@@ -1,0 +1,143 @@
+{
+  "recordedAt": "2026-09-30 (run 1: tooling; run 2: MCP, Remotion plugin, render measurements)",
+  "note": "Non-sensitive tooling facts for the HNC Blender pipeline. Paths are this machine's; source code never hard-codes them (see HNC_BLENDER_BIN discovery).",
+  "os": {
+    "platform": "darwin",
+    "productVersion": "macOS 27.0 (26A428)",
+    "arch": "arm64",
+    "cpu": "Apple M4 Max"
+  },
+  "gpu": {
+    "model": "Apple M4 Max",
+    "cores": 32,
+    "metalSupport": "Metal 4",
+    "blenderGpuBackend": "METAL",
+    "blenderGpuRenderer": "Metal API"
+  },
+  "blender": {
+    "version": "5.2.2 LTS",
+    "buildHash": "d13f752e3b9c",
+    "buildDate": "2026-09-15",
+    "app": "/Applications/Blender.app",
+    "executable": "/Applications/Blender.app/Contents/MacOS/Blender",
+    "onPath": false,
+    "renderEngines": [
+      "BLENDER_EEVEE",
+      "BLENDER_WORKBENCH",
+      "CYCLES"
+    ],
+    "cycles": {
+      "computeDeviceTypes": [
+        "NONE",
+        "METAL"
+      ],
+      "metalDevices": [
+        "Apple M4 Max (GPU - 32 cores)",
+        "Apple M4 Max (CPU)"
+      ],
+      "note": "Detected with a --factory-startup query; user preferences were not modified.",
+      "headlessMetal": "`-- --cycles-device METAL` sets compute_device_type=METAL for the process; device 'Apple M4 Max (GPU - 32 cores)' used; first run compiles Metal kernels (first run 108 s total, cached), warm 540x960@64spp = 1.9 s. User preferences untouched."
+    },
+    "meetsOfficialMcpRequirement": "yes (>= 5.1.0)",
+    "gltfImporter": {
+      "module": "io_scene_gltf2",
+      "version": "5.2.40",
+      "upAxisOption": "none (fixed Y-up -> Z-up conversion)",
+      "noNormalPrimitives": "imported as sharp (flat) faces, no custom normals"
+    },
+    "viewTransforms": [
+      "Standard",
+      "AgX",
+      "Khronos PBR Neutral",
+      "Filmic",
+      "ACES 1.3",
+      "ACES 2.0"
+    ],
+    "chosenViewTransform": "Khronos PBR Neutral",
+    "eeveeMeasured": "1080x1920, 64 samples: 0.85-1.7 s per still (M4 Max, Metal backend)"
+  },
+  "blenderMcp": {
+    "implementation": "Blender Lab MCP (official, Blender Authors)",
+    "source": "https://projects.blender.org/lab/blender_mcp",
+    "version": "1.0.3",
+    "sourceCommit": "2cea8d566dde07fbac28a61d698909d69724e853",
+    "localCheckout": "/Users/codex/Desktop/hnc/.tools/blender_mcp",
+    "addon": {
+      "extensionId": "mcp",
+      "module": "bl_ext.user_default.mcp",
+      "maintainer": "Blender Lab",
+      "installedVersion": "1.0.3",
+      "identicalToOfficialSource": true,
+      "enabled": true,
+      "autostart": true,
+      "bridge": "localhost:9876 (TCP)"
+    },
+    "claudeCode": {
+      "scope": "local",
+      "status": "Connected",
+      "toolsVerifiedInSession": true,
+      "verification": "social/blender/setup/mcp-verification.json"
+    }
+  },
+  "claudeCode": {
+    "version": "2.1.285"
+  },
+  "node": {
+    "version": "v25.2.1",
+    "npm": "11.6.2"
+  },
+  "python": {
+    "version": "3.14.5",
+    "path": "/opt/homebrew/bin/python3"
+  },
+  "uv": {
+    "version": "0.12.18",
+    "path": "/opt/homebrew/bin/uv"
+  },
+  "ffmpeg": {
+    "onPath": false,
+    "available": "Remotion-bundled ffmpeg/ffprobe n7.1 via `npx remotion ffmpeg` / `npx remotion ffprobe` (node_modules/@remotion/compositor-darwin-arm64). The raw binaries need Remotion's dylib path, so always invoke through the Remotion CLI."
+  },
+  "jsPackages": {
+    "remotion": "4.0.523",
+    "@remotion/three": "4.0.523",
+    "@remotion/cli": "4.0.523",
+    "@remotion/renderer": "4.0.523",
+    "three": "0.185.1",
+    "@react-three/fiber": "9.7.0",
+    "@react-three/drei": "10.7.8",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "typescript": "7.0.2",
+    "tsx": "4.23.13"
+  },
+  "knownPreexistingWarnings": [
+    "Remotion CLI version check: zod 3.23.8 installed, Remotion 4.0.523 expects 4.5.4. Pre-existing; not changed by this setup (brief: do not upgrade Remotion deps without a compatibility need)."
+  ],
+  "remotionClaudeTooling": {
+    "plugin": "remotion@remotion",
+    "marketplace": "remotion-dev/claude-code-plugin (official, declared in packages/claude-code-plugin of remotion-dev/remotion)",
+    "version": "4.0.530",
+    "scope": "local",
+    "bundledSkills": [
+      "remotion-best-practices",
+      "remotion-captions",
+      "remotion-create",
+      "remotion-docs",
+      "remotion-interactivity",
+      "remotion-maps",
+      "remotion-markup",
+      "remotion-multimedia",
+      "remotion-render",
+      "remotion-saas",
+      "remotion-studio",
+      "remotion-upgrade"
+    ],
+    "note": "Skills load in the next Claude Code session. Project Remotion packages stay at 4.0.523 (no upgrade). Install needed a one-command HTTPS rewrite (GIT_CONFIG_* env) because the plugin clone used SSH and github.com was not in known_hosts; no global git/ssh config changed."
+  },
+  "exportToolchain": {
+    "headlessBrowser": "Playwright 1.63.0 chromium-headless-shell (Chromium 153.0.8010.12)",
+    "bundler": "esbuild 0.28.2",
+    "threeGLTFExporter": "three 0.185.1"
+  }
+}

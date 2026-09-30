@@ -3,6 +3,7 @@ import { projectToScreen } from '../camera/project';
 import type { OverlayEvent, Timeline } from '../engine/timeline/types';
 import type { SubjectResolver } from '../engine/subjects';
 import { BrandReveal } from '../graphics/BrandReveal';
+import { CharacterCard, TechniqueCard } from '../graphics/AnimeCards';
 import { Eyebrow } from '../graphics/Eyebrow';
 import { Lockup } from '../graphics/Lockup';
 import { GoalCall } from '../graphics/GoalCall';
@@ -109,6 +110,15 @@ export const Overlay: React.FC<{
       return <Timestamp frame={frame} fps={fps} at={at} end={ev.end} day={String(p.day ?? 'MONDAY')} time={String(p.time ?? '09:03')} />;
     case 'lockup':
       return <Lockup frame={frame} fps={fps} at={at} line={p.line as string | undefined} place={p.place as string | undefined} tone={p.tone as 'light' | 'dark' | undefined} plate={p.plate === true} />;
+    case 'technique-card': {
+      const m = tl.cast[String(p.cast ?? castIds[0])];
+      const owner = p.owner !== undefined ? String(p.owner) : m ? `${m.name} · №${m.number}` : undefined;
+      return <TechniqueCard frame={frame} fps={fps} at={at} end={ev.end} name={String(p.name ?? ev.text ?? '')} country={m?.country ?? 'TR'} owner={owner} kicker={p.kicker as string | undefined} place={p.place as 'top' | 'center' | 'bottom' | undefined} />;
+    }
+    case 'character-card': {
+      const m = tl.cast[String(p.cast ?? castIds[0])];
+      return <CharacterCard frame={frame} fps={fps} at={at} end={ev.end} name={m?.name ?? String(p.cast)} country={m?.country ?? 'TR'} number={m?.number ?? 0} current={String(p.current ?? '')} side={p.side as 'left' | 'right' | undefined} />;
+    }
     case 'stamp':
       return <Text text={ev.text ?? ''} style="stamp" frame={frame} fps={fps} start={ev.start} end={ev.end} place="center" />;
     default:

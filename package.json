@@ -31,12 +31,20 @@
     "reels:vocab": "tsx packages/reels/scripts/vocab.ts",
     "reels:poster": "tsx packages/reels/scripts/poster.ts",
     "reels:campaign": "tsx packages/reels/scripts/campaign.ts",
-    "reels:campaign-overview": "tsx packages/reels/scripts/campaign-overview.ts"
+    "reels:campaign-overview": "tsx packages/reels/scripts/campaign-overview.ts",
+    "blender:export": "tsx tools/blender/export.ts",
+    "blender:build": "tsx tools/blender/blender.ts build",
+    "blender:verify": "tsx tools/blender/blender.ts verify",
+    "blender:render:test": "tsx tools/blender/blender.ts render-test",
+    "blender:plates": "tsx tools/blender/plates.ts"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
   "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright": "1.63.0",
+    "tsx": "4.23.13",
     "wrangler": "^4.129.0"
   }
 }

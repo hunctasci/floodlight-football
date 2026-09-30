@@ -194,6 +194,10 @@ export interface EffectSpec {
   at?: At;
   until?: At;
   intensity?: number;
+  /** Subject the effect belongs to (aura on a cast member, trail of a subject). */
+  on?: string;
+  /** Effect-specific data (colours, sources...); see effects/registry.ts. Keys ending in `At` are times. */
+  props?: Record<string, unknown>;
 }
 
 export interface SoundSpec {

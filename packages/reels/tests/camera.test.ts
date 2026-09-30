@@ -6,6 +6,7 @@ import { finiteLens } from '../src/camera/vec';
 import { CONTENT } from '../src/content';
 import { compileContent } from '../src/engine/director/compile';
 import { fitVerticalFov } from '../src/engine/formats';
+import { getWorld } from '../src/worlds/registry';
 
 describe('camera', () => {
   it('parses the compact intent spelling', () => {
@@ -22,7 +23,7 @@ describe('camera', () => {
     for (const spec of Object.values(CONTENT)) for (const format of spec.formats ?? ['reel']) {
       const tl = compileContent(spec, { format });
       for (const s of tl.shots) {
-        if (s.world === 'phone' || s.world === 'title') continue;
+        if (getWorld(s.world).kind === '2d') continue; // 2D worlds (phone, title, plate) have no lens
         for (const f of [s.start, s.start + (s.duration >> 1), s.start + s.duration - 1]) assert.ok(finiteLens(shotLens(tl, s, f)), `${spec.id} ${s.id}@${f}`);
       }
     }

@@ -8,12 +8,15 @@ import { GROUP_CHAT } from './group-chat';
 import { HNC_HERO } from './hnc-hero';
 import { OFFICE_RIVALRY } from './office-rivalry';
 import { AUTUMN_2026 } from './autumn-2026';
+import { THE_CURRENT, THE_CURRENT_POSTER } from './the-current';
 
 export const CONTENT: Record<string, ContentSpec> = {
   [OFFICE_RIVALRY.id]: OFFICE_RIVALRY,
   [GROUP_CHAT.id]: GROUP_CHAT,
   [BREAKING_NEWS.id]: BREAKING_NEWS,
   [HNC_HERO.id]: HNC_HERO,
+  [THE_CURRENT.id]: THE_CURRENT,
+  [THE_CURRENT_POSTER.id]: THE_CURRENT_POSTER,
   ...Object.fromEntries(AUTUMN_2026.map((s) => [s.id, s])),
 };
 

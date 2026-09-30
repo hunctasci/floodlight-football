@@ -16,6 +16,7 @@ import { OfficeScene } from '../worlds/office/OfficeScene';
 import { PhoneScene } from '../worlds/phone/PhoneScene';
 import { StudioScene } from '../worlds/studio/StudioScene';
 import { TitleScene } from '../worlds/title/TitleScene';
+import { PlateScene } from '../worlds/plate/PlateScene';
 
 export interface SceneProps {
   shot: Shot;
@@ -41,4 +42,5 @@ export const SCENES_3D: Record<string, React.FC<SceneProps>> = {
 export const SCENES_2D: Record<string, React.FC<SceneProps>> = {
   phone: PhoneScene,
   title: TitleScene,
+  plate: PlateScene,
 };

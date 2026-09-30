@@ -31,6 +31,7 @@ export const PEOPLE: Record<string, PersonDef> = {
   mateo: { name: 'Mateo', country: 'AR', number: 10, look: 'office', bio: 'Argentina #10. Refreshes the score faster than he types.' },
   boss: { name: 'The Boss', country: 'GB', number: 3, look: 'manager', bio: 'Walks through the office at exactly the wrong moment.' },
   keeper: { name: 'The Keeper', country: 'XX', number: 1, look: 'keeper-kit', bio: 'Stands on the line of the empty stadium at midnight. Does not blink.' },
+  petros: { name: 'Petros', country: 'GR', number: 1, look: 'keeper-kit', bio: 'Greece #1, Nikos’s keeper. Owns BLACKOUT: he grounds a shot’s Current and the stadium lights die with it (HNC: The Current).' },
 };
 
 export const PERSON_IDS = Object.keys(PEOPLE);

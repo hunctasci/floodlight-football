@@ -1,0 +1,43 @@
+{
+  "verifiedAt": "2026-09-30",
+  "result": "PASS",
+  "path": "Claude Code → stdio MCP (official Blender Lab blender-mcp 1.0.3) → TCP localhost:9876 → Blender add-on bl_ext.user_default.mcp → bpy → JSON response",
+  "claudeMcpGet": { "scope": "Local config", "status": "Connected", "command": "uv --directory <HNC tools dir>/blender_mcp/mcp run blender-mcp" },
+  "blender": { "version": "5.2.2 LTS", "pid": 12194, "file": "<unsaved>" },
+  "initialSceneInspection": {
+    "tools": ["mcp__blender__get_objects_summary", "mcp__blender__execute_blender_code (read-only)"],
+    "scene": "Scene",
+    "objects": [["Camera", "CAMERA"], ["Cube", "MESH"], ["Light", "LIGHT"]],
+    "activeCamera": "Camera",
+    "renderEngine": "BLENDER_EEVEE",
+    "resolution": [1920, 1080, 100],
+    "fps": 24
+  },
+  "roundTrip": [
+    {
+      "step": "create",
+      "tool": "mcp__blender__execute_blender_code",
+      "action": "bmesh cube via bpy.data (no operators, so the user's selection/active object is untouched), linked to scene root collection",
+      "object": "HNC_MCP_CONNECTION_TEST",
+      "setLocation": [1.25, -2.5, 3.75],
+      "setRotationEuler": [0, 0, 0.5]
+    },
+    {
+      "step": "read back",
+      "tool": "mcp__blender__get_object_detail_summary",
+      "returnedLocation": [1.25, -2.5, 3.75],
+      "returnedRotation": [0, 0, 0.5],
+      "returnedScale": [1, 1, 1],
+      "returnedDimensions": [1, 1, 1],
+      "matches": true
+    },
+    {
+      "step": "delete",
+      "tool": "mcp__blender__execute_blender_code",
+      "removedObjects": ["HNC_MCP_CONNECTION_TEST"],
+      "removedMeshData": ["HNC_MCP_CONNECTION_TEST"],
+      "remainingObjects": ["Camera", "Cube", "Light"]
+    }
+  ],
+  "notes": "Only the test object and its own mesh datablock were removed; the pre-existing default scene is unchanged and was never saved."
+}

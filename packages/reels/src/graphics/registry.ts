@@ -34,6 +34,8 @@ export const GRAPHICS: Record<string, GraphicDef> = {
   timestamp: { summary: 'Typographic time stamp ("MONDAY · 09:03")', props: { day: 'day text', time: 'time text' } },
   stamp: { summary: 'Rubber-stamp slam text ("WORTH IT")', props: { tilt: 'degrees', color: 'gold | red | cream' } },
   screen: { summary: 'Switch an in-world screen’s content from this beat', props: { surface: 'surface id', content: 'screen content id' } },
+  'technique-card': { summary: 'Anime technique name slam: TECHNIQUE eyebrow, country chip, huge italic name with a Current-coloured ghost', props: { name: 'technique name', cast: 'owner cast id (country colour + owner line)', owner: 'owner line (default NAME · №N)', kicker: 'eyebrow (default TECHNIQUE)', place: 'top | center | bottom' } },
+  'character-card': { summary: 'Anime-opening character intro: their Current, NAME, flag · COUNTRY · №', props: { cast: 'cast id', current: 'Current label e.g. CRIMSON CURRENT', side: 'left | right' } },
   lockup: { summary: 'Small HNC League lockup (badge + wordmark) that settles in; optional line under it', props: { line: 'small line under the wordmark', place: 'bottom | center | top', tone: 'light | dark', plate: 'true: dark backing pill for busy backgrounds' } },
 };
 

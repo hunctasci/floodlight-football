@@ -8,3 +8,10 @@ dist/
 social/output/
 # Reel Factory generated audio stems (rebuilt by reels:render).
 packages/reels/public/generated/
+# Blender pipeline (tools/blender): generated interchange assets, .blend files and
+# renders are rebuilt by `npm run blender:export|build|render:test` — never edit/commit them.
+social/blender/generated/
+social/blender/verification/renders/
+social/blender/**/*.blend
+social/blender/**/*.blend1
+__pycache__/

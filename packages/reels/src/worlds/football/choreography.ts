@@ -3,6 +3,7 @@ import { HERO_ATTACK, HERO_TOUCHES, sampleHeroAttack, sampleHeroAttackBar } from
 import { FREE_KICK, sampleFreeKick } from './free-kick';
 import { MIDNIGHT, sampleMidnightPenalty } from './midnight-penalty';
 import { WALK_OUT, sampleWalkOut } from './walk-out';
+import { MERIDIAN, MERIDIAN_TOUCHES, sampleMeridian } from './meridian';
 
 /**
  * Deterministic football choreography contract: pure functions of moment
@@ -47,6 +48,12 @@ export interface ChoreoPose {
   cradle?: number;
   /** 0..1 slow walk: calmer arm swing. */
   walk?: number;
+  /** Root lift (m) on top of the game pose: anime leaps, a keeper rising to a shot. */
+  lift?: number;
+  /** Root pitch (rad, negative = leaning back) — volleys in the air. */
+  lean?: number;
+  /** Root roll (rad) — side-on volleys. */
+  roll?: number;
 }
 
 export interface ChoreoActor {
@@ -76,7 +83,7 @@ export interface ChoreoFrame {
   crowdIntensity: number;
   phase: string;
   /** Semantic camera anchors (hero / rival / keeper) for anchored lenses. */
-  anchors?: { hero: { x: number; z: number }; rival?: { x: number; z: number }; keeper?: { x: number; z: number } };
+  anchors?: { hero: { x: number; z: number }; rival?: { x: number; z: number }; keeper?: { x: number; z: number }; /** Hero root lift (m) — lenses that follow a leap. */ heroLift?: number };
   crowd: ChoreoCrowd;
   /** Goal-net pulse (game renderer behaviour) for the goal at `side`. */
   net?: { side: 1 | -1; phaseTime: number };
@@ -93,6 +100,7 @@ const MOMENTS: Record<string, (time: number) => ChoreoFrame> = {
   'free-kick': sampleFreeKick,
   'midnight-penalty': sampleMidnightPenalty,
   'walk-out': sampleWalkOut,
+  meridian: sampleMeridian,
 };
 
 /** Role name of each `actors[]` slot, per moment (cast members map onto roles). */
@@ -102,6 +110,7 @@ export const MOMENT_ROLES: Record<string, readonly string[]> = {
   'free-kick': ['striker', 'keeper', 'wall-1', 'wall-2', 'wall-3'],
   'midnight-penalty': ['striker', 'keeper'],
   'walk-out': ['lead', 'left-1', 'right-1', 'left-2', 'right-2'],
+  meridian: ['striker', 'rival', 'keeper', 'mate', 'holder'],
 };
 
 /** Named beats (moment seconds) for `moment:` times, per moment. */
@@ -114,6 +123,7 @@ export const MOMENT_BEATS: Record<string, Record<string, number>> = {
   'free-kick': beatsOf(FREE_KICK),
   'midnight-penalty': beatsOf(MIDNIGHT),
   'walk-out': beatsOf(WALK_OUT),
+  meridian: { ...beatsOf(MERIDIAN), ...Object.fromEntries(MERIDIAN_TOUCHES.map((t, i) => [`touch-${i + 1}`, t])) },
 };
 
 export const MOMENT_LENGTH: Record<string, number> = {
@@ -122,6 +132,7 @@ export const MOMENT_LENGTH: Record<string, number> = {
   'free-kick': FREE_KICK.length,
   'midnight-penalty': MIDNIGHT.length,
   'walk-out': WALK_OUT.length,
+  meridian: MERIDIAN.length,
 };
 
 export const FOOTBALL_MOMENT_IDS = Object.keys(MOMENTS);

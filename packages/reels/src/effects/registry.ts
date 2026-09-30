@@ -50,6 +50,19 @@ export const EFFECTS: Record<string, EffectDef> = {
   'buzz-shake': { summary: 'The picture jitters like a phone vibrating in the hand (2D worlds)', layer: 'world', worlds: ['phone', 'title'] },
   'floor-table': { summary: 'The studio floor lights up as a giant World Table on a pitch (persists)', layer: 'world', worlds: ['studio'] },
   'coworkers-look': { summary: 'Background coworkers turn to stare at the pod', layer: 'world', worlds: ['office'] },
+  // THE CURRENT (anime tribute) — reusable energy / anime-grammar modules.
+  aura: { summary: 'Current aura shell hugging a player (`on`: cast id; intensity 0.3 spark · 0.7 surge · 1 full) + rising motes; colour = country', layer: 'world', worlds: ['football'] },
+  'current-lines': { summary: 'The pitch lines carry a Current: a glowing front flows from the ends (props.home / props.away: true; props.speed m/s; props.from: ends | hero)', layer: 'world', worlds: ['football'] },
+  'crowd-current': { summary: 'Thousands of lights come on in one end (props.side: home | away), pulsing (props.bpm)', layer: 'world', worlds: ['football'] },
+  'impact-frame': { summary: 'Anime impact frames: 2–4 inverted ink frames + focus lines on contact (`at`)', layer: 'screen' },
+  'focus-lines': { summary: 'Manga concentration lines converging on a subject (`on`, default ball) or the frame centre', layer: 'screen' },
+  shockwave: { summary: 'Ground shockwave ring (+ flash) expanding from a subject (`on`, default ball) at `at`; colour props.color', layer: 'screen' },
+  'plasma-trail': { summary: 'Charged ball trail: white core, country-coloured edge, sparks (props.color: country code or hex)', layer: 'screen' },
+  'ground-trail': { summary: 'A glowing mark on the grass along a subject’s path (`on`) over props.fromAt..props.untilAt (crescent cut, undertow wave)', layer: 'screen' },
+  slice: { summary: 'MERIDIAN: the picture splits along the ball’s flight line, halves offset, a light seam', layer: 'screen' },
+  chroma: { summary: 'Chromatic split (RGB offset) decaying from `at` — the biggest impacts only', layer: 'screen' },
+  motes: { summary: 'Floating Current motes drifting up (props.color, props.fall: true to drift down)', layer: 'screen' },
+  'light-pulse': { summary: 'Coloured light pulses from the top of frame on the beat (props.color, props.bpm)', layer: 'screen' },
 };
 
 export const EFFECT_IDS = Object.keys(EFFECTS);

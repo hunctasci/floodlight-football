@@ -24,6 +24,8 @@ export interface LensAnchors {
   hero: V2;
   rival: V2;
   keeper: V2;
+  /** Hero root lift (m) when the choreography publishes it (leaps). */
+  heroLift?: number;
 }
 
 export const DEFAULT_LENS_ANCHORS: LensAnchors = {
@@ -97,6 +99,48 @@ const REEL_LENSES = {
   /** High crane over the scorer, stand in frame. */
   'stadium-high': (a: LensAnchors) => lens(at(a.hero, -9, 11, 14), at(a.hero, -6, 0, -9), 52),
   'stadium-high-drift': (a: LensAnchors) => lens(at(a.hero, -12.5, 12, 16), at(a.hero, -8, 0, -9), 52),
+
+  // --- THE CURRENT (anime tribute) — fixed-world lenses for the night myth ---
+  /** On the grass at the centre looking up at the +x/-z pylon and the far stand (lights strike). */
+  'dark-low': () => lens({ x: 4, y: 0.32, z: 7 }, { x: 44, y: 10.5, z: -30 }, 58),
+  'dark-low-rise': () => lens({ x: 4.6, y: 0.9, z: 7.4 }, { x: 44, y: 11.5, z: -30 }, 56),
+  /** High diagonal over the whole night pitch (lines can be read end to end). */
+  'destiny-high': () => lens({ x: -34, y: 30, z: 40 }, { x: 4, y: 0, z: -3 }, 54),
+  'destiny-high-drift': () => lens({ x: -26, y: 33, z: 44 }, { x: 6, y: 0, z: -2 }, 52),
+  /** Straight-ish down on the whole pitch, +x end at the top of the portrait frame. */
+  'kickoff-top': () => lens({ x: -16, y: 56, z: 0.5 }, { x: 3, y: 0, z: 0 }, 70),
+  'kickoff-top-close': () => lens({ x: -9, y: 40, z: 0.4 }, { x: 3, y: 0, z: 0 }, 66),
+  /** Wide, dark, low from midfield toward the home end (+x): pitch, box, the home terrace. */
+  'chorus-wide': () => lens({ x: 10, y: 2.4, z: 15 }, { x: 52, y: 5.5, z: -7 }, 50),
+  'chorus-wide-push': () => lens({ x: 13, y: 2.1, z: 13.5 }, { x: 52, y: 5.5, z: -7 }, 47),
+  /** Low beside the box after the goal: scorer, net, keeper down; still air. */
+  'hush-wide': () => lens({ x: 29.5, y: 1.3, z: 12.5 }, { x: 43, y: 1.6, z: -2.5 }, 46),
+  'hush-wide-drift': () => lens({ x: 30.4, y: 1.2, z: 12.1 }, { x: 43, y: 1.55, z: -2.5 }, 45),
+
+  // --- anchored anime lenses ---
+  /** Overhead on a hop-and-cut: the arc it carves reads on the grass. */
+  'crescent-top': (a: LensAnchors) => lens(at(a.hero, 0.4, 8.5, 2.2), at(a.hero, 1.2, 0, 0.2), 52),
+  /** Dolly-zoom pair behind a runner: far + long lens → near + wide. Same runner size, the goal recedes. */
+  'vertigo-far': (a: LensAnchors) => lens(at(a.hero, -10, 1.75, 0.7), at(a.hero, 12, 1.15, -0.3), 20),
+  'vertigo-near': (a: LensAnchors) => lens(at(a.hero, -3.1, 1.45, 0.35), at(a.hero, 12, 1.15, -0.3), 60),
+  /** Low on the camera side of a slide tackle coming across. */
+  /** Low in the slide's path on the camera side: UNDERTOW comes at the lens, the striker crosses in. */
+  'undertow-low': () => lens({ x: 16.3, y: 0.45, z: 6.8 }, { x: 16.0, y: 0.6, z: -0.5 }, 50),
+  /** Keeper's eyes: the shot screaming in. */
+  'keeper-pov': (a: LensAnchors) => lens({ x: a.keeper.x - 0.62, y: 1.72, z: a.keeper.z + 0.05 }, { x: a.ball.x, y: a.ball.y, z: a.ball.z }, 52),
+  /** In front of the keeper, low: he rises into the shot, the floodlights behind the goal. */
+  'blackout-front': (a: LensAnchors) => lens({ x: a.keeper.x - 5.8, y: 0.9, z: a.keeper.z + 2.2 }, { x: a.keeper.x, y: 2.3, z: a.keeper.z - 0.2 }, 50),
+  /** From the grass under the dead ball, looking up at it. */
+  'deadball-sky': (a: LensAnchors) => lens({ x: 40.2, y: 0.35, z: 3.4 }, { x: a.ball.x, y: a.ball.y, z: a.ball.z }, 56),
+  /** Worm angle under the striker, a pylon behind him (re-light). */
+  'relight-worm': (a: LensAnchors) => lens(at(a.hero, -0.4, 0.22, -2.6), at(a.hero, 3.2, 5.2, 7.5), 64),
+  /** Worm angle close in front of a leap; the aim rises with him. */
+  'leap-low': (a: LensAnchors) => lens(at(a.hero, 2.1, 0.22, 2.7), { x: a.hero.x + 0.2, y: 2.3 + (a.heroLift ?? 0) * 0.9, z: a.hero.z }, 62),
+  /** Side-on at contact height in the air. */
+  'volley-side': (a: LensAnchors) => lens({ x: a.hero.x + 0.4, y: 1.05 + (a.heroLift ?? 0), z: a.hero.z + 4.4 }, { x: a.hero.x + 0.5, y: 1.1 + (a.heroLift ?? 0), z: a.hero.z }, 42),
+  'volley-side-tight': (a: LensAnchors) => lens({ x: a.hero.x + 0.45, y: 1.08 + (a.heroLift ?? 0), z: a.hero.z + 3.5 }, { x: a.hero.x + 0.55, y: 1.12 + (a.heroLift ?? 0), z: a.hero.z }, 40),
+  /** Behind the striker in the air, along the MERIDIAN line to the far top corner. */
+  'meridian-behind': (a: LensAnchors) => lens({ x: a.hero.x - 2.6, y: 1.85 + (a.heroLift ?? 0), z: a.hero.z + 1.2 }, { x: 46, y: 2.25, z: -3.05 }, 46),
 } as const;
 
 export type ReelLensId = keyof typeof REEL_LENSES;
@@ -182,6 +226,43 @@ export const CAMERA_MOVES = {
     description: 'Slow high drift over the stadium (end-card plate)',
     keys: [[0, 'stadium-high'], [1, 'stadium-high-drift']],
     ease: ['ease-out'],
+  },
+  // --- THE CURRENT (anime tribute) ---
+  'dark-rise': {
+    description: 'On the grass under a dark pylon, a slow rise as the banks strike',
+    keys: [[0, 'dark-low'], [1, 'dark-low-rise']],
+    ease: ['ease-in-out'],
+  },
+  'destiny-drift': {
+    description: 'High diagonal drift over the night pitch (lines charge end to end)',
+    keys: [[0, 'destiny-high'], [1, 'destiny-high-drift']],
+    ease: ['ease-out'],
+  },
+  'kickoff-drop': {
+    description: 'Overhead on the whole pitch, dropping closer as the Currents flood the lines',
+    keys: [[0, 'kickoff-top'], [1, 'kickoff-top-close']],
+    ease: ['ease-in'],
+  },
+  'long-run-vertigo': {
+    description: 'Dolly zoom behind the runner: long lens far → wide lens near; the goal recedes while he stays the same size',
+    keys: [[0, 'vertigo-far'], [1, 'vertigo-near']],
+    ease: ['ease-in-out'],
+    lag: 0.06,
+  },
+  'chorus-push': {
+    description: 'Slow push on the dark stadium toward the home end',
+    keys: [[0, 'chorus-wide'], [1, 'chorus-wide-push']],
+    ease: ['ease-in-out'],
+  },
+  'volley-side-push': {
+    description: 'Side-on at contact height, creeping in while time nearly stops',
+    keys: [[0, 'volley-side'], [1, 'volley-side-tight']],
+    ease: ['ease-in'],
+  },
+  'hush-drift': {
+    description: 'Still wide beside the box after the goal, a breath of drift',
+    keys: [[0, 'hush-wide'], [1, 'hush-wide-drift']],
+    ease: ['linear'],
   },
 } as const satisfies Record<string, CameraMoveDef>;
 

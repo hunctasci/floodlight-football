@@ -151,3 +151,19 @@ least two pieces or is a genuine engine gap (listed with its first users).
 | **Campaign pipeline** | `content/autumn-2026/campaign.ts`, `scripts/campaign.ts`, `engine/storyboard.ts` | One command renders reel.mp4 / post.png / storyboard.md / qa/ for every item. |
 
 Known limits: see `social/output/autumn-2026/CAMPAIGN.md` (Known limitations).
+
+## 9. "HNC: The Current" additions (2026-09-30, anime tribute)
+
+| Addition | Where | Why |
+|---|---|---|
+| **`meridian` choreography** | `worlds/football/meridian.ts` | A whole anime match: slide + hop-and-arc, first shot parried straight up (true gravity arc), superhuman leap volley, fingertip dive. Pose accents `lift` / `lean` / `roll` (`pose.ts`) on the same rig channels. |
+| **Current world FX** | `worlds/football/current.tsx` | `aura` (inverted-hull shells on the canonical meshes + motes + a face key that grows in darkness), `current-lines` (the pitch markings carry a flowing front), `crowd-current` (lights on one end's canonical crowd spots). |
+| **Anime screen FX** | `effects/anime.tsx` | `impact-frame`, `focus-lines`, `shockwave`, `plasma-trail`, `ground-trail`, `slice` (SVG displacement along the ball's line), `chroma`, `motes`, `light-pulse`. Effects gained `on` + `props`. |
+| **Cards** | `graphics/AnimeCards.tsx` | `technique-card`, `character-card`. |
+| **Plate world** | `worlds/plate/` | Blender plates as a 2D world (the hybrid seam). |
+| **Football set params** | `football.world.ts` | `floodTint`, `floodLevel`, `crowdLight: 'follow'` (dims the unlit canonical crowd, stripes and markings in blackouts). Defaults leave existing pieces unchanged. |
+| **Scores** | `audio/score/`, `audio/scores.ts` | Offline stereo synth (polyBLEP, SVF, drums, formant choir, reverb, tape-stop) and the piece's original score; `reels:render` writes it before bundling. Energy foley recipes in `social-synth.ts`. |
+| **Lenses** | `worlds/football/lenses.ts` | Dolly-zoom pair, keeper POV, worm angles, volley side, meridian-behind, overheads. |
+
+Shader note (SwiftShader/ANGLE): `smoothstep` with edge0 > edge1 returns 0; additive materials
+must output straight colour (`AdditiveBlending` multiplies by alpha itself).

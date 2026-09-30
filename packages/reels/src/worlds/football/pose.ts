@@ -95,6 +95,9 @@ function applyGamePose(v: HncPlayerVisual, a: ChoreoActor): void {
     v.head.rotation.set(p.headPitch ?? 0, p.headYaw ?? 0, 0);
   } else v.head.rotation.set(0, 0, 0);
   if (v.eyes) for (const e of v.eyes) e.scale.set(1, Math.max(0.12, p.eyeOpen ?? 1), 1);
+  if (p.lift) v.root.position.y += p.lift;
+  if (p.lean) v.root.rotation.x += p.lean;
+  if (p.roll) v.root.rotation.z += p.roll;
   if (p.grounded) {
     v.root.position.y += (0.1 - v.root.position.y) * p.grounded;
     v.root.rotation.z *= 1 + 0.37 * p.grounded;

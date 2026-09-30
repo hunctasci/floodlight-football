@@ -180,7 +180,14 @@ export function compileContent(spec: ContentSpec, opts: CompileOptions = {}): Ti
       actors,
       looks,
       clock: slot.clock,
-      fx: (beat.fx ?? []).map((e) => ({ type: e.type, start: resolveAt(e.at, ctx), end: resolveAt(e.until, ctx, 'end'), intensity: e.intensity ?? 1 })),
+      fx: (beat.fx ?? []).map((e) => ({
+        type: e.type,
+        start: resolveAt(e.at, ctx),
+        end: resolveAt(e.until, ctx, 'end'),
+        intensity: e.intensity ?? 1,
+        ...(e.on ? { on: e.on } : {}),
+        ...(e.props ? { props: Object.fromEntries(Object.entries(e.props).map(([k, v]) => [k, k.endsWith('At') && (typeof v === 'number' || typeof v === 'string') ? resolveAt(v, ctx) : v])) } : {}),
+      })),
       freeze: beat.freeze !== undefined ? resolveAt(beat.freeze, ctx) : undefined,
     };
 

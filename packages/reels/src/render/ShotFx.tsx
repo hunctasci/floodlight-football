@@ -1,6 +1,8 @@
 import React from 'react';
 import { interpolate } from 'remotion';
 import { BallTrail, Cinebars, ImpactBurst, LightsOn, StadiumGrade } from '../effects/cinematic';
+import { animeWorldFilter, FocusLines, GroundTrail, ImpactFrame, LightPulse, Motes, PlasmaTrail, Shockwave, SliceSeam } from '../effects/anime';
+import type { SubjectResolver } from '../engine/subjects';
 import type { FxEvent, Shot } from '../engine/timeline/types';
 import { HNC_UI } from '../graphics/hnc-ui';
 import { random01 } from '../utils/rng';
@@ -8,16 +10,28 @@ import type { Lens } from '../worlds/types';
 import { useLayout } from './layout';
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
-const ORDER = ['ball-trail', 'impact-burst', 'speed-lines', 'confetti', 'rival-grade', 'freeze-grade', 'vignette', 'shade-top', 'shade-bottom', 'stadium-grade', 'cinebars', 'lights-on', 'flash'];
+const ORDER = ['ground-trail', 'ball-trail', 'plasma-trail', 'shockwave', 'impact-burst', 'slice', 'speed-lines', 'focus-lines', 'motes', 'confetti', 'light-pulse', 'rival-grade', 'freeze-grade', 'vignette', 'shade-top', 'shade-bottom', 'stadium-grade', 'cinebars', 'lights-on', 'flash', 'impact-frame'];
+/** Anime modules (effects/anime.tsx): rendered while active. */
+const ANIME: Record<string, React.FC<Parameters<typeof ImpactFrame>[0]>> = {
+  'ground-trail': GroundTrail,
+  'plasma-trail': PlasmaTrail,
+  shockwave: Shockwave,
+  slice: SliceSeam,
+  'focus-lines': FocusLines,
+  motes: Motes,
+  'light-pulse': LightPulse,
+  'impact-frame': ImpactFrame,
+};
 
 /** CSS filter for the world layer from active grade effects (never touches graphics). */
 export function worldFilter(shot: Shot, frame: number): string | undefined {
   const freeze = shot.fx.some((e) => e.type === 'freeze-grade' && frame >= e.start && frame < e.end);
-  return freeze ? 'saturate(0.3) contrast(1.12) brightness(1.04)' : undefined;
+  const chain = [...(freeze ? ['saturate(0.3) contrast(1.12) brightness(1.04)'] : []), ...animeWorldFilter(shot, frame)];
+  return chain.length ? chain.join(' ') : undefined;
 }
 
 /** Screen-layer effects of one shot (camera + world effects live elsewhere). */
-export const ShotFx: React.FC<{ shot: Shot; frame: number; fps: number; lens?: Lens; seed: number }> = ({ shot, frame, fps, lens, seed }) => {
+export const ShotFx: React.FC<{ shot: Shot; frame: number; fps: number; lens?: Lens; seed: number; subject?: SubjectResolver }> = ({ shot, frame, fps, lens, seed, subject }) => {
   const { width, height } = useLayout();
   const active = (e: FxEvent) => frame >= e.start && frame < e.end;
   const els: React.ReactNode[] = [];
@@ -30,6 +44,11 @@ export const ShotFx: React.FC<{ shot: Shot; frame: number; fps: number; lens?: L
     if (lens && e.type === 'ball-trail' && active(e) && shot.world === 'football') els.push(<BallTrail key={key} shot={shot} frame={frame} fps={fps} lens={lens} intensity={e.intensity} />);
     if (lens && e.type === 'impact-burst') els.push(<ImpactBurst key={key} shot={shot} at={e.start} frame={frame} fps={fps} lens={lens} intensity={e.intensity} />);
     if (!active(e)) continue;
+    const Anime = ANIME[e.type];
+    if (Anime) {
+      els.push(<Anime key={key} shot={shot} frame={frame} fps={fps} lens={lens} subject={subject} seed={seed} e={e} />);
+      continue;
+    }
     switch (e.type) {
       case 'stadium-grade':
         els.push(<StadiumGrade key={key} local={local} fps={fps} intensity={e.intensity} />);

@@ -123,6 +123,18 @@ export const CUES: Record<string, CueDef> = {
   crash: social('Ball smashes into a machine: metal crunch, glass, rattle', 1.2),
   'tv-off': social('CRT/TV switching off (click + fading whine)', 0.6),
   'remote-click': social('Remote control button click', 0.1),
+  // THE CURRENT (anime tribute) — energy foley (social synth)
+  zap: social('Electric crawl: falling chirp + crackle (a Current touching something)', 0.35),
+  charge: social('Energy charge-up: a whine rising two octaves, crackle thickening (spans its duration)', 1.5, 'music'),
+  shock: social('Shockwave thump + air whumph', 0.8),
+  'slam-hit': social('Title / technique card slam (punch + short metal ring)', 0.45),
+  'aura-hum': social('Held aura hum (detuned low saws + tremolo + crackle)', 1.5, 'music', true),
+  'power-down': social('Stadium grounding out: whine sliding to nothing, relay clunks (spans its duration)', 1.2),
+  wave: social('A low wave that surges and pulls back (UNDERTOW)', 1.0),
+  ting: social('Freeze-frame ting (two bright partials)', 1.4),
+  fracture: social('The air splits: glassy crack, shards, falling air rip (MERIDIAN)', 1.0),
+  // Original scores (audio/scores.ts renders them offline, stereo)
+  'score-the-current': { summary: 'HNC: The Current — original 150 BPM score (51.2 s, D minor → F)', source: 'file', bus: 'music', file: 'generated/the-current-score.wav', length: 51.2 },
   // Mix directive
   hush: { summary: 'Duck ambience/crowd/music beds for its duration (comedic silence)', source: 'mix', bus: 'music', length: 0.6 },
 };

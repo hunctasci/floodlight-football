@@ -18,6 +18,9 @@ import { countryTeams } from '../../../../../apps/game/src/city-league/kits';
 import type { SceneProps } from '../../render/worlds';
 import * as THREE from 'three';
 import { FLOOD_HEADS, FootballLighting, paintHncBoard, practicalLevel, Tifo } from './atmosphere';
+import { AuraShell, CrowdCurrent, CurrentLines } from './current';
+import { currentColor, mixHex } from '../../effects/current';
+import { sceneFx } from '../events';
 
 /**
  * Thin R3F adapter around the canonical HNC stadium + ball + players.
@@ -48,6 +51,7 @@ export const FootballScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline
   const hColors = { primary: homeTeam.color, secondary: homeTeam.secondary };
   const aColors = { primary: awayTeam.color, secondary: awayTeam.secondary };
   const preset = footballLight(shot.set);
+  const tint = typeof shot.set.floodTint === 'string' ? shot.set.floodTint : undefined;
   const light = footballLightLevel(timeline, shot, frame);
   const practical = practicalLevel(preset, light.level);
   const empty = shot.set.crowd === 'empty';
@@ -81,13 +85,25 @@ export const FootballScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline
     const lit = preset === 'day' ? [0, 1, 2, 3] : preset === 'night' ? [0, 1, 2, 3] : preset === 'horror' ? [0] : [];
     for (const { mesh, index } of heads) {
       const k = preset === 'day' ? 1 : lit.includes(index) ? Math.max(0.06, light.heads[index] * (preset === 'dawn' ? 0.4 : 1)) : 0.05;
-      (mesh.material as THREE.MeshBasicMaterial).color.set('#fffbe8').multiplyScalar(k);
+      (mesh.material as THREE.MeshBasicMaterial).color.set(tint ? mixHex('#fffbe8', tint, 0.55) : '#fffbe8').multiplyScalar(k);
     }
     for (const b of stadium.boards) {
       const m = b.material as THREE.MeshBasicMaterial;
       m.color.setScalar(Math.max(0.04, practical));
     }
-  }, [heads, stadium, preset, light.heads.join(','), practical]);
+    // The canonical crowd, pitch stripes and markings are unlit (MeshBasic): `crowdLight: 'follow'`
+    // dims them with the floodlights so a blackout is actually dark. Original colours are kept.
+    if (shot.set.crowdLight === 'follow') {
+      const k = 0.04 + 0.96 * light.level * light.level;
+      for (const m of stadium.crowdMeshes) (m.material as THREE.MeshBasicMaterial).color.setScalar(k);
+      stadium.pitch.traverse((o) => {
+        const mat = (o as THREE.Mesh).material as THREE.MeshBasicMaterial | undefined;
+        if (!mat || !(mat as THREE.Material).type?.startsWith('MeshBasic') && (mat as THREE.Material).type !== 'LineBasicMaterial') return;
+        mat.userData.hncBase ??= mat.color.clone();
+        mat.color.copy(mat.userData.hncBase as THREE.Color).multiplyScalar(Math.max(0.12, k));
+      });
+    }
+  }, [heads, stadium, preset, light.heads.join(','), practical, tint]);
   React.useMemo(() => {
     stadium.crowd.visible = !empty;
   }, [stadium, empty]);
@@ -193,7 +209,8 @@ export const FootballScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline
 
   return (
     <group>
-      <FootballLighting preset={preset} level={light.level} stagger={light.heads} />
+      <FootballLighting preset={preset} level={light.level} stagger={light.heads} tint={tint} />
+      <CurrentLayer shot={shot} frame={frame} fps={fps} timeline={timeline} players={players} roles={roles} cast={cast} home={home} away={away} crowd={stadium.crowdBase} homeSection={homeSection} darkness={preset === 'day' ? 0 : 1 - light.level} />
       <primitive object={stadium.group} />
       {typeof shot.set.tifo === 'string' ? <Tifo code={shot.set.tifo} t={frame / fps} level={preset === 'day' ? 1 : Math.max(0.2, light.level)} /> : null}
       <primitive object={ball.root} />
@@ -205,5 +222,63 @@ export const FootballScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline
         </group>
       ))}
     </group>
+  );
+};
+
+/**
+ * THE CURRENT on the pitch: aura shells on cast members (this shot's `aura`
+ * fx), current-lines and crowd-current (scene events: they persist across the
+ * scene's beats until their `until`).
+ */
+const CurrentLayer: React.FC<{
+  shot: SceneProps['shot'];
+  frame: number;
+  fps: number;
+  timeline: SceneProps['timeline'];
+  players: ReturnType<typeof createHncPlayerVisual>[];
+  roles: readonly string[];
+  cast: Record<string, string>;
+  home: string;
+  away: string;
+  crowd: Parameters<typeof CrowdCurrent>[0]['base'];
+  homeSection: 0 | 1;
+  darkness: number;
+}> = ({ shot, frame, fps, timeline, players, roles, cast, home, away, crowd, homeSection, darkness }) => {
+  const time = frame / fps;
+  const active = (e: { start: number; end: number }) => frame >= e.start && frame < e.end;
+  const auras = shot.fx.filter((e) => e.type === 'aura' && active(e));
+  const lines = sceneFx(timeline, shot, 'current-lines').filter(active);
+  const crowdFx = sceneFx(timeline, shot, 'crowd-current').filter(active);
+  return (
+    <>
+      {auras.map((e) => {
+        const role = Object.entries(cast).find(([, id]) => id === e.on)?.[0];
+        const i = role ? roles.indexOf(role) : -1;
+        const v = players[i];
+        if (!v || !e.on) return null;
+        const k = Math.min(1, (frame - e.start + 1) / 3) * Math.min(1, (e.end - frame) / 4);
+        // A spark (< 0.5) stutters like a bad contact; a surge breathes; full roars.
+        const flick = e.intensity < 0.5 ? (Math.sin(time * 53) > -0.2 ? 1 : 0.25) : 0.85 + 0.15 * Math.sin(time * 9);
+        const color = currentColor(String(e.props?.color ?? timeline.cast[e.on]?.country ?? home));
+        return <AuraShell key={`${e.on}-${e.start}`} visual={v} level={e.intensity * k * flick} color={color} time={time} seed={timeline.seed} darkness={darkness} />;
+      })}
+      {lines.map((e) => {
+        const p = e.props ?? {};
+        const speed = Number(p.speed ?? 36);
+        const front = (speed * (frame - e.start)) / fps;
+        const fade = Math.min(1, (e.end - frame) / 6);
+        const heroRole = Object.entries(cast).find(([, id]) => id === p.from)?.[0];
+        const hero = heroRole ? players[roles.indexOf(heroRole)]?.root.position : undefined;
+        const sources = { home: p.home !== false, away: p.away === true || (p.home === undefined && p.away === undefined), point: hero ? { x: hero.x, z: hero.z } : undefined };
+        return <CurrentLines key={e.start} level={e.intensity * fade} front={front} time={time} sources={sources} home={currentColor(String(p.homeColor ?? home))} away={currentColor(String(p.awayColor ?? away))} />;
+      })}
+      {crowdFx.map((e) => {
+        const p = e.props ?? {};
+        const rise = Number(p.rise ?? 1.2) * fps;
+        const level = e.intensity * Math.min(1, (frame - e.start) / rise) * Math.min(1, (e.end - frame) / 8);
+        const side = p.side === 'away' ? ((1 - homeSection) as 0 | 1) : homeSection;
+        return <CrowdCurrent key={e.start} base={crowd} section={side} level={level} color={currentColor(String(p.color ?? (p.side === 'away' ? away : home)))} time={time} bpm={Number(p.bpm ?? 150)} seed={timeline.seed} />;
+      })}
+    </>
   );
 };

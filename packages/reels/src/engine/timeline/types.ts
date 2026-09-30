@@ -63,6 +63,8 @@ export interface FxEvent {
   start: number;
   end: number;
   intensity: number;
+  on?: string;
+  props?: Record<string, unknown>;
 }
 
 export interface Shot {

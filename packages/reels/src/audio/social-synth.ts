@@ -371,6 +371,88 @@ export const SOCIAL_RECIPES: Record<string, SocialRecipe> = {
     tone(o, s, d, 81, 648, 0.08 * g, 'saw', (p) => p ** 2.5);
     noise(o, s, d, 0.2 * g, r, 0.3, (p) => p ** 3);
   },
+  // --- THE CURRENT (anime tribute) — energy foley ---
+  zap: (o, s, d, g, r) => {
+    // Electric crawl: a falling chirp over dense crackle clicks and a 120 Hz buzz.
+    tone(o, s, d, 2400, 520, 0.05 * g, 'saw', hit(0.01, 5));
+    tone(o, s, d, 120, 118, 0.05 * g, 'square', (p) => (0.6 + 0.4 * Math.sin(p * 90)) * Math.exp(-p * 3));
+    for (let t = 0; t < d; t += 0.004 + r() * 0.018) noise(o, s + Math.round(t * SAMPLE_RATE), 0.004, 0.22 * g * (1 - t / d), r, 0.9, decay(3), 0.7);
+  },
+  charge: (o, s, d, g, r) => {
+    // Energy charge-up: a whine rising two octaves, a quickening wobble, crackle thickening to the end.
+    const n = Math.round(d * SAMPLE_RATE);
+    let ph = 0;
+    let ph2 = 0;
+    for (let i = 0; i < n; i++) {
+      const p = i / n;
+      const f = 110 * Math.pow(8, p);
+      const wob = 1 + 0.03 * Math.sin(2 * Math.PI * (4 + 24 * p * p) * (i / SAMPLE_RATE));
+      ph += (2 * Math.PI * f * wob) / SAMPLE_RATE;
+      ph2 += (2 * Math.PI * f * 1.503) / SAMPLE_RATE;
+      const v = (((ph % (2 * Math.PI)) / Math.PI - 1) * 0.6 + Math.sin(ph2) * 0.4) * 0.07 * g * Math.pow(p, 1.6);
+      put(o, s + i, v);
+    }
+    for (let t = 0; t < d; t += 0.003 + (1 - t / d) * 0.05 * r()) noise(o, s + Math.round(t * SAMPLE_RATE), 0.004, 0.2 * g * (t / d), r, 0.85, decay(3), 0.6);
+  },
+  shock: (o, s, d, g, r) => {
+    // Shockwave: sub thump + a low air "whumph" that blooms and dies.
+    tone(o, s, d, 78, 28, 0.65 * g, 'sine', hit(0.004, 4));
+    noise(o, s, d, 0.35 * g, r, 0.06, (p) => Math.min(1, p * 25) * Math.exp(-p * 5));
+    noise(o, s, 0.05, 0.25 * g, r, 0.9, decay(8), 0.6);
+  },
+  'slam-hit': (o, s, d, g, r) => {
+    // Title-card slam: punchy low body, bright transient, a short metal ring.
+    tone(o, s, d, 190, 55, 0.45 * g, 'sine', hit(0.002, 7));
+    noise(o, s, 0.06, 0.3 * g, r, 0.95, decay(9), 0.5);
+    for (const [f, k] of [[1660, 1], [2490, 0.6], [3733, 0.35]] as const) tone(o, s, d, f, f * 0.995, 0.02 * g * k, 'tri', hit(0.001, 6));
+  },
+  'aura-hum': (o, s, d, g, r) => {
+    // Held aura: two detuned low saws under a tremolo, sparse crackle; fades at the edges.
+    const n = Math.round(d * SAMPLE_RATE);
+    const edge = Math.min(n / 3, SAMPLE_RATE * 0.25);
+    let a = 0;
+    let b = 0;
+    let lp = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / SAMPLE_RATE;
+      a += (2 * Math.PI * 55) / SAMPLE_RATE;
+      b += (2 * Math.PI * 55.6) / SAMPLE_RATE;
+      const raw = ((a % (2 * Math.PI)) / Math.PI - 1 + (b % (2 * Math.PI)) / Math.PI - 1) * 0.5;
+      lp += 0.08 * (raw - lp);
+      const trem = 0.7 + 0.3 * Math.sin(2 * Math.PI * 7 * t);
+      put(o, s + i, lp * 0.11 * g * trem * env(i, n, edge, edge));
+    }
+    for (let t = 0; t < d; t += 0.02 + r() * 0.12) noise(o, s + Math.round(t * SAMPLE_RATE), 0.003, 0.1 * g, r, 0.9, decay(3), 0.7);
+  },
+  'power-down': (o, s, d, g, r) => {
+    // A stadium grounding out: a whine sliding to nothing, relay clunks, the hum dying.
+    tone(o, s, d, 1300, 45, 0.07 * g, 'saw', (p) => (1 - p) ** 1.5);
+    tone(o, s, d, 100, 30, 0.12 * g, 'sine', (p) => 1 - p);
+    for (const at of [0.08, 0.3, 0.55, 0.8]) {
+      const a = s + Math.round(at * d * SAMPLE_RATE);
+      tone(o, a, 0.12, 95, 50, 0.35 * g, 'sine', hit(0.002, 8));
+      noise(o, a, 0.05, 0.2 * g, r, 0.4, decay(8));
+    }
+  },
+  wave: (o, s, d, g, r) => {
+    // UNDERTOW: a low wave of filtered noise that surges and pulls back, with body.
+    noise(o, s, d, 0.4 * g, r, 0.05, (p) => Math.sin(Math.PI * Math.min(1, p * 1.4)) ** 2);
+    noise(o, s, d, 0.12 * g, r, 0.4, (p) => Math.sin(Math.PI * Math.min(1, p * 1.2)) ** 3, 0.5);
+    tone(o, s, d, 65, 40, 0.25 * g, 'sine', (p) => Math.sin(Math.PI * p));
+  },
+  ting: (o, s, d, g) => {
+    // The freeze-frame "ting": two bright sine partials ringing out.
+    tone(o, s, d, 2637, 2637, 0.09 * g, 'sine', hit(0.001, 3.2));
+    tone(o, s, d, 5274, 5274, 0.04 * g, 'sine', hit(0.001, 5));
+    tone(o, s, 0.01, 8000, 6000, 0.05 * g, 'sine', decay(8));
+  },
+  fracture: (o, s, d, g, r) => {
+    // MERIDIAN: the air splits — a glassy crack, inharmonic shards, an air rip falling away.
+    noise(o, s, 0.03, 0.5 * g, r, 0.98, decay(10), 0.4);
+    for (const f of [1811, 2743, 3907, 5122, 6653]) tone(o, s, d * 0.6, f, f * 0.97, 0.018 * g, 'tri', hit(0.001, 7));
+    for (let t = 0.02; t < d * 0.4; t += 0.015 + r() * 0.04) tone(o, s + Math.round(t * SAMPLE_RATE), 0.015, 3000 + r() * 4000, 2500, 0.02 * g, 'tri', decay(6));
+    noise(o, s, d, 0.28 * g, r, 0.5, (p) => Math.min(1, p * 30) * (1 - p) ** 2, 0.3);
+  },
   'sub-hit': (o, s, d, g, r) => {
     tone(o, s, d, 48, 30, 0.8 * g, 'sine', hit(0.004, 2.2));
     noise(o, s, 0.3, 0.18 * g, r, 0.15, decay(5));

@@ -1,0 +1,13 @@
+{
+  "recordedAt": "2026-09-30T08:58:54.944Z",
+  "command": "<blender> -b social/blender/verification/hnc-parity.blend -o social/blender/verification/renders/headless-eevee-#### -F PNG -f 1",
+  "exitCode": 0,
+  "seconds": 1.649,
+  "output": "social/blender/verification/renders/headless-eevee-0001.png",
+  "size": {
+    "width": 1080,
+    "height": 1920
+  },
+  "engine": "BLENDER_EEVEE",
+  "device": "EEVEE (GPU, Metal backend)"
+}

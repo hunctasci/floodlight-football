@@ -6,6 +6,7 @@ import { HncDaylight } from '../../render/lights';
 import { paintNationalFlag } from '../../render/flags';
 import { HNC_UI } from '../../graphics/hnc-ui';
 import type { FootballLightId } from './football.world';
+import { mixHex } from '../../effects/current';
 
 /**
  * Football atmosphere — everything AROUND the canonical stadium that makes a
@@ -115,10 +116,11 @@ const haloTexture = (() => {
 })();
 
 /** Additive halo sprites around lit floodlight heads (cheap bloom). */
-const Halos: React.FC<{ heads: number[]; strength: number }> = ({ heads, strength }) => {
+const Halos: React.FC<{ heads: number[]; strength: number; tint?: string }> = ({ heads, strength, tint }) => {
   const mat = React.useMemo(() => new THREE.SpriteMaterial({ map: haloTexture(), blending: THREE.AdditiveBlending, depthWrite: false, fog: false, transparent: true }), []);
   React.useEffect(() => () => mat.dispose(), [mat]);
   mat.opacity = Math.min(1, strength);
+  mat.color.set(tint ? mixHex('#ffffff', tint, 0.6) : '#ffffff');
   if (strength <= 0.01) return null;
   return (
     <>
@@ -221,7 +223,7 @@ export function paintHncBoard(slot: number): THREE.Material {
  * Lights + sky for a preset at a light level (lights-out / lights-up events
  * scale everything). `day` is the canonical game rig verbatim.
  */
-export const FootballLighting: React.FC<{ preset: FootballLightId; level: number; stagger: number[] }> = ({ preset, level, stagger }) => {
+export const FootballLighting: React.FC<{ preset: FootballLightId; level: number; stagger: number[]; tint?: string }> = ({ preset, level, stagger, tint }) => {
   const scene = useThree((s) => s.scene);
   const p = preset === 'day' ? undefined : FOOTBALL_LIGHTS[preset];
   React.useMemo(() => {
@@ -235,6 +237,8 @@ export const FootballLighting: React.FC<{ preset: FootballLightId; level: number
   }, [scene, p]);
   if (!p) return <HncDaylight />;
   const headLevel = (h: number) => Math.max(0, Math.min(1, stagger[h] ?? level));
+  // `floodTint`: the floodlights carry a nation's Current (keeps half the white for readable faces).
+  const floodColor = tint ? mixHex(p.floods.color, tint, 0.5) : p.floods.color;
   return (
     <>
       {p.sky ? <SkyDome {...p.sky} level={level} /> : null}
@@ -248,7 +252,7 @@ export const FootballLighting: React.FC<{ preset: FootballLightId; level: number
         <directionalLight
           key={h}
           position={FLOOD_HEADS[h]}
-          color={p.floods.color}
+          color={floodColor}
           intensity={p.floods.intensity * headLevel(h)}
           castShadow={i === 0}
           shadow-mapSize={[2048, 2048]}
@@ -260,7 +264,7 @@ export const FootballLighting: React.FC<{ preset: FootballLightId; level: number
         />
       ))}
       {p.floods.heads.map((h) => (
-        <Halos key={`halo-${h}`} heads={[h]} strength={p.floods.halo * headLevel(h)} />
+        <Halos key={`halo-${h}`} heads={[h]} strength={p.floods.halo * headLevel(h)} tint={tint} />
       ))}
     </>
   );

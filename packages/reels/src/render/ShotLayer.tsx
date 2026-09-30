@@ -12,6 +12,7 @@ import type { Lens } from '../worlds/types';
 import { useLayout } from './layout';
 import { Overlay } from './Overlays';
 import { ShotFx, worldFilter } from './ShotFx';
+import { AnimeFilterDefs } from '../effects/anime';
 import { layerStyle } from './Transitions';
 import { SCENES_2D, SCENES_3D } from './worlds';
 
@@ -47,6 +48,7 @@ export const ShotLayer: React.FC<{ tl: Timeline; shot: Shot; prev?: Shot; frame:
   return (
     <AbsoluteFill style={outer}>
       <AbsoluteFill style={inner}>
+        <AnimeFilterDefs shot={shot} frame={frame} fps={tl.fps} lens={lens} />
         <AbsoluteFill style={{ filter: worldFilter(shot, frame) }}>
         {lens && Scene3D ? (
           <ThreeCanvas
@@ -64,7 +66,7 @@ export const ShotLayer: React.FC<{ tl: Timeline; shot: Shot; prev?: Shot; frame:
           <Scene2D shot={shot} frame={wf} fps={tl.fps} timeline={tl} />
         ) : null}
         </AbsoluteFill>
-        <ShotFx shot={shot} frame={frame} fps={tl.fps} lens={lens} seed={tl.seed} />
+        <ShotFx shot={shot} frame={frame} fps={tl.fps} lens={lens} seed={tl.seed} subject={subject} />
         {overlays.map((ev) => (
           // Shot-bound overlays stay with the layer through an overlapping exit.
           <Overlay key={ev.id} ev={shot.exit?.overlap && ev.end >= shot.start + shot.duration ? { ...ev, end: Math.max(ev.end, shot.exit.end) } : ev} tl={tl} frame={frame} lens={lens} subject={subject} />

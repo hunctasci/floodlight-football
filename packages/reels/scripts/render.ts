@@ -12,6 +12,8 @@ import { compileContent } from '../src/engine/director/compile';
 import { assertValidContent } from '../src/engine/director/validate';
 import { isFormatId, type FormatId } from '../src/engine/formats';
 import { renderStemWav, stemPath } from '../src/audio/stem';
+import { getCue } from '../src/audio/registry';
+import { SCORES } from '../src/audio/scores';
 import { arg } from './lib/args';
 import { loadContent } from './lib/content';
 import { master } from './lib/master';
@@ -29,6 +31,12 @@ const sfx = stemPath(first);
 const file = path.join(REELS_ROOT, 'public', sfx);
 mkdirSync(path.dirname(file), { recursive: true });
 writeFileSync(file, renderStemWav(first));
+const score = SCORES[spec.id];
+if (score) {
+  const out = path.join(REELS_ROOT, 'public', getCue(score.cue).file!);
+  writeFileSync(out, score.render(first.seed));
+  console.log(`score → ${path.relative(process.cwd(), out)}`);
+}
 for (const format of formats) {
   if (!isFormatId(format)) throw new Error(`Unknown format ${format}`);
   const tl = compileContent(spec, { format });

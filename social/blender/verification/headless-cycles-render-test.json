@@ -1,0 +1,13 @@
+{
+  "recordedAt": "2026-09-30T08:50:39.632Z",
+  "command": "<blender> -b social/blender/verification/hnc-parity.blend -E CYCLES --python-expr \"import bpy; s=bpy.context.scene; s.render.resolution_percentage=50; s.cycles.samples=64\\np=bpy.context.preferences.addons['cycles'].preferences; p.refresh_devices()\\nprint('HNC_DEVICE', p.compute_device_type, [d.name for d in p.devices if d.use])\" -o social/blender/verification/renders/headless-cycles-#### -F PNG -f 1 -- --cycles-device METAL",
+  "exitCode": 0,
+  "seconds": 1.879,
+  "output": "social/blender/verification/renders/headless-cycles-0001.png",
+  "size": {
+    "width": 540,
+    "height": 960
+  },
+  "engine": "CYCLES",
+  "device": "METAL ['Apple M4 Max (GPU - 32 cores)']"
+}
