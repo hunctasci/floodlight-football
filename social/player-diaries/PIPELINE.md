@@ -20,6 +20,24 @@ blender -b --factory-startup --python tools/blender/py/hnc_cli.py -- acting-test
 blender -b --factory-startup --python tools/blender/py/hnc_cli.py -- diaries-shot --shot S01_SH02 --quality preview --out <dir> --stills 1,60
 ```
 
+Committed generated data: the approved dialogue takes (`packages/reels/public/generated/diaries/ep01/vo/`)
+and the OFL fonts — everything else regenerates. Episode documents (storyboard, animatic review,
+social copy, asset provenance, production notes) are mirrored in `social/player-diaries/ep01/`.
+
+### Fresh machine (macOS, Apple Silicon)
+
+```sh
+brew install ffmpeg uv                      # + Blender 5.2 LTS in /Applications
+npm install && npx playwright install chromium
+npm run blender:export && python3 tools/blender/py/fetch_external.py
+npm run diaries -- ui && npm run diaries -- audio
+npm run diaries -- plates --quality final --jobs 3
+npm run diaries -- edit --quality final --out social/output/player-diaries/ep01-belgium/final/reel-nomaster.mp4
+npm run diaries -- master --in social/output/player-diaries/ep01-belgium/final/reel-nomaster.mp4 --out social/output/player-diaries/ep01-belgium/final/reel.mp4
+```
+
+The voice tools below are only needed to re-voice lines.
+
 Local tools outside the repo (never committed): `HNC_DIARIES_PY` (default
 `../.tools/tts/.venv/bin/python`: numpy, scipy, soundfile, kokoro-onnx,
 faster-whisper), `HNC_TTS_DIR` (default `../.tools/tts`: `kokoro-v1.0.onnx`,

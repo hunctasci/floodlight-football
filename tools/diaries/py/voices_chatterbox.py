@@ -74,7 +74,8 @@ def main():
     spec = json.loads(spec_path.read_text())
     from chatterbox.tts import ChatterboxTTS
     from faster_whisper import WhisperModel
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    # NVIDIA (CUDA) on a PC, Apple GPU (MPS) on a Mac, else CPU (slow but works).
+    device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
     tts = ChatterboxTTS.from_pretrained(device=device)
     asr = WhisperModel("base.en", device="cpu", compute_type="int8")
     report_path = vo / "voices.json"

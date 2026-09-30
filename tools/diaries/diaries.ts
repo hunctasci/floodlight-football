@@ -22,6 +22,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { findBlender } from '../blender/src/paths.ts';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const EP = 'ep01';
@@ -29,9 +30,15 @@ const EDIT = path.join(REPO, 'packages/reels/src/diaries', EP, 'edit.json');
 const DIALOGUE = path.join(REPO, 'packages/reels/src/diaries', EP, 'dialogue.json');
 const GEN = path.join(REPO, 'packages/reels/public/generated/diaries', EP);
 const OUT = path.join(REPO, 'social/output/player-diaries/ep01-belgium');
-const PY = process.env.HNC_DIARIES_PY ?? path.join(REPO, '..', '.tools', 'tts', '.venv', 'bin', 'python');
-const CHATTERBOX_PY = process.env.HNC_CHATTERBOX_PY ?? path.join(REPO, '..', '.tools', 'chatterbox', '.venv', 'bin', 'python');
-const BLENDER = process.env.HNC_BLENDER_BIN ?? '/Applications/Blender.app/Contents/MacOS/Blender';
+/** venv python on macOS/Linux (bin/python) or Windows (Scripts/python.exe). */
+const venvPy = (dir: string): string => {
+  const win = path.join(dir, '.venv', 'Scripts', 'python.exe');
+  return process.platform === 'win32' && existsSync(win) ? win : path.join(dir, '.venv', 'bin', 'python');
+};
+const PY = process.env.HNC_DIARIES_PY ?? venvPy(path.join(REPO, '..', '.tools', 'tts'));
+const CHATTERBOX_PY = process.env.HNC_CHATTERBOX_PY ?? venvPy(path.join(REPO, '..', '.tools', 'chatterbox'));
+// Same discovery as blender:* (HNC_BLENDER_BIN → BLENDER_PATH → macOS app → `blender` on PATH).
+const BLENDER = findBlender();
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -275,8 +282,29 @@ function check(): void {
   if (bad) process.exitCode = 1;
 }
 
+/** OFL fonts for the edit (Barlow Condensed + Inter), with their licences. */
+async function fonts(): Promise<void> {
+  const dir = path.join(REPO, 'packages/reels/public/generated/diaries/fonts');
+  mkdirSync(dir, { recursive: true });
+  const base = 'https://github.com/google/fonts/raw/main/ofl';
+  const files: [string, string][] = [
+    ['BarlowCondensed-SemiBold.ttf', `${base}/barlowcondensed/BarlowCondensed-SemiBold.ttf`],
+    ['BarlowCondensed-Medium.ttf', `${base}/barlowcondensed/BarlowCondensed-Medium.ttf`],
+    ['Inter.ttf', `${base}/inter/Inter%5Bopsz,wght%5D.ttf`],
+    ['OFL-Barlow.txt', `${base}/barlowcondensed/OFL.txt`],
+    ['OFL-Inter.txt', `${base}/inter/OFL.txt`],
+  ];
+  for (const [name, url] of files) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`${url}: HTTP ${res.status}`);
+    writeFileSync(path.join(dir, name), Buffer.from(await res.arrayBuffer()));
+    console.log(`fonts: ${name}`);
+  }
+}
+
 const commands: Record<string, () => unknown> = {
   check,
+  fonts,
   // Kokoro renders each fictional character's reference timbre; Chatterbox speaks the lines in it.
   voices: () => {
     const lines = args.slice(1).filter((a) => /^L\d+$/.test(a));

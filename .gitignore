@@ -7,7 +7,16 @@ dist/
 # Generated social-video output (specs and code are committed, media is not).
 social/output/
 # Reel Factory generated audio stems (rebuilt by reels:render).
-packages/reels/public/generated/
+packages/reels/public/generated/*
+# Player Diaries: everything under generated/diaries is rebuilt by `npm run diaries …`, EXCEPT the
+# approved dialogue takes (synthetic voices are not bit-reproducible across machines, and their
+# lengths drive the cut) and the OFL fonts. Those are committed.
+!packages/reels/public/generated/diaries/
+packages/reels/public/generated/diaries/*
+!packages/reels/public/generated/diaries/fonts/
+!packages/reels/public/generated/diaries/ep01/
+packages/reels/public/generated/diaries/ep01/*
+!packages/reels/public/generated/diaries/ep01/vo/
 # Blender pipeline (tools/blender): generated interchange assets, .blend files and
 # renders are rebuilt by `npm run blender:export|build|render:test` — never edit/commit them.
 social/blender/generated/

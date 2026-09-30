@@ -64,3 +64,17 @@ npm run reels:asset:import -- ./downloads/model.glb --id office-worker-male-01 -
 
 Then update `src/assets/manifest.ts` (`bundled:true` + source/author/license)
 and append a row above.
+
+## HNC Player Diaries (committed generated binaries)
+
+Everything under `public/generated/diaries/` is rebuilt by `npm run diaries …` except:
+
+- `public/generated/diaries/ep01/vo/` — the approved EP01 dialogue takes (`L01–L30.wav`),
+  the per-character reference clips (`refs/*.wav`) and `voices.json` (take metadata + ASR check).
+  Fictional synthetic voices: reference timbres from Kokoro-82M (hexgrad, **Apache-2.0**, stock
+  voices), lines spoken by Chatterbox (Resemble AI, **MIT**; carries its imperceptible Perth
+  watermark). No real person recorded, cloned or imitated. Committed because synthetic takes are
+  not bit-reproducible across machines and their lengths drive the cut.
+- `public/generated/diaries/fonts/` — Barlow Condensed (Medium, SemiBold) and Inter from
+  github.com/google/fonts, **SIL OFL 1.1** (licence files alongside; `npm run diaries -- fonts`
+  re-fetches them).
