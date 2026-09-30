@@ -62,42 +62,42 @@ def _entry_morning(sh, door_open=0.0):
 
 
 def S10_SH03(sh):
-    """Shoes on: seated on the bench, the boot presses down into place."""
+    """Shoes on: low on the entry mat, the boot comes down and plants (the travel-top sleeve above)."""
     a = _entry_morning(sh)
     p = sh.person("TR-PLAYER-09", "travel", profile="calm")
-    b = a["bench"]
-    P.sit(p, 0.0, (b.x, b.y - 0.02, 0.0), face=0.0, seat_h=0.4, feet_fwd=0.45, e="hold")
-    f0 = p.ch["foot.R"].at(0)
-    p.key("foot.R", 0.0, (f0[0], f0[1], f0[2] + 0.08), "hold")
-    p.key("foot.R", 0.2, f0, "out")  # stamps into the shoe
-    P.reach(p, 0.0, "R", tuple(Vector(f0) + Vector((0.0, -0.05, 0.28))), dur=0.01)
-    foot = Vector(f0)
-    cam = sh.camera(50, fstop=2.2)
-    frame(cam, 0.0, foot + Vector((0, 0, 0.12)), 0.7, heading=-35, el=12, headroom=False)
+    at = Vector((0.6, 1.1, 0))
+    P.stance(p, 0.0, (at.x, at.y, 0.0), 0.0)
+    f0 = Vector(p.ch["foot.R"].at(0))
+    p.key("foot.R", 0.0, tuple(f0 + Vector((0.0, -0.05, 0.14))), "hold")
+    p.key("foot.R", 0.22, tuple(f0), "in")  # stamps into the shoe
+    p.key("hips", 0.0, (0.0, 0.0, -0.05), "hold")
+    look.spot(sh.cols["LGT"], "LGT_FloorPool", tuple(f0 + Vector((-0.4, -0.6, 1.4))), tuple(f0), 160, "#fff1dd", angle=35, blend=0.6)
+    cam = sh.camera(50, fstop=2.0)
+    frame(cam, 0.0, f0 + Vector((0.05, -0.1, 0.06)), 0.6, heading=-30, el=4, headroom=False)
     cam.handheld("subtle", 0.6)
     sh.finish()
 
 
 def S10_SH04(sh):
-    """Watch: the strap goes on the wrist (the arm's end)."""
+    """Watch: it waits on the entry bench; his hand takes it."""
     a = _entry_morning(sh)
+    b = a["bench"]
+    spot = Vector((b.x - 0.25, b.y - 0.05, b.z))
+    w = props.external(sh.cols["PROPS"], "digital_wrist_watch", loc=tuple(spot), rot=(0, 0, 25))
+    w.scale = [1.8] * 3
+    look.spot(sh.cols["LGT"], "LGT_BenchPool", tuple(spot + Vector((0.2, -0.3, 1.2))), tuple(spot), 120, "#fff1dd", angle=30, blend=0.6)
     p = sh.person("TR-PLAYER-09", "travel", profile="calm")
-    P.stance(p, 0.0, (0.3, 0.8, 0.0), 0.0)
-    P.arms(p, 0.0, "L", 60.0, 10.0, 0.0, 95.0, e="hold")  # wrist up in front of the chest
-    P.arms(p, 0.0, "R", 55.0, 5.0, 0.0, 85.0, e="hold")
-    p.bake()
-    p._baked = True
-    sh.scene.frame_set(1)
-    arm = p.rig.arm
-    wrist = arm.matrix_world @ arm.pose.bones["hand.L"].head
-    w = props.external(sh.cols["PROPS"], "digital_wrist_watch", loc=tuple(wrist), ground=False)
-    w.scale = [2.2] * 3
+    at = spot + Vector((0.1, -0.85, 0))
+    P.stance(p, 0.0, (at.x, at.y, 0.0), 0.0 + 180.0)
     bpy.context.view_layer.update()
-    p.holds = [(w, "L", 0.0, 99.0, None)]
-    p.bake_holds()
-    cam = sh.camera(85, fstop=2.0)
-    frame(cam, 0.0, wrist, 0.5, heading=-30, el=10, headroom=False)
-    cam.handheld("subtle", 0.6)
+    top = w.matrix_world.translation
+    P.reach(p, 0.0, "R", tuple(top + Vector((0.0, 0.05, 0.25))), dur=0.01)
+    p.key("hand.R", 0.14, tuple(top + Vector((0.0, 0.02, 0.06))), "out")
+    p.hold_prop(w, "R", 0.16, 99.0)
+    p.key("hand.R", 0.4, tuple(top + Vector((0.05, -0.1, 0.3))), "soft")
+    cam = sh.camera(85, fstop=2.2)
+    frame(cam, 0.0, top + Vector((0, 0, 0.16)), 0.85, heading=-60, el=24, headroom=False)  # front-left, inside the room; wide enough for his hand
+    cam.handheld("subtle", 0.5)
     sh.finish()
 
 

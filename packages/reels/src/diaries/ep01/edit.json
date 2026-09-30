@@ -3,7 +3,7 @@
   "episode": "ep01-belgium",
   "title": "48 Hours Before Belgium",
   "fps": 60,
-  "version": "v2",
+  "version": "v3-voices",
   "note": "Single source of the cut. `dur` seconds (rounded to frames); dialogue/sfx `at` are shot-relative seconds (negative = pre-lap from the previous shot, > dur = runs over the next). Blender shot builders (tools/blender/py/hnc_blender/diaries/ep01), the mixer (tools/diaries/py/mix.py) and the Remotion edit (packages/reels/src/diaries) all read this file; storyboard.md is generated from it.",
   "shots": [
     {
@@ -115,7 +115,7 @@
     {
       "id": "S02_SH02",
       "scene": "S02",
-      "dur": 3.0,
+      "dur": 2.75,
       "renderer": "blender",
       "location": "bedroom",
       "framing": "MCU #9 on the pillow from the child's eye-line (child off-screen)",
@@ -254,7 +254,7 @@
         },
         {
           "line": "L08",
-          "at": 1.68
+          "at": 1.6
         }
       ],
       "sfx": [
@@ -281,7 +281,7 @@
       "dialogue": [
         {
           "line": "L09",
-          "at": 0.02
+          "at": 0.12
         }
       ],
       "sfx": [
@@ -475,7 +475,7 @@
     {
       "id": "S05_SH04",
       "scene": "S05",
-      "dur": 1.25,
+      "dur": 1.1,
       "renderer": "blender",
       "location": "bakery",
       "framing": "MCU #9",
@@ -650,7 +650,7 @@
     {
       "id": "S06_SH06",
       "scene": "S06",
-      "dur": 2.0,
+      "dur": 1.85,
       "renderer": "blender",
       "location": "training",
       "framing": "MCU #9 over the ball, looks up at the goal",
@@ -781,7 +781,7 @@
     {
       "id": "S07_SH02",
       "scene": "S07",
-      "dur": 1.7,
+      "dur": 1.55,
       "renderer": "blender",
       "location": "living",
       "framing": "MS: child enters, places the ball beside him",
@@ -794,7 +794,7 @@
       "dialogue": [
         {
           "line": "L19",
-          "at": 1.1
+          "at": 1.0
         }
       ],
       "sfx": [
@@ -1065,7 +1065,7 @@
     {
       "id": "S09_SH02",
       "scene": "S09",
-      "dur": 1.85,
+      "dur": 1.65,
       "renderer": "blender",
       "location": "interview",
       "framing": "same, slightly wider",
@@ -1082,7 +1082,7 @@
         },
         {
           "line": "L25",
-          "at": 0.98
+          "at": 0.9
         }
       ]
     },
@@ -1217,7 +1217,7 @@
     {
       "id": "S09_SH10",
       "scene": "S09",
-      "dur": 3.0,
+      "dur": 2.85,
       "renderer": "blender",
       "location": "interview",
       "framing": "CU as SH03",
@@ -1230,7 +1230,7 @@
       "dialogue": [
         {
           "line": "L28",
-          "at": 1.05
+          "at": 0.98
         }
       ]
     },

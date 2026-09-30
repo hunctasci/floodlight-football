@@ -6,7 +6,7 @@ nothing here is committed output (plates, stems, MP4s are generated/ignored).
 ```sh
 npm run blender:export                               # canonical HNC → GLBs (cast fixtures incl. family, supporters)
 python3 tools/blender/py/fetch_external.py           # CC0 set dressing (Poly Haven), md5-verified
-npm run diaries -- voices                            # dialogue takes (Kokoro-82M, 3 takes/line, ASR-picked)
+npm run diaries -- voices [L08 L22] [--takes 5]      # Kokoro reference timbres → Chatterbox takes (3/line, ASR-picked)
 npm run diaries -- check                             # runtime, scene lengths, dialogue collisions
 npm run diaries -- storyboard                        # storyboard.md from edit.json
 npm run diaries -- ui                                # Remotion stills Blender maps into hybrid shots + grain tile
@@ -24,7 +24,16 @@ Local tools outside the repo (never committed): `HNC_DIARIES_PY` (default
 `../.tools/tts/.venv/bin/python`: numpy, scipy, soundfile, kokoro-onnx,
 faster-whisper), `HNC_TTS_DIR` (default `../.tools/tts`: `kokoro-v1.0.onnx`,
 `voices-v1.0.bin` from github.com/thewh1teagle/kokoro-onnx releases),
-`HNC_BLENDER_BIN` (Blender 5.2 LTS).
+`HNC_CHATTERBOX_PY` (default `../.tools/chatterbox/.venv/bin/python`: Python 3.11,
+`chatterbox-tts`, `faster-whisper`, `setuptools<81` — the Perth watermarker still
+imports `pkg_resources`), `HNC_BLENDER_BIN` (Blender 5.2 LTS).
+
+Voice direction lives in `dialogue.json`: per speaker `ref_text` (the neutral
+reference Kokoro renders), `exaggeration` (low = understated), `cfg` (low =
+slower, more deliberate), `temperature`; per line overrides plus `say` (what is
+voiced when it differs from the caption, e.g. "Needs… salt.", "Tur-kee-yeh").
+Chatterbox copies the reference's habits along with its timbre — keep reference
+texts free of hums and fillers.
 
 ## Single source of the cut
 

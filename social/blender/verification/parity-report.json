@@ -1,16 +1,27 @@
 {
   "schema": "hnc-blender-parity/1",
-  "inspectedAt": "2026-09-30T12:49:01+00:00",
+  "inspectedAt": "2026-09-30T15:22:31+00:00",
   "blender": "5.2.2 LTS",
   "blendFile": "social/blender/verification/hnc-parity.blend",
   "scene": "HNC_Parity",
-  "manifestGitHead": "b0a78bef5d57e28e8ea5bb042e43102eeb40fa09",
+  "manifestGitHead": "48eda54236fd8c02067eb932da97dd4062541255",
   "manifestAssets": {
     "hnc-player-tr-09": "10dd326458fd9552d3bbdc738dfc3083dd3fd7d5fb5239a6205bffb00fa22252",
     "hnc-ball": "f267325d8be15f15aa366f1d1ae63ccb82bc63fbf86fd363bbd6053e55a4ad49",
     "hnc-player-gr-04": "5520c989dfe667c44cf89250eddc63d3a60df84813b85bdd65e8f9123dffa75c",
     "hnc-player-gr-01-keeper": "75b52c7e3be7b47298169e472952d24e4478e37227b3314e8e4b363504e39307",
-    "hnc-goal": "fc4efecdfa1ea3904779e59142d0146a12da91ab7b8ac1afcde1fcbeca5e1b17"
+    "hnc-goal": "fc4efecdfa1ea3904779e59142d0146a12da91ab7b8ac1afcde1fcbeca5e1b17",
+    "hnc-player-tr-09--tee": "2a90c6c0113dfe1b4e38ae518ddbe2d139df8afcd83cbf052047ca32bca68096",
+    "hnc-player-tr-09--hoodie": "6fe0f44004b50f445bb3ad793d0cd99d0257b26a1a900be4f50b0225129881a8",
+    "hnc-player-tr-09--interview": "0e586093207fd893ec57ad8a547c1c5475d8a9e25365381bafba16b8d4eb76c5",
+    "hnc-player-tr-09--travel": "7f837bee3628b4d23a56ed3019054d6e27ff16709eaafd0bdac957425459eabf",
+    "hnc-player-tr-01-keeper": "85d0f54c464cf5ea8d836fd5be655c5f0a76c03fe0e376749e437805a29f8fbe",
+    "hnc-family-tr-child-01--tee": "3f8cd64e7860d96de9d93b45e6ae0fb4a63aff91080c588199cdd3719fcbec69",
+    "hnc-family-tr-child-01--kit": "3bb91afa41ef71ae48a696714c6b81ca544929d3ec5777ca7ced7120b43c5600",
+    "hnc-family-tr-partner-01": "6712cc9e8cf029effb5ef9706ab989cb761df0bbf95c4159ccb9316f9b155e1b",
+    "hnc-supporter-tr-elder-01": "f1d67e8b3c4ffa22bc06fc072c7771fda0d17f7c3e0d446b06732af957ec4cb3",
+    "hnc-fan-tr": "991b01e890eed7f4b0538550e2b1716771ae0b2fa7959c4838949259f4fb8386",
+    "hnc-fan-be": "fc9e0b7d9e64f799f621cd78447028199d3c409e5da925102740ef9e40f33a02"
   },
   "missingTextures": [],
   "builtFromCurrentAssets": true,
@@ -83,7 +94,7 @@
           "actual": "root"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "HNC_Player_TR_09",
           "pass": true,
           "expected": [
@@ -141,7 +152,7 @@
           "actual": "body"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Body",
           "pass": true,
           "expected": [
@@ -266,7 +277,7 @@
           "actual": "stripe"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.ChestStripe",
           "pass": true,
           "expected": [
@@ -391,7 +402,7 @@
           "actual": "number"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.ShirtNumber",
           "pass": true,
           "expected": [
@@ -510,7 +521,7 @@
           "actual": "head"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Head",
           "pass": true,
           "expected": [
@@ -635,7 +646,7 @@
           "actual": "hair"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Hair",
           "pass": true,
           "expected": [
@@ -760,7 +771,7 @@
           "actual": "eyes[0]"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Eye.R",
           "pass": true,
           "expected": [
@@ -886,7 +897,7 @@
           "actual": "eyes[1]"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Eye.L",
           "pass": true,
           "expected": [
@@ -1012,7 +1023,7 @@
           "actual": "legL"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Leg.R",
           "pass": true,
           "expected": [
@@ -1137,7 +1148,7 @@
           "actual": "legL.boot"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Boot.R",
           "pass": true,
           "expected": [
@@ -1262,7 +1273,7 @@
           "actual": "legR"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Leg.L",
           "pass": true,
           "expected": [
@@ -1387,7 +1398,7 @@
           "actual": "legR.boot"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Boot.L",
           "pass": true,
           "expected": [
@@ -1512,7 +1523,7 @@
           "actual": "armL"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Arm.R",
           "pass": true,
           "expected": [
@@ -1637,7 +1648,7 @@
           "actual": "armR"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Arm.L",
           "pass": true,
           "expected": [
@@ -1762,7 +1773,7 @@
           "actual": "shorts"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "TR09.Shorts",
           "pass": true,
           "expected": [
@@ -2296,7 +2307,7 @@
           "actual": "root"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "HNC_Ball",
           "pass": true,
           "expected": [
@@ -2354,7 +2365,7 @@
           "actual": "leather"
         },
         {
-          "check": "unit scale",
+          "check": "canonical scale",
           "node": "HNC_Ball.Leather",
           "pass": true,
           "expected": [

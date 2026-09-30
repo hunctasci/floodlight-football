@@ -1,7 +1,7 @@
 {
   "schema": "hnc-diaries-dialogue/1",
   "episode": "ep01-belgium",
-  "note": "Locked screenplay lines. Voices are fictional synthetic HNC voices (Kokoro-82M, Apache-2.0) — no real person is imitated. `phon` swaps a word for explicit phonemes (Türkiye).",
+  "note": "Locked screenplay lines. Voices are fictional synthetic HNC voices: Kokoro-82M (Apache-2.0) renders a neutral reference clip per character (its timbre = the character), Chatterbox (MIT, Resemble AI) speaks every line in that timbre with natural delivery. No real person is cloned or imitated. `phon` swaps a word for explicit phonemes (Kokoro only).",
   "speakers": {
     "INT": {
       "who": "Interviewer (off camera)",
@@ -9,7 +9,12 @@
       "lang": "en-us",
       "speed": 0.96,
       "pitch": 1.0,
-      "fx": "room"
+      "fx": "room",
+      "engine": "chatterbox",
+      "exaggeration": 0.45,
+      "cfg": 0.5,
+      "temperature": 0.75,
+      "ref_text": "So tell me a little about your mornings. What does a normal day look like for you, before a big game? Take your time, there's no rush at all."
     },
     "NINE": {
       "who": "TR-PLAYER-09",
@@ -17,7 +22,12 @@
       "lang": "en-us",
       "speed": 0.9,
       "pitch": 0.97,
-      "fx": "dry"
+      "fx": "dry",
+      "engine": "chatterbox",
+      "exaggeration": 0.3,
+      "cfg": 0.3,
+      "temperature": 0.7,
+      "ref_text": "I don't really think about it too much. You wake up, you have breakfast, you drive. It's a normal day, honestly. The rest happens on the pitch."
     },
     "CHILD": {
       "who": "TR-FAMILY-CHILD-01",
@@ -25,7 +35,12 @@
       "lang": "en-us",
       "speed": 0.84,
       "pitch": 1.24,
-      "fx": "dry"
+      "fx": "dry",
+      "engine": "chatterbox",
+      "exaggeration": 0.5,
+      "cfg": 0.45,
+      "temperature": 0.75,
+      "ref_text": "I already brushed my teeth and I found my shoes. Can we go now? You said we would go early today. I remember."
     },
     "PARTNER": {
       "who": "TR-FAMILY-PARTNER-01",
@@ -33,7 +48,12 @@
       "lang": "en-gb",
       "speed": 0.95,
       "pitch": 1.0,
-      "fx": "dry"
+      "fx": "dry",
+      "engine": "chatterbox",
+      "exaggeration": 0.3,
+      "cfg": 0.35,
+      "temperature": 0.7,
+      "ref_text": "It's fine. It's good, actually. I just think it could use a little something. We can talk about it later, okay?"
     },
     "ELDER": {
       "who": "TR-SUPPORTER-ELDER-01",
@@ -41,7 +61,12 @@
       "lang": "en-gb",
       "speed": 0.86,
       "pitch": 0.9,
-      "fx": "dry"
+      "fx": "dry",
+      "engine": "chatterbox",
+      "exaggeration": 0.55,
+      "cfg": 0.3,
+      "temperature": 0.75,
+      "ref_text": "I have been coming to this bakery for forty years. Every morning, the same bread, the same table. And I watch every match."
     },
     "RADIO": {
       "who": "Radio presenter (fictional)",
@@ -49,7 +74,12 @@
       "lang": "en-us",
       "speed": 1.08,
       "pitch": 1.0,
-      "fx": "radio"
+      "fx": "radio",
+      "engine": "chatterbox",
+      "exaggeration": 0.65,
+      "cfg": 0.5,
+      "temperature": 0.8,
+      "ref_text": "Good morning and welcome back. The traffic is heavy on the ring road, and later we'll look ahead to the big match on Friday."
     }
   },
   "phonemes": {
@@ -65,7 +95,8 @@
       "id": "L02",
       "speaker": "NINE",
       "text": "Ask Belgium.",
-      "speed": 0.86
+      "speed": 0.86,
+      "exaggeration": 0.35
     },
     {
       "id": "L03",
@@ -98,7 +129,9 @@
     {
       "id": "L08",
       "speaker": "INT",
-      "text": "That's it?"
+      "text": "That's it?",
+      "exaggeration": 0.3,
+      "cfg": 0.35
     },
     {
       "id": "L09",
@@ -140,7 +173,9 @@
       "id": "L16",
       "speaker": "ELDER",
       "text": "Two!",
-      "speed": 0.8
+      "speed": 0.8,
+      "exaggeration": 0.85,
+      "cfg": 0.4
     },
     {
       "id": "L17",
@@ -161,7 +196,8 @@
     {
       "id": "L20",
       "speaker": "PARTNER",
-      "text": "Careful!"
+      "text": "Careful!",
+      "exaggeration": 0.7
     },
     {
       "id": "L21",
@@ -171,7 +207,10 @@
     {
       "id": "L22",
       "speaker": "PARTNER",
-      "text": "Needs salt."
+      "text": "Needs salt.",
+      "exaggeration": 0.25,
+      "cfg": 0.3,
+      "say": "Needs... salt."
     },
     {
       "id": "L23",
@@ -199,13 +238,17 @@
       "id": "L27",
       "speaker": "NINE",
       "text": "You feel like everyone's coming with you.",
-      "speed": 0.9
+      "speed": 0.9,
+      "exaggeration": 0.35,
+      "cfg": 0.3
     },
     {
       "id": "L28",
       "speaker": "NINE",
       "text": "Even when you're playing away.",
-      "speed": 0.84
+      "speed": 0.84,
+      "exaggeration": 0.35,
+      "cfg": 0.3
     },
     {
       "id": "L29",
@@ -216,7 +259,11 @@
       "id": "L30",
       "speaker": "NINE",
       "text": "Ask Belgium.",
-      "speed": 0.86
+      "speed": 0.86,
+      "exaggeration": 0.35
     }
-  ]
+  ],
+  "say": {
+    "Türkiye": "Tur-kee-yeh"
+  }
 }

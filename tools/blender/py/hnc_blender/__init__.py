@@ -9,7 +9,11 @@ import importlib
 
 
 def reload():
-    """Reload all submodules (the MCP keeps one long-lived Python session)."""
+    """Reload all submodules (the MCP keeps one long-lived Python session), incl. the
+    cinematic kit (cine) and the Player Diaries shot builders (diaries)."""
+    import sys
     from . import paths, interchange, scene, inspect_parity, render, studio, plates, plates_the_current
     for mod in (paths, interchange, scene, inspect_parity, render, studio, plates, plates_the_current):
         importlib.reload(mod)
+    for name in sorted(n for n in sys.modules if n.startswith(("hnc_blender.cine", "hnc_blender.diaries"))):
+        importlib.reload(sys.modules[name])

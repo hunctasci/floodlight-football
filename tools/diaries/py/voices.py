@@ -70,12 +70,28 @@ def normalise(a, rms_db=-21.0, peak_db=-3.0):
     return (a * g).astype(np.float32)
 
 
+def refs(spec, out_dir, tts):
+    """Kokoro renders each character's neutral reference clip (its timbre = the character)."""
+    rd = out_dir / "refs"
+    rd.mkdir(parents=True, exist_ok=True)
+    for key, sp in spec["speakers"].items():
+        if "ref_text" not in sp:
+            continue
+        a, sr = tts.create(sp["ref_text"], voice=sp["voice"], speed=sp["speed"] / sp["pitch"], lang=sp["lang"])
+        a = resample(a.astype(np.float32), int(round(sr * sp["pitch"])), SR)
+        sf.write(rd / f"{key}.wav", normalise(trim(a, SR)), SR, subtype="PCM_24")
+        print(f"ref {key}: {len(a) / SR:.1f}s ({sp['voice']})")
+
+
 def main():
     spec_path, out_dir = Path(sys.argv[1]), Path(sys.argv[2])
     only = set(sys.argv[3:])
     spec = json.loads(spec_path.read_text())
     out_dir.mkdir(parents=True, exist_ok=True)
     from kokoro_onnx import Kokoro
+    if "--refs" in only:
+        refs(spec, out_dir, Kokoro(str(TTS_DIR / "kokoro-v1.0.onnx"), str(TTS_DIR / "voices-v1.0.bin")))
+        return
     from faster_whisper import WhisperModel
     tts = Kokoro(str(TTS_DIR / "kokoro-v1.0.onnx"), str(TTS_DIR / "voices-v1.0.bin"))
     asr = WhisperModel("base.en", device="cpu", compute_type="int8")

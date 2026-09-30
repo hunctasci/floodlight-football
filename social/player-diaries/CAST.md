@@ -8,15 +8,15 @@ every import is parity-inspected before it is rigged
 (`tools/blender/py/hnc_blender/cine/cast.py`, `PEOPLE` maps canon id → looks).
 Reels cast the adult players by `person` id (`packages/reels/src/cast/people.ts`).
 
-| Canon id | Who | Build | Looks (asset ids) | Voice (fictional, synthetic) |
+| Canon id | Who | Build | Looks (asset ids) | Voice (fictional, synthetic: Kokoro timbre → Chatterbox delivery) |
 |---|---|---|---|---|
-| `TR-PLAYER-09` | Türkiye #9 (Reels person `emre`; unnamed on screen in Player Diaries) | adult, id 9 → skin 1 | `kit` hnc-player-tr-09 · `home` …--tee (bone tee) · `hoodie` …--hoodie (charcoal) · `interview` …--interview (dark tee) · `travel` …--travel (red team top) | Kokoro `am_michael`, speed 0.84–0.9, pitch 0.97 |
-| `TR-FAMILY-CHILD-01` | his child | **child proportions**, id 5 → skin 1 (Dad's skin) | `home` hnc-family-tr-child-01--tee (mustard tee) · `kit` …--kit (replica #9 shirt + jeans, from the evening on) | Kokoro `af_bella` pitched ×1.24 |
-| `TR-FAMILY-PARTNER-01` | his partner | adult, id 6 → skin 2 | `home` hnc-family-tr-partner-01 (sage tee, brown hair, bun) | Kokoro `bf_isabella` |
-| `TR-SUPPORTER-ELDER-01` | the bakery regular | adult, id 12 → skin 0, stoop in the rig | `home` hnc-supporter-tr-elder-01 (`elder` wardrobe: tweed jacket, TR scarf, flat cap, grey hair, moustache) | Kokoro `bm_george`, speed 0.86, pitch 0.9 |
+| `TR-PLAYER-09` | Türkiye #9 (Reels person `emre`; unnamed on screen in Player Diaries) | adult, id 9 → skin 1 | `kit` hnc-player-tr-09 · `home` …--tee (bone tee) · `hoodie` …--hoodie (charcoal) · `interview` …--interview (dark tee) · `travel` …--travel (red team top) | `am_michael` ref · exaggeration 0.3, cfg 0.3 (calm, deliberate) |
+| `TR-FAMILY-CHILD-01` | his child | **child proportions**, id 5 → skin 1 (Dad's skin) | `home` hnc-family-tr-child-01--tee (mustard tee) · `kit` …--kit (replica #9 shirt + jeans, from the evening on) | `af_bella` ref pitched ×1.24 · exaggeration 0.5 |
+| `TR-FAMILY-PARTNER-01` | his partner | adult, id 6 → skin 2 | `home` hnc-family-tr-partner-01 (sage tee, brown hair, bun) | `bf_isabella` ref · exaggeration 0.3 (deadpan) |
+| `TR-SUPPORTER-ELDER-01` | the bakery regular | adult, id 12 → skin 0, stoop in the rig | `home` hnc-supporter-tr-elder-01 (`elder` wardrobe: tweed jacket, TR scarf, flat cap, grey hair, moustache) | `bm_george` ref, pitch 0.9 · exaggeration 0.55 (0.85 on "Two!") |
 | `TR-PLAYER-01-GK` | the training keeper | adult keeper kit | hnc-player-tr-01-keeper | — |
 | `FAN-TR` / `FAN-BE` | matchday supporters | adult `fan` wardrobe | hnc-fan-tr · hnc-fan-be | — |
-| Interviewer | off camera, always | — | — | Kokoro `af_heart` |
+| Interviewer | off camera, always | — | — | `af_heart` ref · exaggeration 0.45 |
 
 ## Personality (how they act — the rig makes it possible, this makes it right)
 

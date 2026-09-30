@@ -30,6 +30,7 @@ const DIALOGUE = path.join(REPO, 'packages/reels/src/diaries', EP, 'dialogue.jso
 const GEN = path.join(REPO, 'packages/reels/public/generated/diaries', EP);
 const OUT = path.join(REPO, 'social/output/player-diaries/ep01-belgium');
 const PY = process.env.HNC_DIARIES_PY ?? path.join(REPO, '..', '.tools', 'tts', '.venv', 'bin', 'python');
+const CHATTERBOX_PY = process.env.HNC_CHATTERBOX_PY ?? path.join(REPO, '..', '.tools', 'chatterbox', '.venv', 'bin', 'python');
 const BLENDER = process.env.HNC_BLENDER_BIN ?? '/Applications/Blender.app/Contents/MacOS/Blender';
 
 const args = process.argv.slice(2);
@@ -276,7 +277,12 @@ function check(): void {
 
 const commands: Record<string, () => unknown> = {
   check,
-  voices: () => run(PY, [path.join(REPO, 'tools/diaries/py/voices.py'), DIALOGUE, path.join(GEN, 'vo'), ...args.slice(1).filter((a) => /^L\d+$/.test(a))]),
+  // Kokoro renders each fictional character's reference timbre; Chatterbox speaks the lines in it.
+  voices: () => {
+    const lines = args.slice(1).filter((a) => /^L\d+$/.test(a));
+    run(PY, [path.join(REPO, 'tools/diaries/py/voices.py'), DIALOGUE, path.join(GEN, 'vo'), '--refs']);
+    run(CHATTERBOX_PY, [path.join(REPO, 'tools/diaries/py/voices_chatterbox.py'), DIALOGUE, path.join(GEN, 'vo'), ...lines, ...(opt('takes') ? [`--takes=${opt('takes')}`] : [])]);
+  },
   plates,
   ui: () => run('npx', ['tsx', 'scripts/diaries-ui.ts', '--episode', EP], path.join(REPO, 'packages/reels')),
   audio: () => run(PY, [path.join(REPO, 'tools/diaries/py/mix.py'), EDIT, DIALOGUE, GEN]),

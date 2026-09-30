@@ -30,7 +30,6 @@ EXTERNAL = {
     "cobblestone_street_night": ("hdri", "2k"),
     "suburban_football_field": ("hdri", "8k"),
     "stadium_exterior": ("hdri", "8k"),
-    "comfy_cafe": ("hdri", "2k"),
     "urban_street_04": ("hdri", "4k"),
     # Textures
     "wood_floor": ("texture", "2k"),
@@ -46,7 +45,6 @@ EXTERNAL = {
     "asphalt_02": ("texture", "2k"),
     "floor_tiles_06": ("texture", "2k"),
     "painted_plaster_wall": ("texture", "2k"),
-    "knitted_fleece": ("texture", "1k"),
     # Models (furniture / props)
     "sofa_02": ("model", "2k"),
     "modern_coffee_table_01": ("model", "2k"),
@@ -54,12 +52,8 @@ EXTERNAL = {
     "WoodenTable_02": ("model", "2k"),
     "potted_plant_01": ("model", "1k"),
     "potted_plant_04": ("model", "1k"),
-    "throw_pillows_01": ("model", "1k"),
     "standing_picture_frame_01": ("model", "1k"),
-    "decorative_book_set_01": ("model", "1k"),
     "ClassicNightstand_01": ("model", "1k"),
-    "modern_ceiling_lamp_01": ("model", "1k"),
-    "ceramic_vase_01": ("model", "1k"),
     "wooden_cutting_board": ("model", "1k"),
     "wooden_bowl_01": ("model", "1k"),
     "lemon": ("model", "1k"),
@@ -69,10 +63,7 @@ EXTERNAL = {
     "CashRegister_01": ("model", "1k"),
     "wicker_basket_01": ("model", "1k"),
     "modern_arm_chair_01": ("model", "1k"),
-    "desk_lamp_arm_01": ("model", "1k"),
     "digital_wrist_watch": ("model", "1k"),
-    "mounted_fluorescent_lights": ("model", "1k"),
-    "street_lamp_01": ("model", "1k"),
     "concrete_road_barrier": ("model", "1k"),
 }
 
