@@ -14,7 +14,11 @@ def _episode(ep):
     return dict(edit=REPO_ROOT / "packages" / "reels" / "src" / "diaries" / ep / "edit.json", voices=gen / "vo" / "voices.json", vo=gen / "vo")
 
 
-EPISODES = {ep: _episode(ep) for ep in ("ep01", "rivals")}
+EPISODES = {ep: _episode(ep) for ep in ("ep01", "rivals", "italy-rematch")}
+# Python package names cannot contain the episode's locked hyphenated id.
+# Keep the public episode id for edit/cache data while resolving shot modules
+# through the repository's underscore package convention.
+EPISODES["italy_rematch"] = EPISODES["italy-rematch"]
 
 COLLECTIONS = ("SET", "CAST", "PROPS", "LGT", "CAM", "FX")
 

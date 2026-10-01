@@ -23,11 +23,13 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findBlender } from '../blender/src/paths.ts';
+import { finalRender } from './final-render.ts';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const argvAll = process.argv.slice(2);
 // --episode <id> (default ep01): packages/reels/src/diaries/<id>/ + tools/blender/py/hnc_blender/diaries/<id>/
 const EP = argvAll.includes('--episode') ? argvAll[argvAll.indexOf('--episode') + 1] : 'ep01';
+const EP_DIR = EP.replace(/-/g, '_');
 const OUT_DIRS: Record<string, string> = { ep01: 'ep01-belgium', rivals: 'rivals-one-goal' };
 const EDIT = path.join(REPO, 'packages/reels/src/diaries', EP, 'edit.json');
 const DIALOGUE = path.join(REPO, 'packages/reels/src/diaries', EP, 'dialogue.json');
@@ -97,7 +99,7 @@ function sourcesHash(): string {
  * Fixing one shot never invalidates its siblings.
  */
 function shotSourceHash(id: string): string {
-  const file = path.join(REPO, 'tools/blender/py/hnc_blender/diaries', EP, `s${id.slice(1, 3)}.py`);
+  const file = path.join(REPO, 'tools/blender/py/hnc_blender/diaries', EP_DIR, `s${id.slice(1, 3)}.py`);
   const text = readFileSync(file, 'utf8');
   const blocks = text.split(/\n(?=\S)/);
   const shared = blocks.filter((b) => !/^def S\d\d_SH\d\d\(/.test(b)).join('\n');
@@ -354,6 +356,7 @@ async function fonts(): Promise<void> {
 }
 
 const commands: Record<string, () => unknown> = {
+  'final-render': finalRender,
   check,
   fonts,
   // Kokoro renders each fictional character's reference timbre; Chatterbox speaks the lines in it.

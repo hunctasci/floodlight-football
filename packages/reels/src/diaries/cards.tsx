@@ -107,6 +107,26 @@ export const EndCard: React.FC<{ frame: number; fps: number; series: string }> =
   );
 };
 
+/** Italy-rematch's short final punctuation: fixture, date, then the league name. */
+export const ItalyRematchEndCard: React.FC<{ frame: number; fps: number }> = ({ frame, fps }) => {
+  const fixture = spring({ frame: frame - 2, fps, config: { damping: 24, stiffness: 190, mass: 0.75 } });
+  const date = interpolate(frame, [10, 17], [0, 1], clamp);
+  const league = spring({ frame: frame - 32, fps, config: { damping: 22, stiffness: 170, mass: 0.7 } });
+  return (
+    <AbsoluteFill style={{ background: '#101b31', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      <div style={{ position: 'absolute', top: -190, right: -230, width: 720, height: 720, borderRadius: 999, background: '#f5efe313', border: '2px solid #f5efe52a' }} />
+      <div style={{ position: 'absolute', bottom: 248, left: 90, right: 90, height: 3, background: HNC_BRAND.colors.red, opacity: fixture }} />
+      <div style={{ textAlign: 'center', color: '#f6f2e9', marginTop: -55 }}>
+        <div style={{ fontFamily: DIARY_TYPE.display, fontWeight: 600, fontSize: 110, letterSpacing: 6, opacity: fixture, transform: `translateY(${interpolate(fixture, [0, 1], [28, 0])}px)` }}>ITALY</div>
+        <div style={{ fontFamily: DIARY_TYPE.text, fontWeight: 600, fontSize: 30, letterSpacing: 11, margin: '14px 0', color: '#d7d1c5', opacity: fixture }}>VS</div>
+        <div style={{ fontFamily: DIARY_TYPE.display, fontWeight: 600, fontSize: 110, letterSpacing: 3, opacity: fixture, transform: `translateY(${interpolate(fixture, [0, 1], [28, 0])}px)` }}>TÜRKİYE</div>
+        <div style={{ fontFamily: DIARY_TYPE.text, fontWeight: 650, fontSize: 31, letterSpacing: 8, color: '#e0d9ca', marginTop: 42, opacity: date }}>5 OCTOBER</div>
+        <div style={{ fontFamily: DIARY_TYPE.display, fontWeight: 600, fontSize: 72, letterSpacing: 12, color: '#f6f2e9', marginTop: 115, opacity: league, transform: `translateY(${interpolate(league, [0, 1], [16, 0])}px)` }}>HNC LEAGUE</div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
 /**
  * The frame-0 hook: a native POV caption (white box, black semibold), the
  * format our best-performing reel opened on. Fully visible on the very first

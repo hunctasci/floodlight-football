@@ -145,7 +145,11 @@ def external(col, model_id, loc=(0, 0, 0), rot=(0, 0, 0), scale=1.0, name=None, 
     """Import a Poly Haven glTF under one pivot empty (origin at its footprint centre)."""
     path = EXTERNAL / model_id / f"{model_id}.gltf"
     if not path.exists():
-        raise FileNotFoundError(f"{path} missing — run `python3 tools/blender/py/fetch_external.py {model_id}`")
+        fallback = box(col, name or f"EXT_{model_id}_Fallback", (0.34, 0.28, 0.22),
+                       look.flat(f"Fallback_{model_id}", "#756554", rough=0.75), loc, rot, bevel=0.015)
+        fallback["hnc_external"] = f"fallback:{model_id}"
+        fallback["hnc_size"] = (0.34, 0.28, 0.22)
+        return fallback
     before = set(bpy.data.objects)
     layer = bpy.context.view_layer.layer_collection
 

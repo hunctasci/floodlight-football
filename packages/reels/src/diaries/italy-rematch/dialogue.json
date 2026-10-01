@@ -1,0 +1,28 @@
+{
+  "schema": "hnc-diaries-dialogue/1",
+  "episode": "italy-rematch",
+  "note": "Only the two approved spoken lines in the locked cut.",
+  "speakers": {
+    "NINE": {
+      "who": "TR-PLAYER-09 (Türkiye #9)",
+      "lang": "en-us",
+      "fx": "dry"
+    }
+  },
+  "lines": [
+    {
+      "id": "L01",
+      "speaker": "NINE",
+      "text": "Really?",
+      "tr": "Cidden mi?",
+      "delivery": "dry, understated, slightly annoyed"
+    },
+    {
+      "id": "L02",
+      "speaker": "NINE",
+      "text": "Enough.",
+      "tr": "Yeter.",
+      "delivery": "quiet, final, not angry"
+    }
+  ]
+}

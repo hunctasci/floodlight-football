@@ -32,6 +32,7 @@ PEOPLE = {
     "BE-FAMILY-MUM-01": {"home": "hnc-family-be-mum-01"},
     "TR-PLAYER-10": {"kit": "hnc-player-tr-10"},
     "BE-PLAYER-10": {"kit": "hnc-player-be-10"},
+    "IT-PLAYER-08": {"kit": "hnc-player-it-08"},
 }
 
 PROFILE = {
@@ -40,6 +41,7 @@ PROFILE = {
     "TR-PLAYER-09-KID": "child",
     "BE-PLAYER-04-KID": "child",
     "BE-PLAYER-04": "calm",
+    "IT-PLAYER-08": "calm",
     "TR-FAMILY-PARTNER-01": "calm",
     "TR-SUPPORTER-ELDER-01": "elder",
 }

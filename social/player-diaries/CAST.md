@@ -16,6 +16,7 @@ Reels cast the adult players by `person` id (`packages/reels/src/cast/people.ts`
 | `TR-SUPPORTER-ELDER-01` | the bakery regular | adult, id 12 → skin 0, stoop in the rig | `home` hnc-supporter-tr-elder-01 (`elder` wardrobe: tweed jacket, TR scarf, flat cap, grey hair, moustache) | `bm_george` ref, pitch 0.9 · exaggeration 0.55 (0.85 on "Two!") |
 | `TR-PLAYER-01-GK` | the training keeper | adult keeper kit | hnc-player-tr-01-keeper | — |
 | `FAN-TR` / `FAN-BE` | matchday supporters | adult `fan` wardrobe | hnc-fan-tr · hnc-fan-be | — |
+| `IT-PLAYER-08` | Italy #8, original fictional technical-rival midfielder | adult, id 8 → skin 0 | `kit` hnc-player-it-08 · canonical Italy-inspired blue/white treatment, number 8 | — |
 | Interviewer | off camera, always | — | — | `af_heart` ref · exaggeration 0.45 |
 
 ## Personality (how they act — the rig makes it possible, this makes it right)

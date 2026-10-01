@@ -119,10 +119,15 @@ def cmd_acting_test(args):
 def cmd_diaries_shot(args):
     import importlib
     from hnc_blender.diaries.shot import Shot
-    ep = importlib.import_module(f"hnc_blender.diaries.{args.episode}")
+    ep = importlib.import_module(f"hnc_blender.diaries.{args.episode.replace('-', '_')}")
     sc = _fresh_scene(f"HNC_{args.episode}_{args.shot}")
     sh = Shot(sc, args.episode, args.shot, args.quality)
     ep.SHOTS[args.shot](sh)
+    if args.fps != sh.fps:
+        from hnc_blender.diaries.retime import retime_scene
+        retime_scene(sc, sh.fps, args.fps)
+        sh.frames = round(sh.frames * args.fps / sh.fps)
+        sh.dur = sh.frames / args.fps
     if args.save_blend:
         _save(REPO_ROOT / "social" / "blender" / "diaries" / args.episode / f"{args.shot}.blend")
     frames = tuple(int(x) for x in args.frames.split("-")) if args.frames else None
@@ -170,7 +175,8 @@ def main():
     ds = sub.add_parser("diaries-shot")
     ds.add_argument("--episode", default="ep01")
     ds.add_argument("--shot", required=True)
-    ds.add_argument("--quality", default="preview", choices=["animatic", "preview", "final", "release"])
+    ds.add_argument("--quality", default="preview", choices=["animatic", "preview", "final", "release", "final60"])
+    ds.add_argument("--fps", type=int, default=30, help="delivery fps; scene is safely retimed from edit fps")
     ds.add_argument("--out", required=True)
     ds.add_argument("--frames")
     ds.add_argument("--stills")

@@ -100,6 +100,9 @@ export const HNC_EXPORT_FIXTURES: readonly HncExportFixture[] = [
   // The 1957 newsreel: two players of the era who are neither of our rivals (their own numbers, their own faces).
   { kind: 'player', assetId: 'hnc-player-tr-10', country: 'TR', number: 10, id: 10, keeper: false, purpose: 'cast' },
   { kind: 'player', assetId: 'hnc-player-be-10', country: 'BE', number: 10, id: 10, keeper: false, purpose: 'cast' },
+  // HNC Player Diaries Italy rematch: original fictional Italy #8 midfielder.
+  // Uses the shared IT country palette and canonical player factory; no official marks.
+  { kind: 'player', assetId: 'hnc-player-it-08', country: 'IT', number: 8, id: 8, keeper: false, purpose: 'cast' },
 ];
 
 export interface HncExpectedMaterial {

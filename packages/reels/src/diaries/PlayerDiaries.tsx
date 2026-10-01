@@ -3,7 +3,7 @@ import { AbsoluteFill, Audio, Img, Sequence, staticFile, useCurrentFrame, useVid
 import type { ContentSpec } from '../engine/spec/types';
 import { ContentComposition } from '../render/ContentComposition';
 import { Captions, captionCues } from './Captions';
-import { EndCard, HookBox, MatchCard, NextEpisode, QuestionCard, TimeStamp, TitleCard } from './cards';
+import { EndCard, HookBox, ItalyRematchEndCard, MatchCard, NextEpisode, QuestionCard, TimeStamp, TitleCard } from './cards';
 import { ArchiveGate, lookFilter, Super, TVInRoom } from './Memory';
 import { KineticOver, StatsOpener } from './Opener';
 import { EPISODES, timeline, type Quality, type TimedShot } from './edit';
@@ -16,6 +16,10 @@ export interface PlayerDiariesProps {
   review?: boolean;
   /** Burned-in speaker captions — on in the master since v3 (mouthless characters); false = clean. */
   captions?: boolean;
+  /** Review renders may omit absent episode stems without generating any audio. */
+  audio?: boolean;
+  /** Delivery timebase; builders remain authored against edit.fps. */
+  deliveryFps?: number;
 }
 
 const pad4 = (n: number): string => String(n).padStart(4, '0');
@@ -63,6 +67,7 @@ const Shot: React.FC<{ episode: string; quality: Quality; shot: TimedShot; phone
   const sc = shot.screen;
   if (sc?.type === 'title') return <TitleCard frame={frame} fps={fps} title={sc.title} kicker={sc.kicker} />;
   if (sc?.type === 'end') return <EndCard frame={frame} fps={fps} series={sc.series} />;
+  if (shot.id === 'S16_SH01' && episode === 'italy-rematch') return <ItalyRematchEndCard frame={frame} fps={fps} />;
   if (sc?.type === 'tv') return <TVInRoom score={sc.score} frame={frame} />;
   if (sc?.type === 'opener') return <StatsOpener frame={frame} fps={fps} beats={sc.beats} />;
   if (shot.renderer !== 'remotion') {
@@ -117,14 +122,15 @@ const Review: React.FC<{ shots: TimedShot[] }> = ({ shots }) => {
   );
 };
 
-export const PlayerDiaries: React.FC<PlayerDiariesProps> = ({ episode, quality, review, captions = true }) => {
+export const PlayerDiaries: React.FC<PlayerDiariesProps> = ({ episode, quality, review, captions = true, audio = true, deliveryFps }) => {
   useDiaryFonts();
   const frame = useCurrentFrame();
   const ep = EPISODES[episode];
-  const { shots } = timeline(ep.edit);
+  const fps = deliveryFps ?? ep.edit.fps;
+  const { shots } = timeline(ep.edit, fps);
   const cues = React.useMemo(
-    () => captionCues(shots, ep.edit.fps, new Map(ep.dialogue.lines.map((l) => [l.id, ep.subtitles === 'tr' && l.tr ? { ...l, text: l.tr } : l])), ep.voices),
-    [shots, ep],
+    () => captionCues(shots, fps, new Map(ep.dialogue.lines.map((l) => [l.id, ep.subtitles === 'tr' && l.tr ? { ...l, text: l.tr } : l])), ep.voices),
+    [shots, ep, fps],
   );
   const stem = (name: string) => staticFile(`generated/diaries/${episode}/audio/${name}.wav`);
   return (
@@ -158,14 +164,15 @@ export const PlayerDiaries: React.FC<PlayerDiariesProps> = ({ episode, quality, 
       )}
       {captions ? <Captions cues={cues} /> : null}
       {review ? <Review shots={shots} /> : null}
-      {['dialogue', 'sfx', 'ambience', 'music'].map((n) => (
+      {audio ? ['dialogue', 'sfx', 'ambience', 'music'].map((n) => (
         <Audio key={n} src={stem(n)} />
-      ))}
+      )) : null}
     </AbsoluteFill>
   );
 };
 
 export const playerDiariesMetadata = ({ props }: { props: PlayerDiariesProps }) => {
   const ep = EPISODES[props.episode];
-  return { durationInFrames: timeline(ep.edit).total, fps: ep.edit.fps, width: 1080, height: 1920 };
+  const fps = props.deliveryFps ?? ep.edit.fps;
+  return { durationInFrames: timeline(ep.edit, fps).total, fps, width: 1080, height: 1920 };
 };

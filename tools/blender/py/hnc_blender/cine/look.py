@@ -263,7 +263,12 @@ def world(scene, color="#101216", strength=1.0, hdri=None, hdri_strength=1.0, ro
     bg = n["Background"]
     out = n["World Output"]
     if hdri:
-        path = next(EXTERNAL.joinpath(hdri).glob("*.hdr"))
+        paths = list(EXTERNAL.joinpath(hdri).glob("*.hdr"))
+        if not paths:
+            hdri = None
+        else:
+            path = paths[0]
+    if hdri:
         env = n.new("ShaderNodeTexEnvironment")
         env.image = _img(path, "Linear Rec.709")
         coord = n.new("ShaderNodeTexCoord")
@@ -304,6 +309,8 @@ QUALITY = {
     "final": dict(samples=96, pct=100, blur=True, vol=96, rt=True),
     # full resolution, a third of the samples: ~3x faster than final; the edit's grain hides the difference
     "release": dict(samples=32, pct=100, blur=True, vol=48, rt=True),
+    # Delivery profile: authored at 30fps then retimed to a true 60fps scene.
+    "final60": dict(samples=256, pct=100, blur=True, vol=96, rt=True),
 }
 
 
@@ -316,14 +323,17 @@ def setup_render(scene, frames, quality="preview", exposure=0.0, look_name="None
     scene.frame_start, scene.frame_end = 1, frames
     r.engine = "BLENDER_EEVEE"
     ee = scene.eevee
-    ee.taa_render_samples = q["samples"]
+    # Blender 5.2 retains this EEVEE sampling property.  Keep the guard so a
+    # future Blender API change does not prevent a final render from starting.
+    if hasattr(ee, "taa_render_samples"):
+        ee.taa_render_samples = q["samples"]
     ee.use_shadows = True
-    ee.shadow_ray_count = 2 if quality == "final" else 1
-    ee.shadow_step_count = 8 if quality == "final" else 4
+    ee.shadow_ray_count = 2 if quality in ("final", "final60") else 1
+    ee.shadow_step_count = 8 if quality in ("final", "final60") else 4
     ee.use_raytracing = q["rt"]
-    ee.ray_tracing_options.resolution_scale = "1" if quality == "final" else "2"
+    ee.ray_tracing_options.resolution_scale = "1" if quality in ("final", "final60") else "2"
     ee.use_fast_gi = True
-    ee.volumetric_tile_size = "4" if quality != "final" else "2"
+    ee.volumetric_tile_size = "4" if quality not in ("final", "final60") else "2"
     ee.volumetric_samples = q["vol"]
     ee.use_volumetric_shadows = True
     r.use_motion_blur = q["blur"]

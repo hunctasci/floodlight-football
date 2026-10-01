@@ -1,10 +1,10 @@
 {
   "schema": "hnc-blender-parity/1",
-  "inspectedAt": "2026-09-30T15:22:31+00:00",
+  "inspectedAt": "2026-10-01T18:02:29+00:00",
   "blender": "5.2.2 LTS",
   "blendFile": "social/blender/verification/hnc-parity.blend",
   "scene": "HNC_Parity",
-  "manifestGitHead": "48eda54236fd8c02067eb932da97dd4062541255",
+  "manifestGitHead": "2f524c8bedbf522262d1a3fbf9caaeecc4494a4b",
   "manifestAssets": {
     "hnc-player-tr-09": "10dd326458fd9552d3bbdc738dfc3083dd3fd7d5fb5239a6205bffb00fa22252",
     "hnc-ball": "f267325d8be15f15aa366f1d1ae63ccb82bc63fbf86fd363bbd6053e55a4ad49",
@@ -21,7 +21,16 @@
     "hnc-family-tr-partner-01": "6712cc9e8cf029effb5ef9706ab989cb761df0bbf95c4159ccb9316f9b155e1b",
     "hnc-supporter-tr-elder-01": "f1d67e8b3c4ffa22bc06fc072c7771fda0d17f7c3e0d446b06732af957ec4cb3",
     "hnc-fan-tr": "991b01e890eed7f4b0538550e2b1716771ae0b2fa7959c4838949259f4fb8386",
-    "hnc-fan-be": "fc9e0b7d9e64f799f621cd78447028199d3c409e5da925102740ef9e40f33a02"
+    "hnc-fan-be": "fc9e0b7d9e64f799f621cd78447028199d3c409e5da925102740ef9e40f33a02",
+    "hnc-player-be-04": "fbe67969eb4353354287e731d5282e6e2aace904cca76a2b5994f08207ec411a",
+    "hnc-player-be-04--interview": "956ea75dde0c9de1245fb5d8a520afcd1dc1a0145533dee272b0eedeed8e5b42",
+    "hnc-player-tr-09--kid": "1a712373d966a83dd3b7fa6ad20636f2a5e915710eaa1dced1ce5f7b198b4d43",
+    "hnc-player-be-04--kid": "44749a454762ec5fec925ea872338caf188ed3429055e42cb11f7c6edbdc67ba",
+    "hnc-family-tr-father-01": "91b96b4e64cac34103cc29346ffbe5cb5a4e50c9ef59955203041b3521289e01",
+    "hnc-family-be-mum-01": "aa25c26e1d6455e95c12a281e86e9ec873fdcdca01eb4960b4ae30d6964f9335",
+    "hnc-player-tr-10": "017ad85316d1e7e2436f0c1d44cd027b59d8b99f2a0a6551f40a2c46c76de3cd",
+    "hnc-player-be-10": "7a05213a6da7d082faadbac38a74abf6b1457592766dde13b5a4017f772274b6",
+    "hnc-player-it-08": "0b1ff6da15098cefadffac48abbf73725876ed05fe2e4a879d2faabbcede54dd"
   },
   "missingTextures": [],
   "builtFromCurrentAssets": true,

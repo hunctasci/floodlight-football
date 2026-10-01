@@ -13,6 +13,8 @@ import rivalsVoices from '../../public/generated/diaries/rivals/vo/voices.json';
 import { RIVALS_CHAT_OPEN, RIVALS_CHAT_TEASER } from './rivals/chat';
 import rivals from './rivals/edit.json';
 import rivalsDialogue from './rivals/dialogue.json';
+import italyRematch from './italy-rematch/edit.json';
+import italyRematchDialogue from './italy-rematch/dialogue.json';
 import type { TVScore } from './Memory';
 import type { OpenerBeat } from './Opener';
 
@@ -77,6 +79,7 @@ export interface DiaryEpisode {
 export const EPISODES: Record<string, DiaryEpisode> = {
   ep01: { edit: ep01 as unknown as DiaryEdit, dialogue: ep01Dialogue, voices: ep01Voices, phones: { open: EP01_CHAT_OPEN, teaser: EP01_CHAT_TEASER } },
   rivals: { subtitles: 'tr', edit: rivals as unknown as DiaryEdit, dialogue: rivalsDialogue, voices: rivalsVoices as Record<string, { seconds: number }>, phones: { open: RIVALS_CHAT_OPEN, teaser: RIVALS_CHAT_TEASER } },
+  'italy-rematch': { subtitles: 'tr', edit: italyRematch as unknown as DiaryEdit, dialogue: italyRematchDialogue, voices: {}, phones: {} },
 };
 
 /**
@@ -92,10 +95,10 @@ export function shotFrames(dur: number, fps: number): number {
 }
 
 /** Shot start frames exactly as the mixer computes them (round per shot, then accumulate). */
-export function timeline(edit: DiaryEdit): { shots: TimedShot[]; total: number } {
+export function timeline(edit: DiaryEdit, fps = edit.fps): { shots: TimedShot[]; total: number } {
   let from = 0;
   const shots = edit.shots.map((s) => {
-    const frames = shotFrames(s.dur, edit.fps);
+    const frames = shotFrames(s.dur, fps);
     const t = { ...s, from, frames };
     from += frames;
     return t;
@@ -103,4 +106,4 @@ export function timeline(edit: DiaryEdit): { shots: TimedShot[]; total: number }
   return { shots, total: from };
 }
 
-export type Quality = 'animatic' | 'preview' | 'final' | 'release';
+export type Quality = 'animatic' | 'preview' | 'final' | 'release' | 'final60';
