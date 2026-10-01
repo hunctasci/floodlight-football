@@ -195,6 +195,7 @@ def S08_SH05(sh):
     q.key("lid.R", 0.6, 1.0, "hold")
     q.key("lid.R", 0.75, 0.55, "soft")
     la, lb = sh.line("L21")
+    sh.talk(p, "L21", amount=0.6)
     p.key("neck", la - 0.1, (0.0, 0.0, 0.0), "hold")
     p.key("neck", la + 0.15, (-3.0, 3.0, 0.0), "out")  # the tiniest lean-in
     cam = sh.camera(50, fstop=2.2)
@@ -212,6 +213,7 @@ def S08_SH06(sh):
     up = stand + Vector((0, 0, 1.75))
     P.look(q, 0.0, pl.matrix_world.translation, w=0.6, dur=0.01, eyes_lead=0)
     la, lb = sh.line("L22")
+    sh.talk(q, "L22", amount=0.6)
     P.look(q, la - 0.25, stand + Vector((0, 0, 1.72)), w=0.8, dur=0.35, eyes_lead=0.12)  # eyes up to him first
     q.key("neck", la, (0.0, 3.0, 0.0), "soft")
     head = q.char_point(0.0, (0, 0, 1.7 - 0.235))
@@ -241,6 +243,12 @@ def S08_SH07(sh):
     p.key("chest", 0.85, (5.0, 0.0, 0.0), "soft")
     P.arms(p, 0.3, "L", 0.0, 4.0, 0.0, 6.0)
     P.arms(p, 0.3, "R", 0.0, 4.0, 0.0, 6.0)
+    # VO "She told me at six forty-six." — the eyes come back up to her, then a breath out
+    va, vb = sh.line("L37")
+    p.key("gaze", va + 0.8, (0.1, -0.6), "hold")
+    p.key("gaze", va + 1.1, (0.0, 0.05), "out")
+    p.key("chest", vb - 0.2, (5.0, 0.0, 0.0), "hold")
+    p.key("chest", vb + 0.3, (2.0, 0.0, 0.0), "soft")
     head = p.char_point(0.0, (0, 0, 1.7))
     # beside her eyeline (she is at 217° from him, the lens at 245°), warm key from the pendant side
     cam = sh.camera(50, fstop=2.0)

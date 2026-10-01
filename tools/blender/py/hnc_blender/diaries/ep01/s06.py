@@ -172,6 +172,7 @@ def S06_SH06(sh):
     ball = _ball(sh, SPOT + Vector((0, 0.1, F.BALL_R)))
     p.key("neck", 0.0, (22.0, 0.0, 0.0), "hold")  # over the ball
     la, lb = sh.line("L18")
+    sh.talk(p, "L18", amount=0.5)
     p.key("neck", 0.35, (22.0, 0.0, 0.0), "hold")
     p.key("neck", 0.75, (-2.0, 0.0, 0.0), "soft")  # looks up at the goal
     P.look(p, 0.4, a["goal_mouth"], w=0.6, dur=0.4, eyes_lead=0.1)
@@ -190,7 +191,8 @@ def S06_SH07(sh):
     p = _nine(sh, SPOT - Vector((0.3, 0.9, 0)), face)
     ball = _ball(sh, SPOT + Vector((0, 0.1, F.BALL_R)))
     k = _keeper(sh)
-    k.key("hips", 0.5, (0.0, 0.0, -0.16), "soft")  # the keeper sets
+    k.key("hips", sh.dur - 0.8, (0.0, 0.0, 0.0), "hold")
+    k.key("hips", sh.dur - 0.45, (0.0, 0.0, -0.16), "soft")  # the keeper sets, just before the strike
     p.key("breath_amp", 0.0, 1.6, "hold")
     P.look(p, 0.0, a["goal_mouth"], w=0.7, dur=0.01, eyes_lead=0)
     cam = sh.camera(135, fstop=2.8)

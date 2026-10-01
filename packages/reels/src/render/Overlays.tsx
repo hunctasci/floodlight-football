@@ -17,7 +17,7 @@ import { FitBox } from './FitBox';
 import { useLayout } from './layout';
 
 /** Kinds a world renders itself (phone thread, in-world screens). */
-const WORLD_OWNED = new Set(['chat', 'typing', 'system-note', 'screen']);
+const WORLD_OWNED = new Set(['chat', 'typing', 'draft', 'system-note', 'screen']);
 
 /** Illustrative World Table: rival just ahead of the hero (promo values). */
 export function defaultTableRows(hero: string, rival: string): WorldTableRow[] {

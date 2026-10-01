@@ -91,6 +91,16 @@ export const PhoneScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline })
   const home = timeline.cast[me]?.country ?? 'TR';
   const rival = members.find((m) => m !== me);
   const away = rival ? timeline.cast[rival].country : 'GR';
+  // A message being typed in the input bar (and, when `erase` is set, deleted again before the end).
+  const draft = timeline.overlays.find((o) => o.type === 'draft' && scenes.has(o.id.split('/')[0]) && o.start <= frame && frame < o.end);
+  const draftText = (() => {
+    if (!draft) return '';
+    const chars = [...String(draft.props.say ?? '')];
+    const typed = Math.min(chars.length, Math.floor((frame - draft.start) / (Number(draft.props.cps ?? 0.075) * fps)) + 1);
+    const erase = Number(draft.props.erase ?? 0) * fps;
+    const left = erase ? Math.min(typed, Math.ceil(chars.length * Math.min(1, (draft.end - frame) / erase))) : typed;
+    return chars.slice(0, left).join('');
+  })();
 
   return (
     <div style={{ position: 'absolute', inset: 0, background: UI.bg, fontFamily: UI.font, color: UI.text, overflow: 'hidden' }}>
@@ -157,7 +167,10 @@ export const PhoneScene: React.FC<SceneProps> = ({ shot, frame, fps, timeline })
       {/* Input bar */}
       <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: inputH, background: UI.bar, display: 'flex', alignItems: 'center', gap: 22, padding: '0 36px' }}>
         <div style={{ fontSize: 56, color: UI.muted }}>＋</div>
-        <div style={{ flex: 1, height: 86, borderRadius: 43, border: '2px solid #33333d', display: 'flex', alignItems: 'center', padding: '0 30px', fontSize: 38, color: UI.muted }}>Message</div>
+        <div style={{ flex: 1, height: 86, borderRadius: 43, border: '2px solid #33333d', display: 'flex', alignItems: 'center', padding: '0 30px', fontSize: draft ? 44 : 38, color: draft ? UI.text : UI.muted }}>
+          {draft ? draftText : 'Message'}
+          {draft ? <span style={{ width: 4, height: 50, marginLeft: 4, background: UI.mine, opacity: Math.floor(t * 2.4) % 2 ? 0.25 : 1 }} /> : null}
+        </div>
       </div>
       <div style={{ position: 'absolute', left: width / 2 - 140, bottom: 14, width: 280, height: 10, borderRadius: 5, background: '#ffffffcc' }} />
     </div>

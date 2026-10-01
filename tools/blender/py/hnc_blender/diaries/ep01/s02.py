@@ -1,7 +1,9 @@
 """S02 — Morning: 06:47, one eye, the child is right."""
+import bpy
 from mathutils import Vector
 
 from ...cine import perform as P
+from ...cine.cast import prop_identity
 from ...cine.sets import home
 
 
@@ -30,7 +32,7 @@ def _sleeper(sh, a):
 
 
 def _child(sh, a, pos=(-1.0, 1.08), face=90.0):
-    k = sh.person("TR-FAMILY-CHILD-01", "home", profile="child")
+    k = sh.person("TR-FAMILY-CHILD-01", "kit", profile="child")  # v4: already in Dad's #9, ready to play
     P.stance(k, 0.0, (pos[0], pos[1], 0.0), face)
     P.relax_arms(k, 0.0)
     return k
@@ -75,7 +77,8 @@ def S02_SH02(sh):
     # the eye slides to the clock, then back; the head never lifts
     p.key("gaze_at", l3b + 0.1, tuple(kid_head), "hold")
     p.key("gaze_at", l3b + 0.3, tuple(a["clock_pos"]), "out")
-    l4a, l4b = sh.line("L04")
+    l4a, l4b = sh.line("L40")  # "For what?"
+    sh.talk(p, "L40", amount=0.45)
     p.key("gaze_at", l4a + 0.45, tuple(a["clock_pos"]), "hold")
     p.key("gaze_at", l4a + 0.65, tuple(kid_head), "soft")
     p.key("neck", l4a, (0.0, 0.0, -32.0), "hold")
@@ -89,9 +92,17 @@ def S02_SH03(sh):
     a = _bedroom(sh)
     p, head = _sleeper(sh, a)
     k = _child(sh, a)
-    # Deadpan: he keeps staring at Dad and points at the clock without looking at it.
+    # "For what?" — deadpan, he keeps staring at Dad and lifts the ball into view: that.
     P.look(k, 0.0, head + Vector((0, 0, 0.05)), w=0.9, dur=0.01, eyes_lead=0)
-    P.point_at(k, 0.12, "L", a["clock_pos"], dur=0.28)
+    ball = prop_identity(sh.scene, sh.cols["PROPS"], "hnc-ball")
+    low, high = k.char_point(0.0, (0.0, 0.3, 0.62)), k.char_point(0.0, (0.0, 0.34, 0.92))
+    ball.location = low
+    bpy.context.view_layer.update()
+    for s_, dx in (("L", 0.19), ("R", -0.19)):
+        P.reach(k, 0.0, s_, tuple(low + k.world_from_char(0.0, (dx, -0.02, 0.0))), dur=0.01)
+        k.key(f"hand.{s_}", 0.12, tuple(low + k.world_from_char(0.0, (dx, -0.02, 0.0))), "hold")
+        k.key(f"hand.{s_}", 0.42, tuple(high + k.world_from_char(0.0, (dx, -0.02, 0.0))), "out")
+    k.hold_prop(ball, "R", 0.02, 99.0)
     from ...cine import look
     look.area(sh.cols["LGT"], "LGT_PillowBounce", (0.1, 1.5, 0.7), (-1.0, 1.08, 1.0), (0.8, 0.5), 25, "#9fb6e8")
     # The reverse: from the pillow, low, up at the child — the clock soft at frame right.
@@ -116,6 +127,7 @@ def S02_SH04(sh):
     p.key("breath_amp", 0.8, 1.0, "hold")
     p.key("chest", 0.85, (0.0, 0.0, 0.0), "hold")
     p.key("chest", 1.15, (-3.0, 0.0, 0.0), "out")  # the exhale
+    sh.talk(p, "L41", amount=0.45)  # "Not today." — then the ceiling
     _ots(sh, a, k, head)
     sh.finish()
 

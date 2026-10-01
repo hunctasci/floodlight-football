@@ -3,65 +3,62 @@
   "episode": "ep01-belgium",
   "title": "48 Hours Before Belgium",
   "fps": 60,
-  "version": "v3-voices",
+  "version": "v4-one-question",
   "note": "Single source of the cut. `dur` seconds (rounded to frames); dialogue/sfx `at` are shot-relative seconds (negative = pre-lap from the previous shot, > dur = runs over the next). Blender shot builders (tools/blender/py/hnc_blender/diaries/ep01), the mixer (tools/diaries/py/mix.py) and the Remotion edit (packages/reels/src/diaries) all read this file; storyboard.md is generated from it.",
   "shots": [
     {
-      "id": "S01_SH01",
-      "scene": "S01",
-      "dur": 0.85,
+      "id": "S00_SH01",
+      "scene": "S00",
+      "dur": 6.4,
       "renderer": "remotion",
-      "location": "black",
-      "framing": "black",
+      "phone": "open",
+      "hook": "POV: you play Belgium in 48 hours",
+      "location": "phone",
+      "framing": "full-screen phone: the family group chat",
       "lens": "-",
       "move": "-",
-      "action": "Black. A question in the dark.",
-      "light": "none",
-      "transition": "cut",
-      "purpose": "Hook: a voice before a picture.",
-      "dialogue": [
-        {
-          "line": "L01",
-          "at": 0.05
-        }
-      ],
+      "action": "06:46. Mum: they said on tv you look tired / are you nervous?? He types 'ask belgium.', deletes it, sends 'no.'. Aşkım: we're out of salt. His son: he is. The phone locks.",
+      "light": "screen",
+      "transition": "cut to black (the phone locks), then the title",
+      "purpose": "Hook + the episode's one question, answered by his son.",
       "sfx": [
         {
-          "cue": "car-night-bed",
-          "at": 0.55,
-          "gain": 0.35
-        }
-      ]
-    },
-    {
-      "id": "S01_SH02",
-      "scene": "S01",
-      "dur": 1.65,
-      "renderer": "blender",
-      "location": "car-night",
-      "framing": "ECU profile, right side, eyes on the road",
-      "lens": "85mm f/1.8",
-      "move": "locked-off, road vibration; streetlights sweep across the face",
-      "action": "#9 drives. Eyes flick toward the voice, back to the road; the half-smile arrives before the line.",
-      "light": "cool night; sodium streetlight sweeps; dash glow",
-      "transition": "smash cut",
-      "purpose": "First premium frame: confidence without breaking realism.",
-      "dialogue": [
-        {
-          "line": "L02",
-          "at": 0.4
-        }
-      ],
-      "sfx": [
-        {
-          "cue": "car-night-bed",
+          "cue": "night-room",
           "at": 0.0,
-          "gain": 0.6
+          "gain": 0.25,
+          "dur": 6.4
         },
         {
-          "cue": "indicator",
-          "at": 0.1,
-          "gain": 0.25
+          "cue": "message-in",
+          "at": 0.25
+        },
+        {
+          "cue": "message-in",
+          "at": 1.05
+        },
+        {
+          "cue": "key-taps",
+          "at": 1.8
+        },
+        {
+          "cue": "key-delete",
+          "at": 3.1
+        },
+        {
+          "cue": "message-out",
+          "at": 3.75
+        },
+        {
+          "cue": "message-in",
+          "at": 4.45
+        },
+        {
+          "cue": "message-in",
+          "at": 5.45
+        },
+        {
+          "cue": "phone-lock",
+          "at": 6.3
         }
       ]
     },
@@ -89,7 +86,12 @@
           "at": 0.0,
           "gain": 0.8
         }
-      ]
+      ],
+      "screen": {
+        "type": "title",
+        "title": "48 Hours Before Belgium",
+        "kicker": "HNC Player Diaries · Episode 01"
+      }
     },
     {
       "id": "S02_SH01",
@@ -110,29 +112,34 @@
           "at": 0.0,
           "gain": 0.7
         }
-      ]
+      ],
+      "stamp": "Wednesday · 06:47"
     },
     {
       "id": "S02_SH02",
       "scene": "S02",
-      "dur": 2.75,
+      "dur": 4.12,
       "renderer": "blender",
       "location": "bedroom",
       "framing": "MCU #9 on the pillow from the child's eye-line (child off-screen)",
       "lens": "50mm f/2",
       "move": "locked-off, faint handheld",
-      "action": "Alarm stops. One eye opens. Off-screen: You're late. His eye slides to the clock. I'm not late.",
+      "action": "Alarm off — his eye is already open (VO: I've been awake since four). The kid, in Dad's #9, at the bed: You're late. — For what?",
       "light": "soft blue window, warm lamp spill from the hall",
       "transition": "cut",
       "purpose": "Character through restraint; the child outranks the star.",
       "dialogue": [
         {
-          "line": "L03",
-          "at": 0.7
+          "line": "L39",
+          "at": 0.3
         },
         {
-          "line": "L04",
-          "at": 1.8
+          "line": "L03",
+          "at": 2.05
+        },
+        {
+          "line": "L40",
+          "at": 3.15
         }
       ],
       "sfx": [
@@ -160,13 +167,13 @@
       "dur": 0.9,
       "renderer": "blender",
       "location": "bedroom",
-      "framing": "reverse, low from the pillow: the child, pointing at the clock (clock soft at frame right)",
+      "framing": "reverse, low from the pillow: the kid lifts the ball into view",
       "lens": "50mm f/2",
       "move": "locked-off",
-      "action": "The reveal: the child has been standing there. Points at the clock. Says nothing.",
+      "action": "He holds up the ball. Says nothing.",
       "light": "same",
       "transition": "cut",
-      "purpose": "Comedy beat: evidence.",
+      "purpose": "What he's late for.",
       "sfx": [
         {
           "cue": "cloth",
@@ -178,66 +185,66 @@
     {
       "id": "S02_SH04",
       "scene": "S02",
-      "dur": 1.25,
+      "dur": 1.7,
       "renderer": "blender",
       "location": "bedroom",
       "framing": "MCU as SH02",
       "lens": "50mm f/2",
       "move": "locked-off",
-      "action": "You're late. He stares at the ceiling. Exhales.",
+      "action": "Not today. He stares at the ceiling. Exhales.",
       "light": "same",
       "transition": "cut",
       "purpose": "Button.",
       "dialogue": [
         {
-          "line": "L05",
-          "at": 0.1
+          "line": "L41",
+          "at": 0.15
         }
       ]
     },
     {
       "id": "S03_SH01",
       "scene": "S03",
-      "dur": 0.75,
+      "dur": 5.48,
       "renderer": "blender",
       "location": "kitchen",
-      "framing": "ECU egg dropping into the pan",
+      "framing": "ECU: his hand cracks an egg on the pan rim; it slides into hot oil",
       "lens": "100mm f/2.8",
       "move": "slow push",
-      "action": "An egg lands in hot oil.",
+      "action": "Tap, crack, the halves open, the egg slides into the oil. VO: My father made eggs before every game I ever played.",
       "light": "warm morning window, steam backlight",
       "transition": "cut",
       "purpose": "Sound-led location change.",
       "dialogue": [
         {
-          "line": "L06",
-          "at": 0.12
+          "line": "L32",
+          "at": 0.1
         }
       ],
       "sfx": [
         {
-          "cue": "sizzle",
-          "at": 0.28,
-          "gain": 0.8,
-          "dur": 3.6
-        },
-        {
-          "cue": "egg-crack",
-          "at": 0.3,
-          "gain": 0.6
-        },
-        {
           "cue": "room-morning",
           "at": 0.0,
           "gain": 0.35,
-          "dur": 7
+          "dur": 9
+        },
+        {
+          "cue": "egg-crack",
+          "at": 0.45,
+          "gain": 0.7
+        },
+        {
+          "cue": "sizzle",
+          "at": 0.85,
+          "gain": 0.8,
+          "dur": 6.5
         }
       ]
     },
     {
       "id": "S03_SH02",
       "scene": "S03",
-      "dur": 2.45,
+      "dur": 3.5,
       "renderer": "blender",
       "location": "kitchen",
       "framing": "MS #9 at the stove, partner soft behind at the counter",
@@ -250,31 +257,38 @@
       "dialogue": [
         {
           "line": "L07",
-          "at": 1.02
-        },
-        {
-          "line": "L08",
-          "at": 1.6
+          "at": 1.55
         }
       ],
       "sfx": [
         {
           "cue": "pan-shuffle",
-          "at": 0.5,
-          "gain": 0.4
+          "at": 1.3
+        }
+      ],
+      "cards": [
+        {
+          "text": "Special diet before Belgium?",
+          "at": 0.0,
+          "dur": 1.75
+        },
+        {
+          "text": "That's it?",
+          "at": 2.25,
+          "dur": 1.15
         }
       ]
     },
     {
       "id": "S03_SH03",
       "scene": "S03",
-      "dur": 2.65,
+      "dur": 4.48,
       "renderer": "blender",
       "location": "kitchen",
       "framing": "MCU: #9 pours coffee, mug on the counter in the foreground",
       "lens": "50mm f/2",
       "move": "locked-off",
-      "action": "And coffee. He pours. Keeps pouring. The partner's hand slides the mug away mid-pour; she walks off with it. His eyes follow the cup.",
+      "action": "And coffee. He pours. Keeps pouring. The partner's hand slides the mug away mid-pour; she walks off with it. His eyes follow the cup. VO: Eleven years. She has never let me finish a coffee.",
       "light": "same",
       "transition": "cut",
       "purpose": "The coffee joke — undersold.",
@@ -282,6 +296,10 @@
         {
           "line": "L09",
           "at": 0.12
+        },
+        {
+          "line": "L33",
+          "at": 2.45
         }
       ],
       "sfx": [
@@ -319,7 +337,7 @@
       "dialogue": [
         {
           "line": "L10",
-          "at": -0.1
+          "at": 0.15
         }
       ],
       "sfx": [
@@ -351,10 +369,6 @@
       "purpose": "Silence as a punchline.",
       "dialogue": [
         {
-          "line": "L11",
-          "at": 0.0
-        },
-        {
           "line": "L12",
           "at": 1.45
         }
@@ -364,6 +378,13 @@
           "cue": "radio-off",
           "at": 1.8,
           "gain": 0.6
+        }
+      ],
+      "cards": [
+        {
+          "text": "You don't listen to that stuff?",
+          "at": 0.0,
+          "dur": 1.6
         }
       ]
     },
@@ -386,11 +407,26 @@
           "at": 0.25
         }
       ],
+      "sfx": []
+    },
+    {
+      "id": "S04_SH04",
+      "scene": "S04",
+      "dur": 1.2,
+      "renderer": "hybrid",
+      "location": "car-day",
+      "framing": "insert from above: the phone on the dash",
+      "lens": "50mm f/2.4",
+      "move": "tiny push",
+      "action": "Buzz. The lock screen lights up: three links from Annem.",
+      "light": "daylight + screen glow",
+      "transition": "cut",
+      "purpose": "Proof: she sends him all of it.",
       "sfx": [
         {
           "cue": "phone-buzz",
-          "at": 2.45,
-          "gain": 0.5
+          "at": 0.1,
+          "gain": 0.7
         }
       ]
     },
@@ -495,13 +531,13 @@
     {
       "id": "S05_SH05",
       "scene": "S05",
-      "dur": 1.3,
+      "dur": 3.69,
       "renderer": "blender",
       "location": "bakery",
       "framing": "from outside the door: #9 walks toward us, elder behind",
       "lens": "35mm f/2.8",
       "move": "slow push back",
-      "action": "TWO. A small smile as he reaches the door.",
+      "action": "TWO. A small smile as he reaches the door. VO: He asked my father for two goals. Thirty years ago.",
       "light": "daylight outside, warm inside",
       "transition": "cut on the music rise",
       "purpose": "He likes it.",
@@ -509,6 +545,10 @@
         {
           "line": "L16",
           "at": 0.22
+        },
+        {
+          "line": "L34",
+          "at": 1.05
         }
       ],
       "sfx": [
@@ -587,10 +627,12 @@
           "gain": 0.8
         }
       ],
-      "dialogue": [
+      "dialogue": [],
+      "cards": [
         {
-          "line": "L17",
-          "at": 0.1
+          "text": "Everyone wants to know what happens Friday.",
+          "at": 0.0,
+          "dur": 2.7
         }
       ]
     },
@@ -670,13 +712,13 @@
     {
       "id": "S06_SH07",
       "scene": "S06",
-      "dur": 1.1,
+      "dur": 2.65,
       "renderer": "blender",
       "location": "training",
       "framing": "telephoto behind #9: ball, goal, keeper set",
       "lens": "135mm f/2.8",
       "move": "static",
-      "action": "Breath. Keeper sets.",
+      "action": "Breath. Keeper sets. VO: This is the only place it goes quiet.",
       "light": "same",
       "transition": "cut",
       "purpose": "Silence before the strike.",
@@ -685,6 +727,12 @@
           "cue": "breath",
           "at": 0.2,
           "gain": 0.7
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L35",
+          "at": 0.25
         }
       ]
     },
@@ -776,7 +824,8 @@
           "at": 0.5,
           "gain": 0.4
         }
-      ]
+      ],
+      "stamp": "Wednesday · 16:20"
     },
     {
       "id": "S07_SH02",
@@ -831,6 +880,114 @@
       "dur": 1.3,
       "renderer": "blender",
       "location": "living",
+      "framing": "MS: #9 on the sofa gives in",
+      "lens": "35mm f/2.8",
+      "move": "locked-off",
+      "action": "He exhales, lifts the ice off his knee, stands.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "He gives in.",
+      "sfx": [
+        {
+          "cue": "ice-crinkle",
+          "at": 0.25,
+          "gain": 0.6
+        },
+        {
+          "cue": "cloth",
+          "at": 0.7
+        }
+      ]
+    },
+    {
+      "id": "S07_SH05",
+      "scene": "S07",
+      "dur": 2.2,
+      "renderer": "blender",
+      "location": "living",
+      "framing": "WS two-shot on the rug: passes",
+      "lens": "28mm f/4",
+      "move": "handheld, slight follow",
+      "action": "Soft passes back and forth on the rug; Dad shows off a little (a sole drag).",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Play.",
+      "sfx": [
+        {
+          "cue": "touch",
+          "at": 0.25,
+          "gain": 0.5
+        },
+        {
+          "cue": "touch",
+          "at": 0.85,
+          "gain": 0.5
+        },
+        {
+          "cue": "touch",
+          "at": 1.35,
+          "gain": 0.5
+        },
+        {
+          "cue": "touch",
+          "at": 1.75,
+          "gain": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S07_SH06",
+      "scene": "S07",
+      "dur": 1.0,
+      "renderer": "blender",
+      "location": "living",
+      "framing": "low, rug level: the kid nutmegs Dad",
+      "lens": "24mm f/4",
+      "move": "locked-off",
+      "action": "The ball goes through Dad's legs.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "The kid wins.",
+      "sfx": [
+        {
+          "cue": "touch",
+          "at": 0.2,
+          "gain": 0.6
+        }
+      ]
+    },
+    {
+      "id": "S07_SH07",
+      "scene": "S07",
+      "dur": 3.19,
+      "renderer": "blender",
+      "location": "living",
+      "framing": "MWS: two sofa cushions as a goal; the kid scores, then Dad's turn-away",
+      "lens": "35mm f/2.8",
+      "move": "locked-off",
+      "action": "Goal between the cushions. The kid turns away without celebrating — Dad's move. Dad watches, the half-smile. VO: He's the only defender I'm afraid of.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Inheritance, played for a laugh.",
+      "sfx": [
+        {
+          "cue": "ball-set",
+          "at": 0.35,
+          "gain": 0.7
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L36",
+          "at": 0.75
+        }
+      ]
+    },
+    {
+      "scene": "S07",
+      "dur": 1.3,
+      "renderer": "blender",
+      "location": "living",
       "framing": "wide: living-room football; the ball clips a lamp",
       "lens": "24mm f/4",
       "move": "handheld",
@@ -859,10 +1016,10 @@
           "at": 1.12,
           "gain": 0.45
         }
-      ]
+      ],
+      "id": "S07_SH08"
     },
     {
-      "id": "S07_SH05",
       "scene": "S07",
       "dur": 1.0,
       "renderer": "blender",
@@ -879,7 +1036,23 @@
           "line": "L20",
           "at": 0.0
         }
-      ]
+      ],
+      "id": "S07_SH09"
+    },
+    {
+      "id": "S07_SH10",
+      "scene": "S07",
+      "dur": 0.9,
+      "renderer": "blender",
+      "location": "living",
+      "framing": "WS: both frozen, each points at the other",
+      "lens": "28mm f/4",
+      "move": "locked-off",
+      "action": "Both point at each other: it was him.",
+      "light": "same",
+      "transition": "cut",
+      "purpose": "Button.",
+      "sfx": []
     },
     {
       "id": "S08_SH01",
@@ -906,7 +1079,8 @@
           "gain": 0.4,
           "dur": 9
         }
-      ]
+      ],
+      "stamp": "Wednesday · 20:10"
     },
     {
       "id": "S08_SH02",
@@ -1022,22 +1196,28 @@
     {
       "id": "S08_SH07",
       "scene": "S08",
-      "dur": 1.1,
+      "dur": 2.64,
       "renderer": "blender",
       "location": "kitchen-evening",
       "framing": "CU #9, devastated (small)",
       "lens": "85mm f/2",
       "move": "static",
-      "action": "His shoulders sink a millimetre.",
+      "action": "His shoulders sink a millimetre. VO: She told me at six forty-six.",
       "light": "same",
       "transition": "SMASH CUT",
       "purpose": "The reaction is the joke.",
-      "sfx": []
+      "sfx": [],
+      "dialogue": [
+        {
+          "line": "L37",
+          "at": 0.45
+        }
+      ]
     },
     {
       "id": "S09_SH01",
       "scene": "S09",
-      "dur": 2.1,
+      "dur": 2.12,
       "renderer": "blender",
       "location": "interview",
       "framing": "formal interview MCU, off-centre, negative space",
@@ -1050,7 +1230,7 @@
       "dialogue": [
         {
           "line": "L23",
-          "at": 0.1
+          "at": 0.35
         }
       ],
       "sfx": [
@@ -1060,7 +1240,15 @@
           "gain": 0.45,
           "dur": 14
         }
-      ]
+      ],
+      "cards": [
+        {
+          "text": "Does pressure get to you?",
+          "at": 0.0,
+          "dur": 1.3
+        }
+      ],
+      "stamp": "Thursday · 23:10"
     },
     {
       "id": "S09_SH02",
@@ -1077,12 +1265,15 @@
       "purpose": "Gear change to sincerity.",
       "dialogue": [
         {
-          "line": "L24",
-          "at": 0.1
-        },
-        {
           "line": "L25",
-          "at": 0.9
+          "at": 0.75
+        }
+      ],
+      "cards": [
+        {
+          "text": "Last one.",
+          "at": 0.0,
+          "dur": 0.95
         }
       ]
     },
@@ -1099,23 +1290,25 @@
       "light": "same",
       "transition": "cut",
       "purpose": "The question lands.",
-      "dialogue": [
+      "dialogue": [],
+      "cards": [
         {
-          "line": "L26",
-          "at": 0.08
+          "text": "What does playing for Türkiye mean to you?",
+          "at": 0.0,
+          "dur": 2.1
         }
       ]
     },
     {
       "id": "S09_SH04",
       "scene": "S09",
-      "dur": 0.5,
+      "dur": 2.83,
       "renderer": "blender",
       "location": "child-room",
       "framing": "insert: child asleep in the #9 shirt",
       "lens": "50mm f/2",
       "move": "static",
-      "action": "Child asleep.",
+      "action": "Child asleep in the #9 shirt. VO: At his age I slept in my father's shirt too.",
       "light": "night-light",
       "transition": "cut",
       "purpose": "Who comes with him.",
@@ -1124,6 +1317,12 @@
           "cue": "night-room",
           "at": 0.0,
           "gain": 0.3
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L38",
+          "at": 0.25
         }
       ]
     },
@@ -1253,7 +1452,8 @@
           "at": 0.05,
           "gain": 0.5
         }
-      ]
+      ],
+      "stamp": "Friday · 08:30"
     },
     {
       "id": "S10_SH02",
@@ -1390,7 +1590,8 @@
           "gain": 0.7,
           "dur": 3.0
         }
-      ]
+      ],
+      "stamp": "Friday · 19:05 · Brussels"
     },
     {
       "id": "S10_SH08",
@@ -1438,7 +1639,13 @@
           "gain": 0.6,
           "dur": 6
         }
-      ]
+      ],
+      "screen": {
+        "type": "match",
+        "home": "Belgium",
+        "away": "Türkiye",
+        "line": "Friday · 20:45"
+      }
     },
     {
       "id": "S11_SH01",
@@ -1453,17 +1660,19 @@
       "light": "dark, high contrast, pitch ahead",
       "transition": "cut",
       "purpose": "Callback set-up.",
-      "dialogue": [
-        {
-          "line": "L29",
-          "at": 0.18
-        }
-      ],
+      "dialogue": [],
       "sfx": [
         {
           "cue": "tunnel-steps",
           "at": 0.0,
           "gain": 0.6
+        }
+      ],
+      "cards": [
+        {
+          "text": "Still not nervous?",
+          "at": 0.15,
+          "dur": 1.35
         }
       ]
     },
@@ -1490,21 +1699,27 @@
     {
       "id": "S11_SH03",
       "scene": "S11",
-      "dur": 0.8,
+      "dur": 2.44,
       "renderer": "blender",
       "location": "tunnel",
       "framing": "wide from behind: he walks into the light",
       "lens": "35mm",
       "move": "static",
-      "action": "Into the light. WHITE.",
+      "action": "Into the light. VO: …I've been awake since four. Then the roar. WHITE.",
       "light": "blooms to white",
       "transition": "white",
       "purpose": "Release.",
       "sfx": [
         {
           "cue": "crowd-roar",
-          "at": 0.35,
+          "at": 1.94,
           "gain": 1.0
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L39",
+          "at": 0.3
         }
       ]
     },
@@ -1526,6 +1741,36 @@
           "cue": "brand-sting",
           "at": 0.25,
           "gain": 0.7
+        }
+      ],
+      "screen": {
+        "type": "end",
+        "series": "Player Diaries · Episode 01"
+      }
+    },
+    {
+      "id": "S12_SH01",
+      "scene": "S12",
+      "dur": 2.6,
+      "renderer": "remotion",
+      "phone": "teaser",
+      "location": "phone",
+      "framing": "full-screen phone: Coach's message",
+      "lens": "-",
+      "move": "-",
+      "action": "Buzz. Coach: my office. 8am. (placeholder until the EP02 premise is set)",
+      "light": "screen",
+      "transition": "end",
+      "purpose": "The next-episode hook.",
+      "sfx": [
+        {
+          "cue": "phone-buzz",
+          "at": 0.15,
+          "gain": 0.6
+        },
+        {
+          "cue": "message-in",
+          "at": 0.35
         }
       ]
     }

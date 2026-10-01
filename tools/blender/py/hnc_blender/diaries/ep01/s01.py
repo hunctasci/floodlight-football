@@ -40,6 +40,7 @@ def S01_SH02(sh):
     p.key("gaze_at", 0.0, tuple(road), "hold")
     p.key("gaze_w", 0.0, 0.8, "hold")
     a, b = sh.line("L02")
+    sh.talk(p, "L02", amount=0.5)
     # eyes flick toward the voice (passenger side) and back, head never leaves the road
     p.key("gaze_w", a - 0.3, 0.8, "linear")
     p.key("gaze_w", a - 0.22, 0.0, "out")

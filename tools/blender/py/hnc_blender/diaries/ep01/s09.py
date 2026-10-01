@@ -45,6 +45,7 @@ def _cam(sh, head, size="MCU", lens=85, push=0.0, off=0.0):
 def S09_SH01(sh):
     a, p, head = _chair(sh)
     la, lb = sh.line("L23")
+    sh.talk(p, "L23", amount=0.8)
     P.nod(p, la + 0.9, depth=2.5, dur=0.4)
     p.key("chest", lb - 0.2, (0.0, 0.0, 0.0), "hold")
     p.key("chest", lb + 0.1, (-2.0, 0.0, 0.0), "soft")
@@ -54,8 +55,9 @@ def S09_SH01(sh):
 
 def S09_SH02(sh):
     a, p, head = _chair(sh)
-    la, lb = sh.line("L24")
+    la, lb = sh.card(0)  # Q: LAST ONE.
     fa, fb = sh.line("L25")
+    sh.talk(p, "L25", amount=0.6)
     # "Finally." — a breath of a smile, shoulders let go
     p.key("chest", fa - 0.1, (0.0, 0.0, 0.0), "hold")
     p.key("chest", fa + 0.3, (3.0, 0.0, 0.0), "soft")
@@ -66,7 +68,7 @@ def S09_SH02(sh):
 
 def S09_SH03(sh):
     a, p, head = _chair(sh)
-    qa, qb = sh.line("L26")
+    qa, qb = sh.card(0)  # Q: WHAT DOES PLAYING FOR TÜRKİYE MEAN TO YOU?
     # he listens; after the question the eyes drop, a long blink, thinking
     p.key("gaze_w", qb - 0.2, 0.9, "hold")
     p.key("gaze_w", qb + 0.1, 0.0, "soft")
@@ -81,6 +83,7 @@ def S09_SH03(sh):
 def S09_SH10(sh):
     a, p, head = _chair(sh)
     la, lb = sh.line("L28")
+    sh.talk(p, "L28", amount=0.8)
     # (L27 finishes over the top of this shot) — eyes come back up to the interviewer
     p.key("gaze_w", 0.0, 0.2, "hold")
     p.key("gaze_w", 0.35, 0.9, "soft")

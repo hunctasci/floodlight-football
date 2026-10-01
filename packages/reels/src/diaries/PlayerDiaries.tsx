@@ -1,15 +1,20 @@
 import React from 'react';
 import { AbsoluteFill, Audio, Img, Sequence, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
-import { EndCard, MatchCard, TitleCard } from './cards';
+import type { ContentSpec } from '../engine/spec/types';
+import { ContentComposition } from '../render/ContentComposition';
+import { Captions, captionCues } from './Captions';
+import { EndCard, HookBox, MatchCard, NextEpisode, QuestionCard, TimeStamp, TitleCard } from './cards';
+import { ArchiveGate, lookFilter, Super, TVInRoom } from './Memory';
+import { KineticOver, StatsOpener } from './Opener';
 import { EPISODES, timeline, type Quality, type TimedShot } from './edit';
 import { DIARY_TYPE, useDiaryFonts } from './type';
 
 export interface PlayerDiariesProps {
   episode: string;
   quality: Quality;
-  /** Review aids for the animatic: shot ids, timecode and dialogue captions. */
+  /** Review aid for the animatic: shot id + timecode. */
   review?: boolean;
-  /** Burned-in captions (a separate accessibility deliverable; the main reel ships clean + .srt). */
+  /** Burned-in speaker captions — on in the master since v3 (mouthless characters); false = clean. */
   captions?: boolean;
 }
 
@@ -41,66 +46,118 @@ const Grain: React.FC<{ frame: number }> = ({ frame }) => {
   );
 };
 
-const Shot: React.FC<{ episode: string; quality: Quality; shot: TimedShot }> = ({ episode, quality, shot }) => {
+const Shot: React.FC<{ episode: string; quality: Quality; shot: TimedShot; phones: Record<string, ContentSpec> }> = ({ episode, quality, shot, phones }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  if (shot.phone) {
+    const spec = phones[shot.phone];
+    if (!spec) throw new Error(`${shot.id}: no phone piece "${shot.phone}" in ${episode}`);
+    return (
+      <AbsoluteFill>
+        <ContentComposition spec={spec} format="reel" />
+        {shot.hook ? <HookBox text={shot.hook} sub={shot.hookTr} /> : null}
+        {shot.phone === 'teaser' ? <NextEpisode frame={frame} fps={fps} line="Player Diaries · Episode 02" /> : null}
+      </AbsoluteFill>
+    );
+  }
+  const sc = shot.screen;
+  if (sc?.type === 'title') return <TitleCard frame={frame} fps={fps} title={sc.title} kicker={sc.kicker} />;
+  if (sc?.type === 'end') return <EndCard frame={frame} fps={fps} series={sc.series} />;
+  if (sc?.type === 'tv') return <TVInRoom score={sc.score} frame={frame} />;
+  if (sc?.type === 'opener') return <StatsOpener frame={frame} fps={fps} beats={sc.beats} />;
+  if (shot.renderer !== 'remotion') {
+    return (
+      <AbsoluteFill style={{ background: '#000' }}>
+        <AbsoluteFill style={lookFilter(shot.look, frame)}>
+          <Plate episode={episode} quality={quality} shot={shot} local={frame} />
+        </AbsoluteFill>
+        {shot.look === 'archive' ? <ArchiveGate frame={frame} /> : null}
+        {shot.kinetic ? <KineticOver frame={frame} fps={fps} {...shot.kinetic} /> : null}
+        {sc?.type === 'match' ? <MatchCard frame={frame} fps={fps} home={sc.home} away={sc.away} line={sc.line} /> : null}
+      </AbsoluteFill>
+    );
+  }
   if (shot.id === 'S01_SH01') return <AbsoluteFill style={{ background: '#000' }} />;
-  if (shot.id === 'S01_SH03') return <TitleCard frame={frame} fps={fps} title="48 Hours Before Belgium" kicker="HNC Player Diaries · Episode 01" />;
-  if (shot.id === 'S11_SH04') return <EndCard frame={frame} fps={fps} series="Player Diaries · Episode 01" />;
   return (
     <AbsoluteFill style={{ background: '#000' }}>
       <Plate episode={episode} quality={quality} shot={shot} local={frame} />
-      {shot.id === 'S10_SH09' ? <MatchCard frame={frame} fps={fps} home="Belgium" away="Türkiye" line="Friday · 20:45" /> : null}
     </AbsoluteFill>
   );
 };
 
-const Review: React.FC<{ shots: TimedShot[]; lines: Map<string, { speaker: string; text: string }>; captionsOnly?: boolean }> = ({ shots, lines, captionsOnly }) => {
+const SuperLayer: React.FC<{ title: string; sub: string; side: 'left' | 'right'; color: string; frames: number }> = (p) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  return <Super frame={frame} fps={fps} {...p} />;
+};
+
+const Stamp: React.FC<{ text: string }> = ({ text }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  return <TimeStamp frame={frame} fps={fps} text={text} />;
+};
+
+const Question: React.FC<{ text: string; tr?: string; frames: number }> = ({ text, tr, frames }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  return <QuestionCard frame={frame} fps={fps} text={text} tr={tr} frames={frames} />;
+};
+
+/** Animatic review aid: shot id, renderer and timecode (top-left). */
+const Review: React.FC<{ shots: TimedShot[] }> = ({ shots }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const shot = shots.find((s) => frame >= s.from && frame < s.from + s.frames)!;
-  const t = frame / fps;
-  const active: string[] = [];
-  for (const s of shots) {
-    for (const d of s.dialogue ?? []) {
-      const a = s.from / fps + d.at;
-      if (t >= a && t < a + 1.6) active.push(lines.get(d.line)!.text);
-    }
-  }
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>
-      {!captionsOnly ? (
-        <div style={{ position: 'absolute', top: 70, left: 40, fontFamily: DIARY_TYPE.text, fontSize: 28, color: '#fff', background: '#000a', padding: '6px 12px', borderRadius: 6 }}>
-          {shot.id} · {shot.renderer} · {t.toFixed(2)}s
-        </div>
-      ) : null}
-      {active.length ? (
-        <div style={{ position: 'absolute', bottom: 420, left: 90, right: 90, textAlign: 'center' }}>
-          <span style={{ fontFamily: DIARY_TYPE.text, fontWeight: 600, fontSize: 44, lineHeight: 1.35, color: '#fff', background: '#000b', padding: '8px 18px', borderRadius: 10, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }}>
-            {active[active.length - 1]}
-          </span>
-        </div>
-      ) : null}
+      <div style={{ position: 'absolute', top: 70, left: 40, fontFamily: DIARY_TYPE.text, fontSize: 28, color: '#fff', background: '#000a', padding: '6px 12px', borderRadius: 6 }}>
+        {shot.id} · {shot.renderer} · {(frame / fps).toFixed(2)}s
+      </div>
     </AbsoluteFill>
   );
 };
 
-export const PlayerDiaries: React.FC<PlayerDiariesProps> = ({ episode, quality, review, captions }) => {
+export const PlayerDiaries: React.FC<PlayerDiariesProps> = ({ episode, quality, review, captions = true }) => {
   useDiaryFonts();
   const frame = useCurrentFrame();
   const ep = EPISODES[episode];
   const { shots } = timeline(ep.edit);
-  const lines = new Map(ep.dialogue.lines.map((l) => [l.id, l]));
+  const cues = React.useMemo(
+    () => captionCues(shots, ep.edit.fps, new Map(ep.dialogue.lines.map((l) => [l.id, ep.subtitles === 'tr' && l.tr ? { ...l, text: l.tr } : l])), ep.voices),
+    [shots, ep],
+  );
   const stem = (name: string) => staticFile(`generated/diaries/${episode}/audio/${name}.wav`);
   return (
     <AbsoluteFill style={{ background: '#000' }}>
       {shots.map((s) => (
         <Sequence key={s.id} from={s.from} durationInFrames={s.frames} name={s.id}>
-          <Shot episode={episode} quality={quality} shot={s} />
+          <Shot episode={episode} quality={quality} shot={s} phones={ep.phones} />
         </Sequence>
       ))}
       <Grain frame={frame} />
-      {review || captions ? <Review shots={shots} lines={lines} captionsOnly={!review} /> : null}
+      {shots.map((s) => (s.super ? (
+        <Sequence key={`super-${s.id}`} from={s.from} durationInFrames={Math.min(s.frames, Math.round(2.4 * ep.edit.fps))} name={`super:${s.id}`}>
+          <SuperLayer {...s.super} frames={Math.min(s.frames, Math.round(2.4 * ep.edit.fps))} />
+        </Sequence>
+      ) : null))}
+      {shots.map((s) => (s.stamp ? (
+        <Sequence key={`stamp-${s.id}`} from={s.from} durationInFrames={Math.round(2.2 * ep.edit.fps)} name={`stamp:${s.id}`}>
+          <Stamp text={s.stamp} />
+        </Sequence>
+      ) : null))}
+      {shots.flatMap((s) =>
+        (s.cards ?? []).map((c, i) => {
+          // a question may run over the next shots (montage): it is placed on the episode clock
+          const frames = Math.round(c.dur * ep.edit.fps);
+          return (
+            <Sequence key={`card-${s.id}-${i}`} from={s.from + Math.round(c.at * ep.edit.fps)} durationInFrames={frames} name={`card:${s.id}`}>
+              <Question text={c.text} tr={c.tr} frames={frames} />
+            </Sequence>
+          );
+        }),
+      )}
+      {captions ? <Captions cues={cues} /> : null}
+      {review ? <Review shots={shots} /> : null}
       {['dialogue', 'sfx', 'ambience', 'music'].map((n) => (
         <Audio key={n} src={stem(n)} />
       ))}

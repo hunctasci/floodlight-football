@@ -25,11 +25,21 @@ PEOPLE = {
     "TR-PLAYER-01-GK": {"kit": "hnc-player-tr-01-keeper"},
     "FAN-TR": {"home": "hnc-fan-tr"},
     "FAN-BE": {"home": "hnc-fan-be"},
+    "BE-PLAYER-04": {"kit": "hnc-player-be-04", "interview": "hnc-player-be-04--interview"},
+    "TR-PLAYER-09-KID": {"home": "hnc-player-tr-09--kid"},
+    "BE-PLAYER-04-KID": {"home": "hnc-player-be-04--kid"},
+    "TR-FAMILY-FATHER-01": {"home": "hnc-family-tr-father-01"},
+    "BE-FAMILY-MUM-01": {"home": "hnc-family-be-mum-01"},
+    "TR-PLAYER-10": {"kit": "hnc-player-tr-10"},
+    "BE-PLAYER-10": {"kit": "hnc-player-be-10"},
 }
 
 PROFILE = {
     "TR-PLAYER-09": "calm",
     "TR-FAMILY-CHILD-01": "child",
+    "TR-PLAYER-09-KID": "child",
+    "BE-PLAYER-04-KID": "child",
+    "BE-PLAYER-04": "calm",
     "TR-FAMILY-PARTNER-01": "calm",
     "TR-SUPPORTER-ELDER-01": "elder",
 }

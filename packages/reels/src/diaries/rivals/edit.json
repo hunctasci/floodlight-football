@@ -1,0 +1,1689 @@
+{
+  "schema": "hnc-diaries-edit/1",
+  "episode": "rivals-one-goal",
+  "title": "One Goal Between Us",
+  "fps": 30,
+  "version": "v1",
+  "note": "Single source of the cut (see tools/diaries/rivals_cut.py). Chair shots carry who/cam/push/act for the interview builder.",
+  "shots": [
+    {
+      "id": "S00_SH01",
+      "scene": "S00",
+      "dur": 1.5,
+      "renderer": "blender",
+      "location": "stadium",
+      "framing": "tracking past supporters behind the barrier, phone flashes",
+      "lens": "-",
+      "move": "cut on the beat",
+      "action": "Belgium vs Türkiye / Belçika – Türkiye",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "Opener beat.",
+      "kinetic": {
+        "en": "Belgium vs Türkiye",
+        "tr": "Belçika – Türkiye",
+        "sub": "Tomorrow · Yarın · 21:45"
+      },
+      "sfx": [
+        {
+          "cue": "sub-hit",
+          "at": 0.0,
+          "gain": 0.7
+        },
+        {
+          "cue": "crowd-grow",
+          "at": 0.0,
+          "gain": 0.7,
+          "dur": 1.5
+        },
+        {
+          "cue": "flashes",
+          "at": 0.1
+        }
+      ]
+    },
+    {
+      "id": "S00_SH02",
+      "scene": "S00",
+      "dur": 1.15,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "low 3/4: plant, hips, strike",
+      "lens": "-",
+      "move": "cut on the beat",
+      "action": "69 years · 11 matches / 69 yıl · 11 maç",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "Opener beat.",
+      "kinetic": {
+        "en": "69 years · 11 matches",
+        "tr": "69 yıl · 11 maç"
+      },
+      "sfx": [
+        {
+          "cue": "sub-hit",
+          "at": 0.0,
+          "gain": 0.6
+        },
+        {
+          "cue": "strike",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S00_SH03",
+      "scene": "S00",
+      "dur": 1.15,
+      "renderer": "blender",
+      "location": "training",
+      "framing": "behind the goal: the net bulges",
+      "lens": "-",
+      "move": "cut on the beat",
+      "action": "3 wins each · 5 draws / Üçer galibiyet · 5 beraberlik",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "Opener beat.",
+      "kinetic": {
+        "en": "3 wins each · 5 draws",
+        "tr": "Üçer galibiyet · 5 beraberlik"
+      },
+      "sfx": [
+        {
+          "cue": "sub-hit",
+          "at": 0.0,
+          "gain": 0.6
+        },
+        {
+          "cue": "net",
+          "at": 0.12
+        },
+        {
+          "cue": "crowd-roar",
+          "at": 0.15,
+          "gain": 0.6
+        }
+      ]
+    },
+    {
+      "id": "S00_SH04",
+      "scene": "S00",
+      "dur": 1.6,
+      "renderer": "remotion",
+      "location": "card",
+      "framing": "the all-time score",
+      "lens": "-",
+      "move": "-",
+      "action": "18–17",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "The number the whole film argues about.",
+      "screen": {
+        "type": "opener",
+        "beats": [
+          {
+            "at": 0.0,
+            "en": "🇧🇪 18–17 🇹🇷",
+            "tr": "Belgium +1 · Belçika +1",
+            "kind": "big"
+          }
+        ]
+      },
+      "sfx": [
+        {
+          "cue": "sub-hit",
+          "at": 0.0,
+          "gain": 0.8
+        }
+      ]
+    },
+    {
+      "id": "S00_SH05",
+      "scene": "S00",
+      "dur": 1.8,
+      "renderer": "blender",
+      "location": "tunnel",
+      "framing": "from behind: #9 and #4, level, walking to the light",
+      "lens": "-",
+      "move": "cut on the beat",
+      "action": "…and one night in Brussels nobody forgot / …ve Brüksel'de unutulmayan bir gece",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "Opener beat.",
+      "kinetic": {
+        "en": "…and one night in Brussels nobody forgot",
+        "tr": "…ve Brüksel'de unutulmayan bir gece"
+      },
+      "sfx": [
+        {
+          "cue": "sub-hit",
+          "at": 0.0,
+          "gain": 0.5
+        },
+        {
+          "cue": "tunnel-steps",
+          "at": 0.0
+        },
+        {
+          "cue": "crowd-muffled",
+          "at": 0.0,
+          "gain": 0.5,
+          "dur": 1.8
+        }
+      ]
+    },
+    {
+      "id": "S00_SH06",
+      "scene": "S00",
+      "dur": 1.9,
+      "renderer": "remotion",
+      "location": "title",
+      "framing": "title card",
+      "lens": "-",
+      "move": "-",
+      "action": "ONE GOAL BETWEEN US",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "The title.",
+      "screen": {
+        "type": "opener",
+        "beats": [
+          {
+            "at": 0.0,
+            "en": "One goal between us",
+            "tr": "Aramızda tek gol var",
+            "kind": "title"
+          }
+        ]
+      },
+      "sfx": [
+        {
+          "cue": "sub-hit",
+          "at": 0.0,
+          "gain": 0.9
+        }
+      ]
+    },
+    {
+      "id": "S01_SH01",
+      "scene": "S01",
+      "dur": 6.2,
+      "renderer": "remotion",
+      "location": "phone",
+      "framing": "full-screen DM thread",
+      "lens": "-",
+      "move": "-",
+      "action": "Thursday 23:12. Lucas: 18–17 / all-time goals. yes. i know. / just reminding you / brussels. 2000. / we don't talk about 2000 / see you in liège 🙂",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "The rivalry in one native chat.",
+      "phone": "open",
+      "hook": "POV: your rival texts you the night before",
+      "hookTr": "Maçtan önceki gece rakibin yazıyor",
+      "sfx": [
+        {
+          "cue": "night-room",
+          "at": 0.0,
+          "gain": 0.25,
+          "dur": 6.2
+        },
+        {
+          "cue": "message-in",
+          "at": 0.25
+        },
+        {
+          "cue": "message-in",
+          "at": 1.75
+        },
+        {
+          "cue": "message-in",
+          "at": 3.85
+        },
+        {
+          "cue": "message-out",
+          "at": 1.0
+        },
+        {
+          "cue": "message-out",
+          "at": 2.55
+        },
+        {
+          "cue": "message-out",
+          "at": 4.85
+        },
+        {
+          "cue": "phone-lock",
+          "at": 6.1
+        }
+      ]
+    },
+    {
+      "id": "S02_SH01",
+      "scene": "S02",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "C",
+      "framing": "room wide",
+      "lens": "24mm f/2.8",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "Meet him: the room, the lights, the chair.",
+      "dur": 1.8,
+      "act": [
+        [
+          "settle",
+          0.1
+        ]
+      ],
+      "super": {
+        "title": "Türkiye · #9",
+        "sub": "Striker · Forvet",
+        "side": "left",
+        "color": "#e30a17"
+      },
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S02_SH02",
+      "scene": "S02",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "C",
+      "framing": "room wide",
+      "lens": "24mm f/2.8",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "Meet his rival: the mirror room.",
+      "dur": 1.8,
+      "act": [
+        [
+          "settle",
+          0.1
+        ]
+      ],
+      "super": {
+        "title": "Belgium · #4",
+        "sub": "Defender · Defans",
+        "side": "right",
+        "color": "#c99a06"
+      },
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S02_SH03",
+      "scene": "S02",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "The banter starts.",
+      "cards": [
+        {
+          "text": "Say something nice about Belgium.",
+          "tr": "Belçika hakkında güzel bir şey söyle.",
+          "at": 0.0,
+          "dur": 2.41
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L01",
+          "at": 2.36
+        }
+      ],
+      "dur": 4.21,
+      "act": [
+        [
+          "think",
+          0.6
+        ],
+        [
+          "smile",
+          2.4
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S02_SH04",
+      "scene": "S02",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "cards": [
+        {
+          "text": "Say something nice about Türkiye.",
+          "tr": "Türkiye hakkında güzel bir şey söyle.",
+          "at": 0.0,
+          "dur": 2.41
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L02",
+          "at": 1.56
+        }
+      ],
+      "dur": 4.75,
+      "act": [
+        [
+          "smile",
+          1.9
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S03_SH01",
+      "scene": "S03",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "B",
+      "framing": "profile CU",
+      "lens": "85mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "cards": [
+        {
+          "text": "When did it start?",
+          "tr": "Her şey ne zaman başladı?",
+          "at": 0.0,
+          "dur": 1.88
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L03",
+          "at": 1.04
+        }
+      ],
+      "dur": 5.31,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S03_SH02",
+      "scene": "S03",
+      "dur": 2.2,
+      "renderer": "blender",
+      "location": "newsreel-1957",
+      "framing": "high wide over a muddy pitch: two teams in old kits",
+      "lens": "35mm",
+      "move": "static, a slight pan",
+      "action": "1957. A newsreel: the ball, the mud, a goal-mouth scramble.",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "History has a texture.",
+      "look": "archive",
+      "sfx": [
+        {
+          "cue": "crowd-muffled",
+          "at": 0.0,
+          "gain": 0.4,
+          "dur": 2.2
+        }
+      ]
+    },
+    {
+      "id": "S03_SH03",
+      "scene": "S03",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "B",
+      "framing": "profile CU",
+      "lens": "85mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L04",
+          "at": 0.15
+        }
+      ],
+      "dur": 3.31,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S03_SH04",
+      "scene": "S03",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L05",
+          "at": 0.1
+        }
+      ],
+      "dur": 1.29,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S03_SH05",
+      "scene": "S03",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "Both, at once: polite.",
+      "dialogue": [
+        {
+          "line": "L06",
+          "at": 0.05
+        }
+      ],
+      "dur": 1.32,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S04_SH01",
+      "scene": "S04",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L07",
+          "at": 0.15
+        }
+      ],
+      "dur": 3.2,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S04_SH09",
+      "scene": "S04",
+      "dur": 3.83,
+      "renderer": "remotion",
+      "location": "tv",
+      "framing": "the TV picture",
+      "lens": "-",
+      "move": "-",
+      "action": "Türkiye 1–3 Belgium · Istanbul · 30.04.1997",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "The memory, on the TV of the time.",
+      "screen": {
+        "type": "tv",
+        "score": {
+          "home": "Türkiye",
+          "away": "Belgium",
+          "hs": 1,
+          "as": 3,
+          "clock": "45'",
+          "line": "Istanbul · 30.04.1997",
+          "era": "crt"
+        }
+      },
+      "sfx": [
+        {
+          "cue": "crowd-muffled",
+          "at": 0.0,
+          "gain": 0.35,
+          "dur": 3.83
+        }
+      ]
+    },
+    {
+      "id": "S04_SH02",
+      "scene": "S04",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L08",
+          "at": 0.15
+        }
+      ],
+      "dur": 1.68,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S04_SH03",
+      "scene": "S04",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "B",
+      "framing": "profile CU",
+      "lens": "85mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L09",
+          "at": 0.1
+        }
+      ],
+      "dur": 2.75,
+      "act": [
+        [
+          "glance",
+          0.9
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S05_SH01",
+      "scene": "S05",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "slow push",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "",
+      "cards": [
+        {
+          "text": "June 2000?",
+          "tr": "Haziran 2000?",
+          "at": 0.0,
+          "dur": 1.6
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L10",
+          "at": 1.02
+        }
+      ],
+      "dur": 3.6,
+      "push": 0.05,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S05_SH09",
+      "scene": "S05",
+      "dur": 4.85,
+      "renderer": "remotion",
+      "location": "tv",
+      "framing": "the TV picture",
+      "lens": "-",
+      "move": "-",
+      "action": "Belgium 0–0 Türkiye · Brussels · 19.06.2000",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "Kick-off on the TV; the next TV shot is the 0–2.",
+      "screen": {
+        "type": "tv",
+        "score": {
+          "home": "Belgium",
+          "away": "Türkiye",
+          "hs": 0,
+          "as": 0,
+          "clock": "1'",
+          "line": "Brussels · 19.06.2000",
+          "era": "crt"
+        }
+      },
+      "sfx": [
+        {
+          "cue": "crowd-muffled",
+          "at": 0.0,
+          "gain": 0.35,
+          "dur": 4.85
+        }
+      ]
+    },
+    {
+      "id": "S05_SH02",
+      "scene": "S05",
+      "dur": 3.48,
+      "renderer": "blender",
+      "location": "living-tr-2000",
+      "framing": "wide past the TV: a father lifts his son toward the ceiling",
+      "lens": "24mm",
+      "move": "locked, slight handheld",
+      "action": "June 2000, a living room in Türkiye. The goal on the TV; his father lifts him so high his head knocks the lamp.",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "The memory: joy, his father.",
+      "look": "memory",
+      "dialogue": [
+        {
+          "line": "L11",
+          "at": 0.35
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "crowd-roar",
+          "at": 0.2,
+          "gain": 0.35
+        },
+        {
+          "cue": "lamp-wobble",
+          "at": 1.25,
+          "gain": 0.7
+        },
+        {
+          "cue": "home-quiet",
+          "at": 0.0,
+          "gain": 0.2
+        }
+      ]
+    },
+    {
+      "id": "S05_SH03",
+      "scene": "S05",
+      "dur": 2.86,
+      "renderer": "remotion",
+      "location": "tv",
+      "framing": "the TV picture",
+      "lens": "-",
+      "move": "-",
+      "action": "BELGIUM 0–2 TÜRKİYE · Brussels · 19.06.2000",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "The fact.",
+      "dialogue": [
+        {
+          "line": "L32",
+          "at": 0.2
+        }
+      ],
+      "screen": {
+        "type": "tv",
+        "score": {
+          "home": "Belgium",
+          "away": "Türkiye",
+          "hs": 0,
+          "as": 2,
+          "clock": "88'",
+          "line": "Brussels · 19.06.2000",
+          "era": "crt"
+        }
+      },
+      "sfx": [
+        {
+          "cue": "crowd-roar",
+          "at": 0.0,
+          "gain": 0.4
+        }
+      ]
+    },
+    {
+      "id": "S05_SH04",
+      "scene": "S05",
+      "dur": 5.77,
+      "renderer": "blender",
+      "location": "living-be-2000",
+      "framing": "MS low: a boy in face paint crying on the sofa, his mum's arm around him",
+      "lens": "35mm",
+      "move": "locked",
+      "action": "The same night, in Belgium. The co-hosts are out.",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "The other side of the same memory.",
+      "look": "memory",
+      "dialogue": [
+        {
+          "line": "L12",
+          "at": 0.4
+        }
+      ],
+      "sfx": [
+        {
+          "cue": "home-quiet",
+          "at": 0.0,
+          "gain": 0.25
+        }
+      ]
+    },
+    {
+      "id": "S05_SH05",
+      "scene": "S05",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L13",
+          "at": 0.2
+        }
+      ],
+      "dur": 2.02,
+      "act": [
+        [
+          "smile",
+          0.2
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S06_SH01",
+      "scene": "S06",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L14",
+          "at": 0.15
+        }
+      ],
+      "dur": 3.0,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S06_SH09",
+      "scene": "S06",
+      "dur": 3.31,
+      "renderer": "remotion",
+      "location": "tv",
+      "framing": "the TV picture",
+      "lens": "-",
+      "move": "-",
+      "action": "Belgium 2–0 Türkiye · Brussels · 10.10.2009",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "The memory, on the TV of the time.",
+      "screen": {
+        "type": "tv",
+        "score": {
+          "home": "Belgium",
+          "away": "Türkiye",
+          "hs": 2,
+          "as": 0,
+          "clock": "83'",
+          "line": "Brussels · 10.10.2009",
+          "era": "hd"
+        }
+      },
+      "sfx": [
+        {
+          "cue": "crowd-muffled",
+          "at": 0.0,
+          "gain": 0.35,
+          "dur": 3.31
+        }
+      ]
+    },
+    {
+      "id": "S06_SH02",
+      "scene": "S06",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L15",
+          "at": 0.25
+        }
+      ],
+      "dur": 1.73,
+      "act": [
+        [
+          "away",
+          0.0
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S06_SH03",
+      "scene": "S06",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "B",
+      "framing": "profile CU",
+      "lens": "85mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L16",
+          "at": 0.15
+        }
+      ],
+      "dur": 1.28,
+      "act": [
+        [
+          "glance",
+          0.1
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S07_SH01",
+      "scene": "S07",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "",
+      "cards": [
+        {
+          "text": "And 2010?",
+          "tr": "Ya 2010?",
+          "at": 0.0,
+          "dur": 1.56
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L17",
+          "at": 0.94
+        }
+      ],
+      "dur": 3.4,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S07_SH02",
+      "scene": "S07",
+      "dur": 4.14,
+      "renderer": "remotion",
+      "location": "tv",
+      "framing": "the TV picture",
+      "lens": "-",
+      "move": "-",
+      "action": "Türkiye 3–2 Belgium · Istanbul · 07.09.2010",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "The memory, on the TV of the time.",
+      "screen": {
+        "type": "tv",
+        "score": {
+          "home": "Türkiye",
+          "away": "Belgium",
+          "hs": 3,
+          "as": 2,
+          "clock": "78'",
+          "line": "Istanbul · 07.09.2010",
+          "era": "hd"
+        }
+      },
+      "sfx": [
+        {
+          "cue": "crowd-muffled",
+          "at": 0.0,
+          "gain": 0.35,
+          "dur": 4.14
+        }
+      ]
+    },
+    {
+      "id": "S07_SH03",
+      "scene": "S07",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L18",
+          "at": 0.15
+        }
+      ],
+      "dur": 4.0,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S07_SH04",
+      "scene": "S07",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "B",
+      "framing": "profile CU",
+      "lens": "85mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L19",
+          "at": 0.15
+        }
+      ],
+      "dur": 1.94,
+      "act": [
+        [
+          "smile",
+          0.9
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S07_SH05",
+      "scene": "S07",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L20",
+          "at": 0.15
+        }
+      ],
+      "dur": 3.66,
+      "act": [
+        [
+          "smile",
+          2.0
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S08_SH01",
+      "scene": "S08",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "cards": [
+        {
+          "text": "So who's winning?",
+          "tr": "Peki kim önde?",
+          "at": 0.0,
+          "dur": 1.84
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L21",
+          "at": 0.97
+        }
+      ],
+      "dur": 5.94,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S08_SH02",
+      "scene": "S08",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L22",
+          "at": 0.05
+        }
+      ],
+      "dur": 1.2,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S08_SH03",
+      "scene": "S08",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "B",
+      "framing": "profile CU",
+      "lens": "85mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L23",
+          "at": 0.05
+        }
+      ],
+      "dur": 1.03,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S08_SH04",
+      "scene": "S08",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "B",
+      "framing": "profile CU",
+      "lens": "85mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L24",
+          "at": 0.05
+        }
+      ],
+      "dur": 1.36,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S08_SH05",
+      "scene": "S08",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L25",
+          "at": 0.05
+        }
+      ],
+      "dur": 1.51,
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S08_SH06",
+      "scene": "S08",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "locked-off",
+      "action": "",
+      "light": "warm Rembrandt key, amber practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L26",
+          "at": 0.15
+        }
+      ],
+      "dur": 3.15,
+      "act": [
+        [
+          "lean",
+          0.0
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S09_SH01",
+      "scene": "S09",
+      "renderer": "blender",
+      "location": "interview-tr (warm)",
+      "who": "TR",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "slow push",
+      "action": "",
+      "light": "the room darker: key down, the practical only",
+      "transition": "cut",
+      "purpose": "The sincere turn.",
+      "cards": [
+        {
+          "text": "What do you respect about him?",
+          "tr": "Ona en çok neyine saygı duyuyorsun?",
+          "at": 0.0,
+          "dur": 2.3
+        }
+      ],
+      "dialogue": [
+        {
+          "line": "L27",
+          "at": 2.88
+        },
+        {
+          "line": "L28",
+          "at": 6.27
+        }
+      ],
+      "dur": 8.28,
+      "push": 0.12,
+      "act": [
+        [
+          "down",
+          0.9
+        ],
+        [
+          "up",
+          3.8
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.35
+        }
+      ]
+    },
+    {
+      "id": "S09_SH02",
+      "scene": "S09",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "C",
+      "framing": "room wide",
+      "lens": "24mm f/2.8",
+      "move": "locked-off",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "He heard it.",
+      "dur": 1.3,
+      "act": [
+        [
+          "still",
+          0.0
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.2
+        }
+      ]
+    },
+    {
+      "id": "S09_SH03",
+      "scene": "S09",
+      "renderer": "blender",
+      "location": "interview-be (cool)",
+      "who": "BE",
+      "cam": "A",
+      "framing": "MCU",
+      "lens": "50mm f/2",
+      "move": "slow push",
+      "action": "",
+      "light": "cool key, blue fill, white practical",
+      "transition": "cut",
+      "purpose": "",
+      "dialogue": [
+        {
+          "line": "L29",
+          "at": 0.5
+        }
+      ],
+      "dur": 3.08,
+      "push": 0.08,
+      "act": [
+        [
+          "down",
+          0.0
+        ],
+        [
+          "up",
+          0.45
+        ]
+      ],
+      "sfx": [
+        {
+          "cue": "interview-tone",
+          "at": 0.0,
+          "gain": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S10_SH01",
+      "scene": "S10",
+      "dur": 2.6,
+      "renderer": "blender",
+      "location": "tunnel",
+      "framing": "wide from behind: two lines of players, #9 and #4 side by side",
+      "lens": "35mm f/2.8",
+      "move": "slow follow",
+      "action": "Friday 2 October, Liège. The tunnel. They don't look at each other.",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "Tonight.",
+      "stamp": "Friday 2 October · Liège · 2 Ekim Cuma",
+      "sfx": [
+        {
+          "cue": "tunnel-tone",
+          "at": 0.0,
+          "gain": 0.5,
+          "dur": 9
+        },
+        {
+          "cue": "crowd-muffled",
+          "at": 0.0,
+          "gain": 0.6,
+          "dur": 9
+        },
+        {
+          "cue": "tunnel-steps",
+          "at": 0.1
+        }
+      ]
+    },
+    {
+      "id": "S10_SH02",
+      "scene": "S10",
+      "dur": 2.4,
+      "renderer": "blender",
+      "location": "tunnel",
+      "framing": "profile two-shot, waiting: #4 in front, #9 behind",
+      "lens": "85mm f/2",
+      "move": "locked",
+      "action": "Eighteen.",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "The last word…",
+      "dialogue": [
+        {
+          "line": "L30",
+          "at": 0.5
+        }
+      ]
+    },
+    {
+      "id": "S10_SH03",
+      "scene": "S10",
+      "dur": 2.12,
+      "renderer": "blender",
+      "location": "tunnel",
+      "framing": "CU #9, rim-lit from the pitch, the half-smile",
+      "lens": "85mm f/1.8",
+      "move": "locked",
+      "action": "Not for long.",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "…is his.",
+      "dialogue": [
+        {
+          "line": "L31",
+          "at": 0.3
+        }
+      ]
+    },
+    {
+      "id": "S10_SH04",
+      "scene": "S10",
+      "dur": 2.0,
+      "renderer": "blender",
+      "location": "tunnel",
+      "framing": "wide from behind: they walk into the light",
+      "lens": "35mm",
+      "move": "static",
+      "action": "Into the light. WHITE.",
+      "light": "-",
+      "transition": "white",
+      "purpose": "Release.",
+      "sfx": [
+        {
+          "cue": "crowd-roar",
+          "at": 1.2,
+          "gain": 1.0
+        }
+      ]
+    },
+    {
+      "id": "S11_SH01",
+      "scene": "S11",
+      "dur": 2.2,
+      "renderer": "remotion",
+      "location": "card",
+      "framing": "match card",
+      "lens": "-",
+      "move": "-",
+      "action": "BELGIUM vs TÜRKİYE · TOMORROW · 21:45",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "When to watch.",
+      "screen": {
+        "type": "title",
+        "title": "Belgium vs Türkiye",
+        "kicker": "Tomorrow · Yarın · Liège · 21:45 TSİ"
+      },
+      "sfx": [
+        {
+          "cue": "sub-hit",
+          "at": 0.0
+        }
+      ]
+    },
+    {
+      "id": "S11_SH02",
+      "scene": "S11",
+      "dur": 1.4,
+      "renderer": "remotion",
+      "location": "end",
+      "framing": "HNC LEAGUE end card on white",
+      "lens": "-",
+      "move": "-",
+      "action": "HNC LEAGUE.",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "Brand, once.",
+      "screen": {
+        "type": "end",
+        "series": "Player Diaries · Episode 01"
+      },
+      "sfx": [
+        {
+          "cue": "brand-sting",
+          "at": 0.15,
+          "gain": 0.7
+        }
+      ]
+    },
+    {
+      "id": "S12_SH01",
+      "scene": "S12",
+      "dur": 2.6,
+      "renderer": "remotion",
+      "location": "phone",
+      "framing": "full-screen DM thread",
+      "lens": "-",
+      "move": "-",
+      "action": "Lucas: see you 12 november 🙂",
+      "light": "-",
+      "transition": "cut",
+      "purpose": "Next: the return match.",
+      "phone": "teaser",
+      "sfx": [
+        {
+          "cue": "phone-buzz",
+          "at": 0.15,
+          "gain": 0.6
+        },
+        {
+          "cue": "message-in",
+          "at": 0.35
+        }
+      ]
+    }
+  ]
+}

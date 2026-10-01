@@ -25,10 +25,6 @@ ROOM = ir(0.7, 6.0, seed=31, damp=6000)
 OFF = ir(1.1, 4.0, seed=33, damp=3500)
 TUNNEL = ir(2.6, 1.8, seed=35, damp=3800, pre=0.03)
 
-# Lines heard from outside the frame (distance), inside the tunnel, or through the car radio.
-OFFSCREEN = {"L03": 0.18, "L05": 0.12, "L20": 0.45}
-TUNNEL_LINES = {"L29": 0.35, "L30": 0.18}
-LINE_GAIN = {"L20": db(-2), "L16": db(1.5)}
 
 
 def load(path):
@@ -89,10 +85,16 @@ def main():
     markers = dict(starts, end=total)
 
     dia = np.zeros((n, 2))
+    vo_bus = np.zeros((n, 2))  # the diary voice-over alone (drives the deeper duck)
     fx = np.zeros((n, 2))
     amb = np.zeros((n, 2))
     captions = []
     speakers = {l["id"]: l["speaker"] for l in dialogue["lines"]}
+    # per-line acoustics from the episode's dialogue.json: "off" (heard from outside the frame, 0..1 distance),
+    # "tunnel" (reverb amount), "gain" (dB)
+    OFFSCREEN = {l["id"]: l["off"] for l in dialogue["lines"] if "off" in l}
+    TUNNEL_LINES = {l["id"]: l["tunnel"] for l in dialogue["lines"] if "tunnel" in l}
+    LINE_GAIN = {l["id"]: db(l["gain"]) for l in dialogue["lines"] if "gain" in l}
     texts = {l["id"]: l["text"] for l in dialogue["lines"]}
 
     # ---- dialogue
@@ -126,6 +128,11 @@ def main():
                 y = reverb(stereo(lp(x, 7000 - 4000 * w)), OFF, w)
             elif sp == "INT":
                 y = reverb(stereo(hp(x, 90)), ROOM, 0.1) * db(-1.0)
+            elif sp == "NINE_VO":
+                # inside his head: dry, close, centred, a touch warmer than his on-camera voice
+                y = stereo(lp(hp(x, 80), 9500)) * db(0.5)
+                for c in range(2):
+                    place(vo_bus[:, c], at, y[:, c])
             else:
                 y = stereo(hp(x, 70))
             for c in range(2):
@@ -154,12 +161,17 @@ def main():
                 place(target[:, ch], at, y[:, ch])
 
     # ---- music + ducking under dialogue
-    mus = score.build(markers, total)
+    # each episode has its own arrangement, anchored to its own shots
+    build = score.build_rivals if str(dialogue.get("episode", "")).startswith("rivals") else score.build
+    mus = build(markers, total)
     mus = np.pad(mus, ((0, max(0, n - len(mus))), (0, 0)))[:n] * db(-4)
     env = envelope(dia)
     duck = 1.0 - np.clip(env / 0.08, 0, 1) * (1 - db(-8))
-    mus *= duck[:, None]
-    amb *= (1.0 - np.clip(env / 0.08, 0, 1) * (1 - db(-3)))[:, None]
+    # the voice-over sits further forward: score -3 dB more, beds and effects pulled back under it
+    vo_env = np.clip(envelope(vo_bus, release=0.6) / 0.06, 0, 1)
+    mus *= (duck * (1.0 - vo_env * (1 - db(-3))))[:, None]
+    amb *= ((1.0 - np.clip(env / 0.08, 0, 1) * (1 - db(-3))) * (1.0 - vo_env * (1 - db(-3))))[:, None]
+    fx *= (1.0 - vo_env * (1 - db(-2)))[:, None]
 
     out = gen / "audio"
     out.mkdir(parents=True, exist_ok=True)

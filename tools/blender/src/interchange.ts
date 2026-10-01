@@ -88,6 +88,18 @@ export const HNC_EXPORT_FIXTURES: readonly HncExportFixture[] = [
   // Matchday crowd: one TR and one BE supporter build, instanced by the set.
   { kind: 'player', assetId: 'hnc-fan-tr', country: 'TR', number: 2, id: 3, keeper: false, purpose: 'cast', look: 'fan', tag: 'TRFN' },
   { kind: 'player', assetId: 'hnc-fan-be', country: 'BE', number: 2, id: 2, keeper: false, purpose: 'cast', look: 'fan', tag: 'BEFN' },
+  // Player Diaries "One Goal Between Us": BE #4 (the campaign's Lucas), and both rivals as kids in 2000.
+  { kind: 'player', assetId: 'hnc-player-be-04', country: 'BE', number: 4, id: 4, keeper: false, purpose: 'cast' },
+  { kind: 'player', assetId: 'hnc-player-be-04--interview', country: 'BE', number: 4, id: 4, keeper: false, purpose: 'cast', look: 'tee', accent: '#1d2433' },
+  // Same identities (id 9 / id 4 → same skin) at child proportions, in replica shirts: TR #9 aged 4, BE #4 aged 6.
+  { kind: 'player', assetId: 'hnc-player-tr-09--kid', country: 'TR', number: 9, id: 9, keeper: false, purpose: 'cast', look: 'replica', proportions: 'child', tag: 'TR9K' },
+  { kind: 'player', assetId: 'hnc-player-be-04--kid', country: 'BE', number: 4, id: 4, keeper: false, purpose: 'cast', look: 'replica', proportions: 'child', tag: 'BE4K' },
+  // TR #9's late father in 2000 (id 17 → skin 1, his son's), a fan's replica + scarf; BE #4's mum (id 10 → skin 2).
+  { kind: 'player', assetId: 'hnc-family-tr-father-01', country: 'TR', number: 9, id: 17, keeper: false, purpose: 'cast', look: 'fan', tag: 'TRFA' },
+  { kind: 'player', assetId: 'hnc-family-be-mum-01', country: 'BE', number: 2, id: 10, keeper: false, purpose: 'cast', look: 'tee-bun', accent: '#c9a227', tag: 'BEMU' },
+  // The 1957 newsreel: two players of the era who are neither of our rivals (their own numbers, their own faces).
+  { kind: 'player', assetId: 'hnc-player-tr-10', country: 'TR', number: 10, id: 10, keeper: false, purpose: 'cast' },
+  { kind: 'player', assetId: 'hnc-player-be-10', country: 'BE', number: 10, id: 10, keeper: false, purpose: 'cast' },
 ];
 
 export interface HncExpectedMaterial {

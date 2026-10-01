@@ -1,0 +1,241 @@
+{
+  "schema": "hnc-diaries-dialogue/1",
+  "episode": "rivals-one-goal",
+  "note": "One Goal Between Us — the Belgium–Türkiye history, argued by the two rivals in two interview rooms. Fictional synthetic voices: Kokoro reference timbres (am_onyx for TR #9, am_fenrir for BE #4) → Chatterbox delivery. Facts (dates, venues, scores) verified 2026-10-01 against TFF / UEFA / ESPN; real scorers are named where verified (Oliveira 1997, Mpenza 2009, Hamit/Semih/Arda 2010; Rüştü 2000) — by owner decision; the 2000 scorer is deliberately not named. Each line carries `tr`: the burned-in Turkish subtitle (audio stays English).",
+  "speakers": {
+    "NINE": {
+      "who": "TR-PLAYER-09 (Türkiye #9), in his interview room",
+      "voice": "am_onyx",
+      "lang": "en-us",
+      "speed": 0.95,
+      "pitch": 1.0,
+      "fx": "dry",
+      "engine": "chatterbox",
+      "exaggeration": 0.5,
+      "cfg": 0.5,
+      "temperature": 0.75,
+      "ref_text": "Most mornings I wake up before everyone else. The house is quiet. I make the coffee, I sit by the window, and I think about the day ahead."
+    },
+    "FOUR": {
+      "who": "BE-PLAYER-04 (Belgium #4, the campaign's Lucas), in his interview room",
+      "voice": "am_fenrir",
+      "lang": "en-us",
+      "speed": 0.95,
+      "pitch": 1.0,
+      "fx": "dry",
+      "engine": "chatterbox",
+      "exaggeration": 0.5,
+      "cfg": 0.5,
+      "temperature": 0.75,
+      "ref_text": "Most mornings I wake up before everyone else. The house is quiet. I make the coffee, I sit by the window, and I think about the day ahead."
+    }
+  },
+  "phonemes": {
+    "Türkiye": "tˈʊɹkiˌjeɪ"
+  },
+  "say": {
+    "Türkiye": "Tur-kee-yeh"
+  },
+  "lines": [
+    {
+      "id": "L01",
+      "speaker": "NINE",
+      "text": "…Their waffles are very good.",
+      "tr": "…Waffle'ları çok güzel."
+    },
+    {
+      "id": "L02",
+      "speaker": "FOUR",
+      "text": "The fans. They are loud. Very, very loud.",
+      "tr": "Taraftarları. Gürültülüler. Çok, çok gürültülü."
+    },
+    {
+      "id": "L03",
+      "speaker": "FOUR",
+      "text": "It started in 1957, in Ankara. One–all.",
+      "say": "It started in nineteen fifty-seven, in Ankara. One all.",
+      "tr": "1957'de Ankara'da başladı. 1–1."
+    },
+    {
+      "id": "L04",
+      "speaker": "NINE",
+      "text": "A year later, in Brussels. One–all again.",
+      "say": "A year later, in Brussels. One all, again.",
+      "tr": "Bir yıl sonra Brüksel'de. Yine 1–1."
+    },
+    {
+      "id": "L05",
+      "speaker": "NINE",
+      "text": "Very polite.",
+      "tr": "Çok kibar."
+    },
+    {
+      "id": "L06",
+      "speaker": "FOUR",
+      "text": "Very polite.",
+      "tr": "Çok kibar."
+    },
+    {
+      "id": "L07",
+      "speaker": "FOUR",
+      "text": "Then 1997, in Istanbul. Luis Oliveira scored three. 3–1, and we went to the World Cup.",
+      "say": "Then ninety-seven, in Istanbul. Luis Oliveira scored three. Three one, and we went to the World Cup.",
+      "tr": "Sonra 1997, İstanbul. Luis Oliveira üç gol attı. 3–1 kazandık ve Dünya Kupası'na gittik."
+    },
+    {
+      "id": "L08",
+      "speaker": "NINE",
+      "text": "I was one year old.",
+      "tr": "Ben bir yaşındaydım."
+    },
+    {
+      "id": "L09",
+      "speaker": "FOUR",
+      "text": "I was three. I remember everything.",
+      "tr": "Ben üç yaşındaydım. Her şeyi hatırlıyorum."
+    },
+    {
+      "id": "L10",
+      "speaker": "NINE",
+      "text": "June 2000. The Euros, in Brussels. Their tournament, their stadium. We won 2–0 and sent the hosts home.",
+      "say": "June two thousand. The Euros, in Brussels. Their tournament, their stadium. We won two nil, and sent the hosts home.",
+      "tr": "Haziran 2000. Avrupa Şampiyonası, Brüksel. Onların turnuvası, onların stadı. 2–0 kazandık ve ev sahibini evine gönderdik."
+    },
+    {
+      "id": "L11",
+      "speaker": "NINE",
+      "text": "My father lifted me so high, I hit the lamp.",
+      "tr": "Babam beni öyle yükseğe kaldırdı ki kafamı lambaya çarptım."
+    },
+    {
+      "id": "L12",
+      "speaker": "FOUR",
+      "text": "I was six. We were hosting it, and we went out at home. I cried for a week.",
+      "tr": "Altı yaşındaydım. Turnuva bizdeydi ve kendi evimizde elendik. Bir hafta ağladım."
+    },
+    {
+      "id": "L13",
+      "speaker": "NINE",
+      "text": "We celebrated for a week.",
+      "tr": "Biz bir hafta kutladık."
+    },
+    {
+      "id": "L14",
+      "speaker": "FOUR",
+      "text": "2009, in Brussels. Émile Mpenza scored twice. 2–0 to us.",
+      "say": "Two thousand nine, in Brussels. Emile Mpenza scored twice. Two nil to us.",
+      "tr": "2009, Brüksel. Émile Mpenza iki gol attı. 2–0 bizim."
+    },
+    {
+      "id": "L15",
+      "speaker": "NINE",
+      "text": "I don't remember that one.",
+      "tr": "O maçı hatırlamıyorum."
+    },
+    {
+      "id": "L16",
+      "speaker": "FOUR",
+      "text": "He remembers.",
+      "tr": "Hatırlıyor."
+    },
+    {
+      "id": "L17",
+      "speaker": "NINE",
+      "text": "Istanbul, 2010. Hamit scored, Semih scored, and Arda won it in the 78th minute. 3–2.",
+      "say": "Istanbul, twenty ten. Hamit scored, Semih scored, and Arda won it in the seventy-eighth minute. Three two.",
+      "tr": "İstanbul, 2010. Hamit attı, Semih attı, 78. dakikada Arda bitirdi. 3–2."
+    },
+    {
+      "id": "L18",
+      "speaker": "FOUR",
+      "text": "You beat our kids. We came with a team of teenagers.",
+      "tr": "Bizim çocukları yendiniz. Neredeyse gençlerden kurulu bir takımla gelmiştik."
+    },
+    {
+      "id": "L19",
+      "speaker": "NINE",
+      "text": "Your kids were very good.",
+      "tr": "Çocuklarınız çok iyiydi."
+    },
+    {
+      "id": "L20",
+      "speaker": "FOUR",
+      "text": "Those kids became our golden generation.",
+      "tr": "O çocuklar bizim altın jenerasyonumuz oldu."
+    },
+    {
+      "id": "L21",
+      "speaker": "FOUR",
+      "text": "Eleven matches. Belgium scored eighteen goals, Türkiye seventeen.",
+      "tr": "On bir maç. Belçika on sekiz gol attı, Türkiye on yedi."
+    },
+    {
+      "id": "L22",
+      "speaker": "NINE",
+      "text": "Three wins each.",
+      "tr": "Üçer galibiyet."
+    },
+    {
+      "id": "L23",
+      "speaker": "FOUR",
+      "text": "Eighteen goals.",
+      "tr": "On sekiz gol."
+    },
+    {
+      "id": "L24",
+      "speaker": "NINE",
+      "text": "Five draws.",
+      "tr": "Beş beraberlik."
+    },
+    {
+      "id": "L25",
+      "speaker": "FOUR",
+      "text": "We're one goal ahead.",
+      "tr": "Bir gol öndeyiz."
+    },
+    {
+      "id": "L26",
+      "speaker": "NINE",
+      "text": "And it's been fifteen years since we last played.",
+      "tr": "Ve en son on beş yıl önce karşılaştık."
+    },
+    {
+      "id": "L27",
+      "speaker": "NINE",
+      "text": "My father watched every one of these matches with me.",
+      "tr": "Babam bu maçların hepsini benimle izledi."
+    },
+    {
+      "id": "L28",
+      "speaker": "NINE",
+      "text": "He's not here for this one.",
+      "tr": "Bunu izlemek için burada değil."
+    },
+    {
+      "id": "L29",
+      "speaker": "FOUR",
+      "text": "…Then let's make it a good one for him.",
+      "say": "Then let's make it a good one for him.",
+      "tr": "…O zaman onun için güzel bir maç yapalım."
+    },
+    {
+      "id": "L30",
+      "speaker": "FOUR",
+      "text": "Eighteen, seventeen.",
+      "tr": "On sekize on yedi."
+    },
+    {
+      "id": "L31",
+      "speaker": "NINE",
+      "text": "Not after tomorrow.",
+      "tr": "Yarından sonra değil."
+    },
+    {
+      "id": "L32",
+      "speaker": "NINE",
+      "text": "Two goals. And Rüştü was a wall in goal.",
+      "tr": "İki gol. Kalede de Rüştü duvar gibiydi.",
+      "say": "Two goals. And Rushtu was a wall in goal."
+    }
+  ]
+}

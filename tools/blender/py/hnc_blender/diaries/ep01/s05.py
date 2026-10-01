@@ -104,6 +104,7 @@ def S05_SH03(sh):
     nine_head = NINE_AT + Vector((0, 0, 1.7))
     P.look(e, 0.0, nine_head, w=0.85, dur=0.01, eyes_lead=0)
     la, lb = sh.line("L14")
+    sh.talk(e, "L14", amount=1.0)
     P.point_at(e, la - 0.15, "R", nine_head, dur=0.3)
     e.key("hand.R", lb + 0.1, tuple(e.ch["hand.R"].at(la + 0.2)), "hold")
     P.nod(e, la + 0.55, depth=5.0, dur=0.3)
@@ -123,6 +124,7 @@ def S05_SH04(sh):
     elder_head = ELDER_TO + Vector((0, 0, 1.65))
     P.look(p, 0.0, elder_head, w=0.8, dur=0.01, eyes_lead=0)
     la, lb = sh.line("L15")
+    sh.talk(p, "L15", amount=0.6)
     P.nod(p, la + 0.05, depth=4.0, dur=0.35)
     P.release_look(p, lb - 0.1, 0.3)
     # walks off toward the door, past the old man
@@ -145,8 +147,15 @@ def S05_SH05(sh):
     P.point_at(e, la - 0.12, "R", Vector((-0.1, -2.4, 1.6)), dur=0.25)
     e.key("hips_rot", la, (2.0, 0.0, 0.0), "out")  # he rises up onto it
     door = a["door"]
-    P.walk(p, 0.0, [(door.x + 0.05, -2.25)], stride=0.56, lead="R")
+    t_door = P.walk(p, 0.0, [(door.x + 0.05, -2.25)], stride=0.56, lead="R")
     P.smile(p, lb - 0.1, amount=0.55, dur=0.35, tilt=2.0)
+    # VO "He asked my father for two goals. Thirty years ago." — he stops in the doorway and looks
+    # back at the old man, then goes
+    va, vb = sh.line("L34")
+    elder_head = e.char_point(0.0, (0.0, 0.0, 1.6))
+    P.look(p, max(t_door, va + 0.4), elder_head, w=0.55, dur=0.5)
+    P.release_look(p, vb - 0.9, 0.5)
+    P.walk(p, vb - 0.7, [(door.x + 0.1, -3.3)], stride=0.56, lead="L")
     # the door opens as he reaches it
     piv = a["door_pivot"]
     tr = {}

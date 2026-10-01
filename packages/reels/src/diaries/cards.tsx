@@ -106,3 +106,55 @@ export const EndCard: React.FC<{ frame: number; fps: number; series: string }> =
     </AbsoluteFill>
   );
 };
+
+/**
+ * The frame-0 hook: a native POV caption (white box, black semibold), the
+ * format our best-performing reel opened on. Fully visible on the very first
+ * frame — no entrance — because that frame is the thumbnail and the scroll-stop.
+ */
+export const HookBox: React.FC<{ text: string; sub?: string; top?: number }> = ({ text, sub, top = 380 }) => (
+  <div style={{ position: 'absolute', top, left: 70, right: 70, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+    <div style={{ background: '#ffffff', color: '#111111', fontFamily: 'system-ui, -apple-system, sans-serif', fontWeight: 700, fontSize: 62, lineHeight: 1.16, padding: '18px 32px', borderRadius: 18, textAlign: 'center', boxShadow: '0 10px 40px #0007' }}>
+      {text}
+      {sub ? <div style={{ fontSize: 40, fontWeight: 600, color: '#555', marginTop: 8 }}>{sub}</div> : null}
+    </div>
+  </div>
+);
+
+/** Under the teaser message: the series line, small and late. */
+export const NextEpisode: React.FC<{ frame: number; fps: number; line: string }> = ({ frame, fps, line }) => {
+  const k = interpolate(frame, [fps * 1.2, fps * 1.5], [0, 1], clamp);
+  return (
+    <div style={{ position: 'absolute', left: 0, right: 0, bottom: 520, textAlign: 'center', fontFamily: DIARY_TYPE.text, fontWeight: 600, fontSize: 30, letterSpacing: 9, color: '#cfcac0', opacity: k }}>{upper(line)}</div>
+  );
+};
+
+/**
+ * The documentary question, on screen (v4: there is no interviewer voice — viewers took her for the
+ * partner). Native Reels Q&A: a red Q chip + the question in condensed caps, upper third.
+ */
+export const QuestionCard: React.FC<{ frame: number; fps: number; text: string; tr?: string; frames: number }> = ({ frame, fps, text, tr, frames }) => {
+  const k = spring({ frame, fps, config: { damping: 20, stiffness: 220 } });
+  const out = interpolate(frame, [frames - 8, frames], [1, 0], clamp);
+  return (
+    <div style={{ position: 'absolute', top: 300, left: 80, right: 80, display: 'flex', justifyContent: 'center', opacity: Math.min(1, k * 1.5) * out, transform: `translateY(${(1 - k) * 18}px)`, pointerEvents: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18, background: '#0a0a0cd9', padding: '18px 26px', borderRadius: 14, maxWidth: 920 }}>
+        <div style={{ fontFamily: DIARY_TYPE.display, fontWeight: 600, fontSize: 40, color: '#fff', background: HNC_BRAND.colors.red, borderRadius: 8, padding: '0 12px', lineHeight: '56px' }}>Q</div>
+        <div style={{ paddingTop: 2 }}>
+          <div style={{ fontFamily: DIARY_TYPE.display, fontWeight: 600, fontSize: 56, lineHeight: 1.0, letterSpacing: 1.5, color: '#f7f5ef' }}>{upper(text)}</div>
+          {tr ? <div style={{ fontFamily: DIARY_TYPE.display, fontWeight: 500, fontSize: 40, lineHeight: 1.05, letterSpacing: 1.5, color: '#bdb8ad', marginTop: 8 }}>{upper(tr)}</div> : null}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/** Where we are in the 48 hours: day · time, top-left, small and documentary. */
+export const TimeStamp: React.FC<{ frame: number; fps: number; text: string }> = ({ frame, fps, text }) => {
+  const k = interpolate(frame, [0, 6, fps * 1.8, fps * 2.1], [0, 1, 1, 0], clamp);
+  return (
+    <div style={{ position: 'absolute', top: 210, left: 70, fontFamily: DIARY_TYPE.text, fontWeight: 650, fontSize: 32, letterSpacing: 6, color: '#fffdf6', textShadow: '0 2px 12px #000c', opacity: k, pointerEvents: 'none' }}>
+      {upper(text)}
+    </div>
+  );
+};

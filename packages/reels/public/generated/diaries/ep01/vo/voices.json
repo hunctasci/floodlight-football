@@ -65,17 +65,6 @@
     "exaggeration": 0.45,
     "cfg": 0.5
   },
-  "L07": {
-    "speaker": "NINE",
-    "text": "Eggs.",
-    "take": 2,
-    "seconds": 0.722,
-    "asr": "eggs.",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.3,
-    "cfg": 0.3
-  },
   "L08": {
     "speaker": "INT",
     "text": "That's it?",
@@ -86,17 +75,6 @@
     "engine": "chatterbox",
     "exaggeration": 0.3,
     "cfg": 0.35
-  },
-  "L09": {
-    "speaker": "NINE",
-    "text": "And coffee.",
-    "take": 1,
-    "seconds": 1.007,
-    "asr": "and coffee.",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.3,
-    "cfg": 0.3
   },
   "L10": {
     "speaker": "RADIO",
@@ -120,28 +98,6 @@
     "exaggeration": 0.45,
     "cfg": 0.5
   },
-  "L12": {
-    "speaker": "NINE",
-    "text": "No.",
-    "take": 0,
-    "seconds": 0.709,
-    "asr": "No.",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.3,
-    "cfg": 0.3
-  },
-  "L13": {
-    "speaker": "NINE",
-    "text": "My mother sends me all of it anyway.",
-    "take": 2,
-    "seconds": 2.295,
-    "asr": "My mother sends me all of it anyway.",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.3,
-    "cfg": 0.3
-  },
   "L14": {
     "speaker": "ELDER",
     "text": "Two goals.",
@@ -151,17 +107,6 @@
     "wer": 0.0,
     "engine": "chatterbox",
     "exaggeration": 0.55,
-    "cfg": 0.3
-  },
-  "L15": {
-    "speaker": "NINE",
-    "text": "Good morning.",
-    "take": 0,
-    "seconds": 0.833,
-    "asr": "Good morning.",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.3,
     "cfg": 0.3
   },
   "L16": {
@@ -186,28 +131,6 @@
     "exaggeration": 0.45,
     "cfg": 0.5
   },
-  "L18": {
-    "speaker": "NINE",
-    "text": "So do I.",
-    "take": 1,
-    "seconds": 0.916,
-    "asr": "So do I.",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.3,
-    "cfg": 0.3
-  },
-  "L19": {
-    "speaker": "NINE",
-    "text": "Not now.",
-    "take": 1,
-    "seconds": 0.823,
-    "asr": "Not now.",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.3,
-    "cfg": 0.3
-  },
   "L20": {
     "speaker": "PARTNER",
     "text": "Careful!",
@@ -219,17 +142,6 @@
     "exaggeration": 0.7,
     "cfg": 0.35
   },
-  "L21": {
-    "speaker": "NINE",
-    "text": "Well?",
-    "take": 1,
-    "seconds": 0.531,
-    "asr": "Well?",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.3,
-    "cfg": 0.3
-  },
   "L22": {
     "speaker": "PARTNER",
     "text": "Needs salt.",
@@ -239,17 +151,6 @@
     "wer": 0.0,
     "engine": "chatterbox",
     "exaggeration": 0.25,
-    "cfg": 0.3
-  },
-  "L23": {
-    "speaker": "NINE",
-    "text": "Pressure doesn't really affect me.",
-    "take": 1,
-    "seconds": 1.805,
-    "asr": "pressure doesn't really affect me.",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.3,
     "cfg": 0.3
   },
   "L24": {
@@ -263,17 +164,6 @@
     "exaggeration": 0.45,
     "cfg": 0.5
   },
-  "L25": {
-    "speaker": "NINE",
-    "text": "Finally.",
-    "take": 2,
-    "seconds": 0.686,
-    "asr": "Finally.",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.3,
-    "cfg": 0.3
-  },
   "L26": {
     "speaker": "INT",
     "text": "What does playing for T\u00fcrkiye mean to you?",
@@ -284,28 +174,6 @@
     "engine": "chatterbox",
     "exaggeration": 0.45,
     "cfg": 0.5
-  },
-  "L27": {
-    "speaker": "NINE",
-    "text": "You feel like everyone's coming with you.",
-    "take": 0,
-    "seconds": 2.468,
-    "asr": "You feel like everyone's coming with you.",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.35,
-    "cfg": 0.3
-  },
-  "L28": {
-    "speaker": "NINE",
-    "text": "Even when you're playing away.",
-    "take": 1,
-    "seconds": 1.651,
-    "asr": "even when you're playing away.",
-    "wer": 0.0,
-    "engine": "chatterbox",
-    "exaggeration": 0.35,
-    "cfg": 0.3
   },
   "L29": {
     "speaker": "INT",
@@ -318,15 +186,268 @@
     "exaggeration": 0.45,
     "cfg": 0.5
   },
+  "L31": {
+    "speaker": "NINE_VO",
+    "text": "I've been awake since four. Don't tell him.",
+    "take": 0,
+    "seconds": 2.944,
+    "asr": "I've been awake since 4, don't tell him.",
+    "wer": 0.125,
+    "engine": "chatterbox",
+    "exaggeration": 0.3,
+    "cfg": 0.5
+  },
+  "L07": {
+    "speaker": "NINE",
+    "text": "Eggs.",
+    "take": 1,
+    "seconds": 0.671,
+    "asr": "eggs.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L09": {
+    "speaker": "NINE",
+    "text": "And coffee.",
+    "take": 0,
+    "seconds": 0.898,
+    "asr": "and coffee.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L12": {
+    "speaker": "NINE",
+    "text": "No.",
+    "take": 0,
+    "seconds": 0.611,
+    "asr": "No",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L13": {
+    "speaker": "NINE",
+    "text": "My mother sends me all of it anyway.",
+    "take": 0,
+    "seconds": 1.881,
+    "asr": "My mother sends me all of it anyway.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L15": {
+    "speaker": "NINE",
+    "text": "Good morning.",
+    "take": 0,
+    "seconds": 0.869,
+    "asr": "Good morning.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L18": {
+    "speaker": "NINE",
+    "text": "So do I.",
+    "take": 0,
+    "seconds": 0.808,
+    "asr": "So do I.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L19": {
+    "speaker": "NINE",
+    "text": "Not now.",
+    "take": 0,
+    "seconds": 0.689,
+    "asr": "Not now.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L21": {
+    "speaker": "NINE",
+    "text": "Well?",
+    "take": 0,
+    "seconds": 0.456,
+    "asr": "Well.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L23": {
+    "speaker": "NINE",
+    "text": "Pressure doesn't really affect me.",
+    "take": 0,
+    "seconds": 1.474,
+    "asr": "Pressure doesn't really affect me.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L25": {
+    "speaker": "NINE",
+    "text": "Finally.",
+    "take": 0,
+    "seconds": 0.679,
+    "asr": "Finally.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L27": {
+    "speaker": "NINE",
+    "text": "You feel like everyone's coming with you.",
+    "take": 0,
+    "seconds": 1.829,
+    "asr": "You feel like everyone's coming with you.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L28": {
+    "speaker": "NINE",
+    "text": "Even when you're playing away.",
+    "take": 0,
+    "seconds": 1.465,
+    "asr": "even when you're playing away.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
   "L30": {
     "speaker": "NINE",
     "text": "Ask Belgium.",
-    "take": 2,
-    "seconds": 1.197,
-    "asr": "Ask Belgium.",
+    "take": 0,
+    "seconds": 0.95,
+    "asr": "Ask Belgium. //",
     "wer": 0.0,
     "engine": "chatterbox",
-    "exaggeration": 0.35,
-    "cfg": 0.3
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L32": {
+    "speaker": "NINE_VO",
+    "text": "My father made eggs before every game I ever played. He's not here to make them anymore. So I do.",
+    "take": 0,
+    "seconds": 5.226,
+    "asr": "My father made eggs before every game I ever played. He's not here to make them anymore, so I do.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L33": {
+    "speaker": "NINE_VO",
+    "text": "She has never let me finish one.",
+    "take": 0,
+    "seconds": 1.734,
+    "asr": "She has never let me finish one.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L34": {
+    "speaker": "NINE_VO",
+    "text": "He asked my father for two goals, thirty years ago. He got one.",
+    "take": 0,
+    "seconds": 3.235,
+    "asr": "He asked my father for two goals 30 years ago. He got one.",
+    "wer": 0.077,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L35": {
+    "speaker": "NINE_VO",
+    "text": "This is the only place it goes quiet.",
+    "take": 0,
+    "seconds": 2.15,
+    "asr": "This is the only place it goes, quiet.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L36": {
+    "speaker": "NINE_VO",
+    "text": "He's the only defender I'm afraid of.",
+    "take": 0,
+    "seconds": 2.238,
+    "asr": "He's the only defender I'm afraid of.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L37": {
+    "speaker": "NINE_VO",
+    "text": "She told me at six forty-six.",
+    "take": 0,
+    "seconds": 1.886,
+    "asr": "She told me at 646.",
+    "wer": 0.429,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L38": {
+    "speaker": "NINE_VO",
+    "text": "At his age I slept in my father's shirt too.",
+    "take": 1,
+    "seconds": 2.375,
+    "asr": "At his age, I slept in my father's shirt too.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L39": {
+    "speaker": "NINE_VO",
+    "text": "I've been awake since four.",
+    "take": 0,
+    "seconds": 1.592,
+    "asr": "I've been awake since four.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L40": {
+    "speaker": "NINE",
+    "text": "For what?",
+    "take": 0,
+    "seconds": 0.619,
+    "asr": "For what? //",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
+  },
+  "L41": {
+    "speaker": "NINE",
+    "text": "Not today.",
+    "take": 0,
+    "seconds": 0.771,
+    "asr": "Not today.",
+    "wer": 0.0,
+    "engine": "chatterbox",
+    "exaggeration": 0.5,
+    "cfg": 0.5
   }
 }

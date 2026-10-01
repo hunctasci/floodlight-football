@@ -100,8 +100,8 @@ def build_interior(col, time="night", passenger=True):
     mirror = B(col, "CAR_Mirror", (0.24, 0.05, 0.07), m["trim"], (0, -0.72, 1.66), bevel=0.01)
     props.box(col, "CAR_Mirror.Stem", (0.02, 0.02, 0.1), m["trim"], (0, -0.72, 1.72))
     pennant = pennant_tr(col, (0.0, -0.715, 1.6))
-    # phone on the dash (for the "mother" beat)
-    phone = props.box(col, "CAR_Phone", (0.075, 0.15, 0.009), look.flat("Phone_Body", "#101114", rough=0.3, coat=0.6), (-0.3, -0.9, 0.86), rot=(6, 0, 12))
+    # phone on the dash (for the "mother" beat), lying on the dash top's 6° slope (z 0.86 sat inside it)
+    phone = props.box(col, "CAR_Phone", (0.075, 0.15, 0.009), look.flat("Phone_Body", "#101114", rough=0.3, coat=0.6), (-0.3, -0.9, 0.922), rot=(6, 0, 12))
     return dict(driver=DRIVER.copy(), wheel=WHEEL.copy(), wheel_obj=wheel, knob=knob, radio=screen, pennant=pennant, phone=phone,
                 mirror=mirror)
 

@@ -28,6 +28,7 @@ export const GRAPHICS: Record<string, GraphicDef> = {
   'live-bug': { summary: 'LIVE bug + channel mark in the corner', props: { channel: 'channel name (default HNC SPORTS)' } },
   chat: { summary: 'Chat message in the phone thread (stacks up)', props: { from: 'cast id', say: 'message text', reply: 'quoted text', image: 'goal | table (attachment card)', history: 'true: already in the thread on its first frame (no pop)' }, worlds: ['phone'] },
   typing: { summary: 'Typing indicator in the phone thread', props: { from: 'cast id' }, worlds: ['phone'] },
+  draft: { summary: 'Text being typed into the phone input bar (optionally deleted again: unsent)', props: { say: 'text', cps: 'seconds per character (default 0.075)', erase: 'seconds to delete it before the end (default: stays)' }, worlds: ['phone'] },
   'system-note': { summary: 'Grey system line in the thread ("Nikos left the group")', props: { say: 'text' }, worlds: ['phone'] },
   notification: { summary: 'Push notification banner drops from the top', props: { app: 'app name', title: 'title', body: 'body' } },
   versus: { summary: 'Two-flag VS card', props: { home: 'cast id', away: 'cast id' } },

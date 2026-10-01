@@ -78,6 +78,8 @@ class Performer:
         c["lid.L"] = Channel(1.0)  # per-eye openness (one eye opens first)
         c["lid.R"] = Channel(1.0)
         c["breath_amp"] = Channel(1.0)
+        c["talk"] = Channel((0.0, 0.0, 0.0))  # additive head beats while speaking (see talk())
+        c["talk_chest"] = Channel(0.0)  # additive chest pitch: the inhale before a phrase
         c["drift_amp"] = Channel(1.0)
         for s in "LR":
             c[f"arm.{s}"] = Channel((0.0, 7.0, 0.0, 6.0))  # fwd, out, twist, elbow
@@ -166,10 +168,10 @@ class Performer:
             hp, hr, hyaw = c["hips_rot"]
             put(pb["pelvis"], "rotation_quaternion", lq("pelvis", body_rot(hp, hr + anim.fbm(t, 0.1, self.seed + 6) * sway * 60, hyaw)))
             cp, cr, cy = c["chest"]
-            put(pb["spine"], "rotation_quaternion", lq("spine", body_rot(cp - br, cr, cy)))
+            put(pb["spine"], "rotation_quaternion", lq("spine", body_rot(cp - br + c["talk_chest"], cr, cy)))
             np_, nr, ny = c["neck"]
             put(pb["neck"], "rotation_quaternion", lq("neck", body_rot(np_ + nd[0] + br * 0.35, nr + nd[1], ny + nd[2])))
-            hp2, hr2, hy2 = c["head"]
+            hp2, hr2, hy2 = anim.add(c["head"], c["talk"])
             put(pb["head"], "rotation_quaternion", lq("head", body_rot(hp2, hr2, hy2)))
             gx, gy = c["gaze"]
             put(pb["eyes"], "rotation_quaternion", lq("eyes", rot_z(gx * 18.0) @ rot_x(-gy * 12.0)))
@@ -391,6 +393,23 @@ def nod(p, t, depth=6.0, dur=0.42, count=1):
         p.key("head", tt + 2 * step, (h[0], h[1], h[2]), "soft")
         tt += 2 * step
     return tt
+
+
+def talk(p, t0, t1, beats, amount=1.0):
+    """Speech body language for a mouthless HNC head (the line's caption names the speaker;
+    this makes the picture agree): an inhale before the phrase, a small head beat on each
+    stressed syllable of the actual take, a blink as the phrase lands. Additive on top of the
+    shot's own acting. ``beats`` = [(t, strength 0..1)] in shot time (Shot.beats())."""
+    p.key("talk_chest", t0 - 0.3, 0.0, "hold")
+    p.key("talk_chest", t0 - 0.05, -1.6 * amount, "soft")
+    p.key("talk_chest", t0 + 0.35, 0.0, "soft")
+    for i, (bt, w) in enumerate(beats):
+        side = 1 if i % 2 else -1
+        p.key("talk", bt - 0.05, (0.0, 0.0, 0.0), "soft")
+        p.key("talk", bt + 0.07, (2.4 * w * amount, 0.6 * side * w * amount, 0.9 * side * w * amount), "out")
+        p.key("talk", bt + 0.24, (0.0, 0.0, 0.0), "soft")
+    p.extra_blinks.append(t1 + 0.08)
+    return t1
 
 
 def arms(p, t, side, fwd, out, twist, elbow, e="soft"):

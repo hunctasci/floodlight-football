@@ -1,43 +1,29 @@
 # 48 Hours Before Belgium — storyboard (HNC Player Diaries EP01)
 
-GENERATED from `packages/reels/src/diaries/ep01/edit.json` (63 shots, 60 fps) by `npm run diaries -- storyboard`. Edit the JSON, not this file.
-Runtime: 71.30 s.
+GENERATED from `packages/reels/src/diaries/ep01/edit.json` (69 shots, 60 fps) by `npm run diaries -- storyboard`. Edit the JSON, not this file.
+Runtime: 106.47 s.
+
+## S00
+
+### `S00_SH01` · 0:00.00–0:06.40 · 384f
+
+| | |
+|---|---|
+| Location | phone |
+| Framing | full-screen phone: the family group chat |
+| Lens | - |
+| Camera | - |
+| Action | 06:46. Mum: they said on tv you look tired / are you nervous?? He types 'ask belgium.', deletes it, sends 'no.'. Aşkım: we're out of salt. His son: he is. The phone locks. |
+| Dialogue | — |
+| Audio | night-room@0, message-in@0.25, message-in@1.05, key-taps@1.8, key-delete@3.1, message-out@3.75, message-in@4.45, message-in@5.45, phone-lock@6.3 |
+| Light | screen |
+| Renderer | remotion |
+| Transition | cut to black (the phone locks), then the title |
+| Purpose | Hook + the episode's one question, answered by his son. |
 
 ## S01
 
-### `S01_SH01` · 0:00.00–0:00.85 · 51f
-
-| | |
-|---|---|
-| Location | black |
-| Framing | black |
-| Lens | - |
-| Camera | - |
-| Action | Black. A question in the dark. |
-| Dialogue | INT: “Are you nervous?” (@0.05s, 1.06s) |
-| Audio | car-night-bed@0.55 |
-| Light | none |
-| Renderer | remotion |
-| Transition | cut |
-| Purpose | Hook: a voice before a picture. |
-
-### `S01_SH02` · 0:00.85–0:02.50 · 99f
-
-| | |
-|---|---|
-| Location | car-night |
-| Framing | ECU profile, right side, eyes on the road |
-| Lens | 85mm f/1.8 |
-| Camera | locked-off, road vibration; streetlights sweep across the face |
-| Action | #9 drives. Eyes flick toward the voice, back to the road; the half-smile arrives before the line. |
-| Dialogue | NINE: “Ask Belgium.” (@0.40s, 1.17s) |
-| Audio | car-night-bed@0, indicator@0.1 |
-| Light | cool night; sodium streetlight sweeps; dash glow |
-| Renderer | blender |
-| Transition | smash cut |
-| Purpose | First premium frame: confidence without breaking realism. |
-
-### `S01_SH03` · 0:02.50–0:03.45 · 57f
+### `S01_SH03` · 0:06.40–0:07.35 · 57f
 
 | | |
 |---|---|
@@ -55,7 +41,7 @@ Runtime: 71.30 s.
 
 ## S02
 
-### `S02_SH01` · 0:03.45–0:04.05 · 36f
+### `S02_SH01` · 0:07.35–0:07.95 · 36f
 
 | | |
 |---|---|
@@ -71,7 +57,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Time + place in one beat. |
 
-### `S02_SH02` · 0:04.05–0:06.80 · 165f
+### `S02_SH02` · 0:07.95–0:12.07 · 247f
 
 | | |
 |---|---|
@@ -79,31 +65,31 @@ Runtime: 71.30 s.
 | Framing | MCU #9 on the pillow from the child's eye-line (child off-screen) |
 | Lens | 50mm f/2 |
 | Camera | locked-off, faint handheld |
-| Action | Alarm stops. One eye opens. Off-screen: You're late. His eye slides to the clock. I'm not late. |
-| Dialogue | CHILD: “You're late.” (@0.70s, 0.97s)<br>NINE: “I'm not late.” (@1.80s, 0.84s) |
+| Action | Alarm off — his eye is already open (VO: I've been awake since four). The kid, in Dad's #9, at the bed: You're late. — For what? |
+| Dialogue | NINE_VO: “I've been awake since four.” (@0.30s, 1.59s)<br>CHILD: “You're late.” (@2.05s, 0.97s)<br>NINE: “For what?” (@3.15s, 0.62s) |
 | Audio | alarm@-0.6, sheets@0.3, room-morning@0 |
 | Light | soft blue window, warm lamp spill from the hall |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Character through restraint; the child outranks the star. |
 
-### `S02_SH03` · 0:06.80–0:07.70 · 54f
+### `S02_SH03` · 0:12.07–0:12.97 · 54f
 
 | | |
 |---|---|
 | Location | bedroom |
-| Framing | reverse, low from the pillow: the child, pointing at the clock (clock soft at frame right) |
+| Framing | reverse, low from the pillow: the kid lifts the ball into view |
 | Lens | 50mm f/2 |
 | Camera | locked-off |
-| Action | The reveal: the child has been standing there. Points at the clock. Says nothing. |
+| Action | He holds up the ball. Says nothing. |
 | Dialogue | — |
 | Audio | cloth@0.1 |
 | Light | same |
 | Renderer | blender |
 | Transition | cut |
-| Purpose | Comedy beat: evidence. |
+| Purpose | What he's late for. |
 
-### `S02_SH04` · 0:07.70–0:08.95 · 75f
+### `S02_SH04` · 0:12.97–0:14.67 · 102f
 
 | | |
 |---|---|
@@ -111,8 +97,8 @@ Runtime: 71.30 s.
 | Framing | MCU as SH02 |
 | Lens | 50mm f/2 |
 | Camera | locked-off |
-| Action | You're late. He stares at the ceiling. Exhales. |
-| Dialogue | CHILD: “You're late.” (@0.10s, 0.96s) |
+| Action | Not today. He stares at the ceiling. Exhales. |
+| Dialogue | NINE: “Not today.” (@0.15s, 0.77s) |
 | Audio | — |
 | Light | same |
 | Renderer | blender |
@@ -121,23 +107,23 @@ Runtime: 71.30 s.
 
 ## S03
 
-### `S03_SH01` · 0:08.95–0:09.70 · 45f
+### `S03_SH01` · 0:14.67–0:20.15 · 329f
 
 | | |
 |---|---|
 | Location | kitchen |
-| Framing | ECU egg dropping into the pan |
+| Framing | ECU: his hand cracks an egg on the pan rim; it slides into hot oil |
 | Lens | 100mm f/2.8 |
 | Camera | slow push |
-| Action | An egg lands in hot oil. |
-| Dialogue | INT: “Special diet before Belgium?” (@0.12s, 1.87s) |
-| Audio | sizzle@0.28, egg-crack@0.3, room-morning@0 |
+| Action | Tap, crack, the halves open, the egg slides into the oil. VO: My father made eggs before every game I ever played. |
+| Dialogue | NINE_VO: “My father made eggs before every game I ever played. He's not here to make them anymore. So I do.” (@0.10s, 5.23s) |
+| Audio | room-morning@0, egg-crack@0.45, sizzle@0.85 |
 | Light | warm morning window, steam backlight |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Sound-led location change. |
 
-### `S03_SH02` · 0:09.70–0:12.15 · 147f
+### `S03_SH02` · 0:20.15–0:23.65 · 210f
 
 | | |
 |---|---|
@@ -146,14 +132,14 @@ Runtime: 71.30 s.
 | Lens | 35mm f/2.8 |
 | Camera | observational handheld, slight drift |
 | Action | He looks at the pan. Eggs. That's it? |
-| Dialogue | NINE: “Eggs.” (@1.02s, 0.72s)<br>INT: “That's it?” (@1.60s, 1.07s) |
-| Audio | pan-shuffle@0.5 |
+| Dialogue | NINE: “Eggs.” (@1.55s, 0.67s) |
+| Audio | pan-shuffle@1.3 |
 | Light | warm key from window, soft fill |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Dry answer, zero performance. |
 
-### `S03_SH03` · 0:12.15–0:14.80 · 159f
+### `S03_SH03` · 0:23.65–0:28.13 · 269f
 
 | | |
 |---|---|
@@ -161,8 +147,8 @@ Runtime: 71.30 s.
 | Framing | MCU: #9 pours coffee, mug on the counter in the foreground |
 | Lens | 50mm f/2 |
 | Camera | locked-off |
-| Action | And coffee. He pours. Keeps pouring. The partner's hand slides the mug away mid-pour; she walks off with it. His eyes follow the cup. |
-| Dialogue | NINE: “And coffee.” (@0.12s, 1.01s) |
+| Action | And coffee. He pours. Keeps pouring. The partner's hand slides the mug away mid-pour; she walks off with it. His eyes follow the cup. VO: Eleven years. She has never let me finish a coffee. |
+| Dialogue | NINE: “And coffee.” (@0.12s, 0.90s)<br>NINE_VO: “She has never let me finish one.” (@2.45s, 1.73s) |
 | Audio | coffee-pour@0.6, cup-scrape@2.05, footsteps-soft@2.3 |
 | Light | same |
 | Renderer | blender |
@@ -171,7 +157,7 @@ Runtime: 71.30 s.
 
 ## S04
 
-### `S04_SH01` · 0:14.80–0:16.10 · 78f
+### `S04_SH01` · 0:28.13–0:29.43 · 78f
 
 | | |
 |---|---|
@@ -180,14 +166,14 @@ Runtime: 71.30 s.
 | Lens | 28mm f/4 |
 | Camera | car vibration, city passing |
 | Action | Radio talk. He reaches and lowers the volume. |
-| Dialogue | RADIO: “Belgium against Türkiye, this Friday. And the whole country is asking one question” (@-0.10s, 4.81s) |
+| Dialogue | RADIO: “Belgium against Türkiye, this Friday. And the whole country is asking one question” (@0.15s, 4.81s) |
 | Audio | car-day-bed@0, knob@1.2 |
 | Light | neutral daylight, window contrast |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | The outside world is loud; he turns it down. |
 
-### `S04_SH02` · 0:16.10–0:18.20 · 126f
+### `S04_SH02` · 0:29.43–0:31.53 · 126f
 
 | | |
 |---|---|
@@ -196,14 +182,14 @@ Runtime: 71.30 s.
 | Lens | 50mm f/2.8 |
 | Camera | car vibration |
 | Action | You don't listen to that stuff? No. Clicks the radio off. |
-| Dialogue | INT: “You don't listen to that stuff?” (@0.00s, 1.47s)<br>NINE: “No.” (@1.45s, 0.71s) |
+| Dialogue | NINE: “No.” (@1.45s, 0.61s) |
 | Audio | radio-off@1.8 |
 | Light | daylight, moving reflections |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Silence as a punchline. |
 
-### `S04_SH03` · 0:18.20–0:20.70 · 150f
+### `S04_SH03` · 0:31.53–0:34.03 · 150f
 
 | | |
 |---|---|
@@ -212,16 +198,32 @@ Runtime: 71.30 s.
 | Lens | 85mm f/2 |
 | Camera | vibration |
 | Action | Beat. My mother sends me all of it anyway. The phone on the dash lights up. |
-| Dialogue | NINE: “My mother sends me all of it anyway.” (@0.25s, 2.29s) |
-| Audio | phone-buzz@2.45 |
+| Dialogue | NINE: “My mother sends me all of it anyway.” (@0.25s, 1.88s) |
+| Audio | — |
 | Light | daylight |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Family warmth under the dryness. |
 
+### `S04_SH04` · 0:34.03–0:35.23 · 72f
+
+| | |
+|---|---|
+| Location | car-day |
+| Framing | insert from above: the phone on the dash |
+| Lens | 50mm f/2.4 |
+| Camera | tiny push |
+| Action | Buzz. The lock screen lights up: three links from Annem. |
+| Dialogue | — |
+| Audio | phone-buzz@0.1 |
+| Light | daylight + screen glow |
+| Renderer | hybrid |
+| Transition | cut |
+| Purpose | Proof: she sends him all of it. |
+
 ## S05
 
-### `S05_SH01` · 0:20.70–0:21.85 · 69f
+### `S05_SH01` · 0:35.23–0:36.38 · 69f
 
 | | |
 |---|---|
@@ -237,7 +239,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | New world, new character in one frame. |
 
-### `S05_SH02` · 0:21.85–0:22.85 · 60f
+### `S05_SH02` · 0:36.38–0:37.38 · 60f
 
 | | |
 |---|---|
@@ -253,7 +255,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Set up the expectation. |
 
-### `S05_SH03` · 0:22.85–0:24.30 · 87f
+### `S05_SH03` · 0:37.38–0:38.83 · 87f
 
 | | |
 |---|---|
@@ -269,7 +271,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Subvert: a demand, not a selfie. |
 
-### `S05_SH04` · 0:24.30–0:25.40 · 66f
+### `S05_SH04` · 0:38.83–0:39.93 · 66f
 
 | | |
 |---|---|
@@ -278,14 +280,14 @@ Runtime: 71.30 s.
 | Lens | 50mm f/2 |
 | Camera | static |
 | Action | Good morning. He walks off. |
-| Dialogue | NINE: “Good morning.” (@0.18s, 0.83s) |
+| Dialogue | NINE: “Good morning.” (@0.18s, 0.87s) |
 | Audio | — |
 | Light | same |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Dry exit. |
 
-### `S05_SH05` · 0:25.40–0:26.70 · 78f
+### `S05_SH05` · 0:39.93–0:43.62 · 221f
 
 | | |
 |---|---|
@@ -293,8 +295,8 @@ Runtime: 71.30 s.
 | Framing | from outside the door: #9 walks toward us, elder behind |
 | Lens | 35mm f/2.8 |
 | Camera | slow push back |
-| Action | TWO. A small smile as he reaches the door. |
-| Dialogue | ELDER: “Two!” (@0.22s, 0.78s) |
+| Action | TWO. A small smile as he reaches the door. VO: He asked my father for two goals. Thirty years ago. |
+| Dialogue | ELDER: “Two!” (@0.22s, 0.78s)<br>NINE_VO: “He asked my father for two goals, thirty years ago. He got one.” (@1.05s, 3.23s) |
 | Audio | shop-bell@1.18 |
 | Light | daylight outside, warm inside |
 | Renderer | blender |
@@ -303,7 +305,7 @@ Runtime: 71.30 s.
 
 ## S06
 
-### `S06_SH01` · 0:26.70–0:27.20 · 30f
+### `S06_SH01` · 0:43.62–0:44.12 · 30f
 
 | | |
 |---|---|
@@ -319,7 +321,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Montage: switch on. |
 
-### `S06_SH02` · 0:27.20–0:27.65 · 27f
+### `S06_SH02` · 0:44.12–0:44.57 · 27f
 
 | | |
 |---|---|
@@ -335,7 +337,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | The canonical ball, hero lit. |
 
-### `S06_SH03` · 0:27.65–0:28.25 · 36f
+### `S06_SH03` · 0:44.57–0:45.17 · 36f
 
 | | |
 |---|---|
@@ -344,14 +346,14 @@ Runtime: 71.30 s.
 | Lens | 35mm |
 | Camera | tiny tilt |
 | Action | First touch. |
-| Dialogue | INT: “Everyone wants to know what's going to happen Friday.” (@0.10s, 2.58s) |
+| Dialogue | — |
 | Audio | touch@0.22 |
 | Light | same |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Softness of touch. |
 
-### `S06_SH04` · 0:28.25–0:29.05 · 48f
+### `S06_SH04` · 0:45.17–0:45.97 · 48f
 
 | | |
 |---|---|
@@ -367,7 +369,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Speed. |
 
-### `S06_SH05` · 0:29.05–0:29.75 · 42f
+### `S06_SH05` · 0:45.97–0:46.67 · 42f
 
 | | |
 |---|---|
@@ -383,7 +385,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Skill. |
 
-### `S06_SH06` · 0:29.75–0:31.60 · 111f
+### `S06_SH06` · 0:46.67–0:48.52 · 111f
 
 | | |
 |---|---|
@@ -392,14 +394,14 @@ Runtime: 71.30 s.
 | Lens | 85mm f/2 |
 | Camera | slow push |
 | Action | Controls the ball. Looks at the goal. So do I. |
-| Dialogue | NINE: “So do I.” (@0.80s, 0.92s) |
+| Dialogue | NINE: “So do I.” (@0.80s, 0.81s) |
 | Audio | — |
 | Light | same |
 | Renderer | blender |
 | Transition | cut into silence |
 | Purpose | The quiet man switches mode. |
 
-### `S06_SH07` · 0:31.60–0:32.70 · 66f
+### `S06_SH07` · 0:48.52–0:51.17 · 159f
 
 | | |
 |---|---|
@@ -407,15 +409,15 @@ Runtime: 71.30 s.
 | Framing | telephoto behind #9: ball, goal, keeper set |
 | Lens | 135mm f/2.8 |
 | Camera | static |
-| Action | Breath. Keeper sets. |
-| Dialogue | — |
+| Action | Breath. Keeper sets. VO: This is the only place it goes quiet. |
+| Dialogue | NINE_VO: “This is the only place it goes quiet.” (@0.25s, 2.15s) |
 | Audio | breath@0.2 |
 | Light | same |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Silence before the strike. |
 
-### `S06_SH08` · 0:32.70–0:33.40 · 42f
+### `S06_SH08` · 0:51.17–0:51.87 · 42f
 
 | | |
 |---|---|
@@ -431,7 +433,7 @@ Runtime: 71.30 s.
 | Transition | cut on contact +2f |
 | Purpose | Power. |
 
-### `S06_SH09` · 0:33.40–0:34.15 · 45f
+### `S06_SH09` · 0:51.87–0:52.62 · 45f
 
 | | |
 |---|---|
@@ -447,7 +449,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Payoff. |
 
-### `S06_SH10` · 0:34.15–0:35.05 · 54f
+### `S06_SH10` · 0:52.62–0:53.52 · 54f
 
 | | |
 |---|---|
@@ -465,7 +467,7 @@ Runtime: 71.30 s.
 
 ## S07
 
-### `S07_SH01` · 0:35.05–0:36.15 · 66f
+### `S07_SH01` · 0:53.52–0:54.62 · 66f
 
 | | |
 |---|---|
@@ -481,7 +483,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Quiet reset. |
 
-### `S07_SH02` · 0:36.15–0:37.70 · 93f
+### `S07_SH02` · 0:54.62–0:56.17 · 93f
 
 | | |
 |---|---|
@@ -490,14 +492,14 @@ Runtime: 71.30 s.
 | Lens | 35mm f/2.8 |
 | Camera | static |
 | Action | The ball appears next to him. Without looking: Not now. |
-| Dialogue | NINE: “Not now.” (@1.00s, 0.82s) |
+| Dialogue | NINE: “Not now.” (@1.00s, 0.69s) |
 | Audio | kid-steps@0.1, ball-set@0.95 |
 | Light | same |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | The child's challenge. |
 
-### `S07_SH03` · 0:37.70–0:38.70 · 60f
+### `S07_SH03` · 0:56.17–0:57.17 · 60f
 
 | | |
 |---|---|
@@ -513,7 +515,71 @@ Runtime: 71.30 s.
 | Transition | hard cut |
 | Purpose | The pause that wins. |
 
-### `S07_SH04` · 0:38.70–0:40.00 · 78f
+### `S07_SH04` · 0:57.17–0:58.47 · 78f
+
+| | |
+|---|---|
+| Location | living |
+| Framing | MS: #9 on the sofa gives in |
+| Lens | 35mm f/2.8 |
+| Camera | locked-off |
+| Action | He exhales, lifts the ice off his knee, stands. |
+| Dialogue | — |
+| Audio | ice-crinkle@0.25, cloth@0.7 |
+| Light | same |
+| Renderer | blender |
+| Transition | cut |
+| Purpose | He gives in. |
+
+### `S07_SH05` · 0:58.47–1:00.67 · 132f
+
+| | |
+|---|---|
+| Location | living |
+| Framing | WS two-shot on the rug: passes |
+| Lens | 28mm f/4 |
+| Camera | handheld, slight follow |
+| Action | Soft passes back and forth on the rug; Dad shows off a little (a sole drag). |
+| Dialogue | — |
+| Audio | touch@0.25, touch@0.85, touch@1.35, touch@1.75 |
+| Light | same |
+| Renderer | blender |
+| Transition | cut |
+| Purpose | Play. |
+
+### `S07_SH06` · 1:00.67–1:01.67 · 60f
+
+| | |
+|---|---|
+| Location | living |
+| Framing | low, rug level: the kid nutmegs Dad |
+| Lens | 24mm f/4 |
+| Camera | locked-off |
+| Action | The ball goes through Dad's legs. |
+| Dialogue | — |
+| Audio | touch@0.2 |
+| Light | same |
+| Renderer | blender |
+| Transition | cut |
+| Purpose | The kid wins. |
+
+### `S07_SH07` · 1:01.67–1:04.85 · 191f
+
+| | |
+|---|---|
+| Location | living |
+| Framing | MWS: two sofa cushions as a goal; the kid scores, then Dad's turn-away |
+| Lens | 35mm f/2.8 |
+| Camera | locked-off |
+| Action | Goal between the cushions. The kid turns away without celebrating — Dad's move. Dad watches, the half-smile. VO: He's the only defender I'm afraid of. |
+| Dialogue | NINE_VO: “He's the only defender I'm afraid of.” (@0.75s, 2.24s) |
+| Audio | ball-set@0.35 |
+| Light | same |
+| Renderer | blender |
+| Transition | cut |
+| Purpose | Inheritance, played for a laugh. |
+
+### `S07_SH08` · 1:04.85–1:06.15 · 78f
 
 | | |
 |---|---|
@@ -529,7 +595,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Everyday joy. |
 
-### `S07_SH05` · 0:40.00–0:41.00 · 60f
+### `S07_SH09` · 1:06.15–1:07.15 · 60f
 
 | | |
 |---|---|
@@ -545,9 +611,25 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Button. |
 
+### `S07_SH10` · 1:07.15–1:08.05 · 54f
+
+| | |
+|---|---|
+| Location | living |
+| Framing | WS: both frozen, each points at the other |
+| Lens | 28mm f/4 |
+| Camera | locked-off |
+| Action | Both point at each other: it was him. |
+| Dialogue | — |
+| Audio | — |
+| Light | same |
+| Renderer | blender |
+| Transition | cut |
+| Purpose | Button. |
+
 ## S08
 
-### `S08_SH01` · 0:41.00–0:41.45 · 27f
+### `S08_SH01` · 1:08.05–1:08.50 · 27f
 
 | | |
 |---|---|
@@ -563,7 +645,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Montage. |
 
-### `S08_SH02` · 0:41.45–0:41.90 · 27f
+### `S08_SH02` · 1:08.50–1:08.95 · 27f
 
 | | |
 |---|---|
@@ -579,7 +661,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Montage. |
 
-### `S08_SH03` · 0:41.90–0:42.40 · 30f
+### `S08_SH03` · 1:08.95–1:09.45 · 30f
 
 | | |
 |---|---|
@@ -595,7 +677,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Montage. |
 
-### `S08_SH04` · 0:42.40–0:43.60 · 72f
+### `S08_SH04` · 1:09.45–1:10.65 · 72f
 
 | | |
 |---|---|
@@ -611,7 +693,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Pride before the fall. |
 
-### `S08_SH05` · 0:43.60–0:45.15 · 93f
+### `S08_SH05` · 1:10.65–1:12.20 · 93f
 
 | | |
 |---|---|
@@ -620,14 +702,14 @@ Runtime: 71.30 s.
 | Lens | 50mm f/2 |
 | Camera | static |
 | Action | She tastes. Silence. Well? |
-| Dialogue | NINE: “Well?” (@0.95s, 0.53s) |
+| Dialogue | NINE: “Well?” (@0.95s, 0.46s) |
 | Audio | cutlery@0.25 |
 | Light | same |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | The wait. |
 
-### `S08_SH06` · 0:45.15–0:46.85 · 102f
+### `S08_SH06` · 1:12.20–1:13.90 · 102f
 
 | | |
 |---|---|
@@ -643,7 +725,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | The line. |
 
-### `S08_SH07` · 0:46.85–0:47.95 · 66f
+### `S08_SH07` · 1:13.90–1:16.53 · 158f
 
 | | |
 |---|---|
@@ -651,8 +733,8 @@ Runtime: 71.30 s.
 | Framing | CU #9, devastated (small) |
 | Lens | 85mm f/2 |
 | Camera | static |
-| Action | His shoulders sink a millimetre. |
-| Dialogue | — |
+| Action | His shoulders sink a millimetre. VO: She told me at six forty-six. |
+| Dialogue | NINE_VO: “She told me at six forty-six.” (@0.45s, 1.89s) |
 | Audio | — |
 | Light | same |
 | Renderer | blender |
@@ -661,7 +743,7 @@ Runtime: 71.30 s.
 
 ## S09
 
-### `S09_SH01` · 0:47.95–0:50.05 · 126f
+### `S09_SH01` · 1:16.53–1:18.65 · 127f
 
 | | |
 |---|---|
@@ -670,14 +752,14 @@ Runtime: 71.30 s.
 | Lens | 85mm f/2 |
 | Camera | locked-off |
 | Action | Pressure doesn't really affect me. |
-| Dialogue | NINE: “Pressure doesn't really affect me.” (@0.10s, 1.80s) |
+| Dialogue | NINE: “Pressure doesn't really affect me.” (@0.35s, 1.47s) |
 | Audio | interview-tone@0 |
 | Light | dark; single warm practical; cool fill; edge light |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Comedy edit against the salt. |
 
-### `S09_SH02` · 0:50.05–0:51.70 · 99f
+### `S09_SH02` · 1:18.65–1:20.30 · 99f
 
 | | |
 |---|---|
@@ -686,14 +768,14 @@ Runtime: 71.30 s.
 | Lens | 70mm f/2 |
 | Camera | locked-off |
 | Action | Last one. Finally. (a breath of a smile) |
-| Dialogue | INT: “Last one.” (@0.10s, 0.71s)<br>NINE: “Finally.” (@0.90s, 0.69s) |
+| Dialogue | NINE: “Finally.” (@0.75s, 0.68s) |
 | Audio | — |
 | Light | same |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Gear change to sincerity. |
 
-### `S09_SH03` · 0:51.70–0:53.90 · 132f
+### `S09_SH03` · 1:20.30–1:22.50 · 132f
 
 | | |
 |---|---|
@@ -702,14 +784,14 @@ Runtime: 71.30 s.
 | Lens | 85mm f/2 |
 | Camera | imperceptible push |
 | Action | What does playing for Türkiye mean to you? He looks down. Thinks. |
-| Dialogue | INT: “What does playing for Türkiye mean to you?” (@0.08s, 2.49s) |
+| Dialogue | — |
 | Audio | — |
 | Light | same |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | The question lands. |
 
-### `S09_SH04` · 0:53.90–0:54.40 · 30f
+### `S09_SH04` · 1:22.50–1:25.33 · 170f
 
 | | |
 |---|---|
@@ -717,15 +799,15 @@ Runtime: 71.30 s.
 | Framing | insert: child asleep in the #9 shirt |
 | Lens | 50mm f/2 |
 | Camera | static |
-| Action | Child asleep. |
-| Dialogue | — |
+| Action | Child asleep in the #9 shirt. VO: At his age I slept in my father's shirt too. |
+| Dialogue | NINE_VO: “At his age I slept in my father's shirt too.” (@0.25s, 2.38s) |
 | Audio | night-room@0 |
 | Light | night-light |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Who comes with him. |
 
-### `S09_SH05` · 0:54.40–0:54.85 · 27f
+### `S09_SH05` · 1:25.33–1:25.78 · 27f
 
 | | |
 |---|---|
@@ -741,7 +823,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Identity. |
 
-### `S09_SH06` · 0:54.85–0:55.25 · 24f
+### `S09_SH06` · 1:25.78–1:26.18 · 24f
 
 | | |
 |---|---|
@@ -750,14 +832,14 @@ Runtime: 71.30 s.
 | Lens | 50mm |
 | Camera | static |
 | Action | Boots. |
-| Dialogue | NINE: “You feel like everyone's coming with you.” (@0.05s, 2.47s) |
+| Dialogue | NINE: “You feel like everyone's coming with you.” (@0.05s, 1.83s) |
 | Audio | — |
 | Light | hall light |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Tomorrow. |
 
-### `S09_SH07` · 0:55.25–0:55.65 · 24f
+### `S09_SH07` · 1:26.18–1:26.58 · 24f
 
 | | |
 |---|---|
@@ -773,7 +855,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Leaving. |
 
-### `S09_SH08` · 0:55.65–0:56.20 · 33f
+### `S09_SH08` · 1:26.58–1:27.13 · 33f
 
 | | |
 |---|---|
@@ -789,7 +871,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | HNC as a world. |
 
-### `S09_SH09` · 0:56.20–0:56.80 · 36f
+### `S09_SH09` · 1:27.13–1:27.73 · 36f
 
 | | |
 |---|---|
@@ -805,7 +887,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Where it goes. |
 
-### `S09_SH10` · 0:56.80–0:59.65 · 171f
+### `S09_SH10` · 1:27.73–1:30.58 · 171f
 
 | | |
 |---|---|
@@ -814,7 +896,7 @@ Runtime: 71.30 s.
 | Lens | 85mm f/2 |
 | Camera | locked-off |
 | Action | …coming with you. Pause. Even when you're playing away. |
-| Dialogue | NINE: “Even when you're playing away.” (@0.98s, 1.65s) |
+| Dialogue | NINE: “Even when you're playing away.” (@0.98s, 1.47s) |
 | Audio | — |
 | Light | same |
 | Renderer | blender |
@@ -823,7 +905,7 @@ Runtime: 71.30 s.
 
 ## S10
 
-### `S10_SH01` · 0:59.65–1:00.00 · 21f
+### `S10_SH01` · 1:30.58–1:30.93 · 21f
 
 | | |
 |---|---|
@@ -839,7 +921,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Matchday montage. |
 
-### `S10_SH02` · 1:00.00–1:00.35 · 21f
+### `S10_SH02` · 1:30.93–1:31.28 · 21f
 
 | | |
 |---|---|
@@ -855,7 +937,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Montage. |
 
-### `S10_SH03` · 1:00.35–1:00.70 · 21f
+### `S10_SH03` · 1:31.28–1:31.63 · 21f
 
 | | |
 |---|---|
@@ -871,7 +953,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Montage. |
 
-### `S10_SH04` · 1:00.70–1:01.10 · 24f
+### `S10_SH04` · 1:31.63–1:32.03 · 24f
 
 | | |
 |---|---|
@@ -887,7 +969,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Montage. |
 
-### `S10_SH05` · 1:01.10–1:02.40 · 78f
+### `S10_SH05` · 1:32.03–1:33.33 · 78f
 
 | | |
 |---|---|
@@ -903,7 +985,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | What he carries. |
 
-### `S10_SH06` · 1:02.40–1:03.10 · 42f
+### `S10_SH06` · 1:33.33–1:34.03 · 42f
 
 | | |
 |---|---|
@@ -919,7 +1001,7 @@ Runtime: 71.30 s.
 | Transition | MATCH CUT (door direction) |
 | Purpose | The expensive cut. |
 
-### `S10_SH07` · 1:03.10–1:04.20 · 66f
+### `S10_SH07` · 1:34.03–1:35.13 · 66f
 
 | | |
 |---|---|
@@ -935,7 +1017,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Same door, new world. |
 
-### `S10_SH08` · 1:04.20–1:04.90 · 42f
+### `S10_SH08` · 1:35.13–1:35.83 · 42f
 
 | | |
 |---|---|
@@ -951,7 +1033,7 @@ Runtime: 71.30 s.
 | Transition | cut |
 | Purpose | Scale. |
 
-### `S10_SH09` · 1:04.90–1:05.95 · 63f
+### `S10_SH09` · 1:35.83–1:36.88 · 63f
 
 | | |
 |---|---|
@@ -969,7 +1051,7 @@ Runtime: 71.30 s.
 
 ## S11
 
-### `S11_SH01` · 1:05.95–1:07.55 · 96f
+### `S11_SH01` · 1:36.88–1:38.48 · 96f
 
 | | |
 |---|---|
@@ -978,14 +1060,14 @@ Runtime: 71.30 s.
 | Lens | 35mm f/2 |
 | Camera | slow follow |
 | Action | Still not nervous? He stops. |
-| Dialogue | INT: “Still not nervous?” (@0.18s, 1.24s) |
+| Dialogue | — |
 | Audio | tunnel-steps@0 |
 | Light | dark, high contrast, pitch ahead |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Callback set-up. |
 
-### `S11_SH02` · 1:07.55–1:09.30 · 105f
+### `S11_SH02` · 1:38.48–1:40.23 · 105f
 
 | | |
 |---|---|
@@ -994,14 +1076,14 @@ Runtime: 71.30 s.
 | Lens | 85mm f/1.8 |
 | Camera | locked-off |
 | Action | Same half-smile. Ask Belgium. |
-| Dialogue | NINE: “Ask Belgium.” (@0.40s, 1.20s) |
+| Dialogue | NINE: “Ask Belgium.” (@0.40s, 0.95s) |
 | Audio | — |
 | Light | rim from the pitch |
 | Renderer | blender |
 | Transition | cut |
 | Purpose | Closure. |
 
-### `S11_SH03` · 1:09.30–1:10.10 · 48f
+### `S11_SH03` · 1:40.23–1:42.67 · 146f
 
 | | |
 |---|---|
@@ -1009,15 +1091,15 @@ Runtime: 71.30 s.
 | Framing | wide from behind: he walks into the light |
 | Lens | 35mm |
 | Camera | static |
-| Action | Into the light. WHITE. |
-| Dialogue | — |
-| Audio | crowd-roar@0.35 |
+| Action | Into the light. VO: …I've been awake since four. Then the roar. WHITE. |
+| Dialogue | NINE_VO: “I've been awake since four.” (@0.30s, 1.59s) |
+| Audio | crowd-roar@1.94 |
 | Light | blooms to white |
 | Renderer | blender |
 | Transition | white |
 | Purpose | Release. |
 
-### `S11_SH04` · 1:10.10–1:11.30 · 72f
+### `S11_SH04` · 1:42.67–1:43.87 · 72f
 
 | | |
 |---|---|
@@ -1032,4 +1114,22 @@ Runtime: 71.30 s.
 | Renderer | remotion |
 | Transition | end |
 | Purpose | Brand, once. |
+
+## S12
+
+### `S12_SH01` · 1:43.87–1:46.47 · 156f
+
+| | |
+|---|---|
+| Location | phone |
+| Framing | full-screen phone: Coach's message |
+| Lens | - |
+| Camera | - |
+| Action | Buzz. Coach: my office. 8am. (placeholder until the EP02 premise is set) |
+| Dialogue | — |
+| Audio | phone-buzz@0.15, message-in@0.35 |
+| Light | screen |
+| Renderer | remotion |
+| Transition | end |
+| Purpose | The next-episode hook. |
 

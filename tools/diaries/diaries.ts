@@ -25,11 +25,14 @@ import { fileURLToPath } from 'node:url';
 import { findBlender } from '../blender/src/paths.ts';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const EP = 'ep01';
+const argvAll = process.argv.slice(2);
+// --episode <id> (default ep01): packages/reels/src/diaries/<id>/ + tools/blender/py/hnc_blender/diaries/<id>/
+const EP = argvAll.includes('--episode') ? argvAll[argvAll.indexOf('--episode') + 1] : 'ep01';
+const OUT_DIRS: Record<string, string> = { ep01: 'ep01-belgium', rivals: 'rivals-one-goal' };
 const EDIT = path.join(REPO, 'packages/reels/src/diaries', EP, 'edit.json');
 const DIALOGUE = path.join(REPO, 'packages/reels/src/diaries', EP, 'dialogue.json');
 const GEN = path.join(REPO, 'packages/reels/public/generated/diaries', EP);
-const OUT = path.join(REPO, 'social/output/player-diaries/ep01-belgium');
+const OUT = path.join(REPO, 'social/output/player-diaries', OUT_DIRS[EP] ?? EP);
 /** venv python on macOS/Linux (bin/python) or Windows (Scripts/python.exe). */
 const venvPy = (dir: string): string => {
   const win = path.join(dir, '.venv', 'Scripts', 'python.exe');
@@ -48,6 +51,12 @@ const opt = (name: string, dflt?: string): string | undefined => {
 };
 const flag = (name: string): boolean => args.includes(`--${name}`);
 const sha = (s: string | Buffer): string => createHash('sha256').update(s).digest('hex');
+/** Frames in a shot — Python's round() (halves to even), like Blender's Shot and the mixer. */
+const shotFrames = (dur: number, fps: number): number => {
+  const x = dur * fps;
+  const f = Math.floor(x);
+  return Math.max(1, x - f === 0.5 ? (f % 2 === 0 ? f : f + 1) : Math.round(x));
+};
 
 interface ShotSpec {
   id: string;
@@ -57,7 +66,7 @@ interface ShotSpec {
   [k: string]: unknown;
 }
 
-const edit = (): { fps: number; shots: ShotSpec[] } => JSON.parse(readFileSync(EDIT, 'utf8'));
+const edit = (): { fps: number; title?: string; shots: ShotSpec[] } => JSON.parse(readFileSync(EDIT, 'utf8'));
 const voices = (): Record<string, { seconds: number }> => {
   const p = path.join(GEN, 'vo', 'voices.json');
   return existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : {};
@@ -76,7 +85,8 @@ function walk(dir: string, ext: string): string[] {
 
 /** Shared kit sources (everything except the episode's per-scene shot modules) + canonical assets. */
 function sourcesHash(): string {
-  const files = walk(path.join(REPO, 'tools/blender/py/hnc_blender'), '.py').filter((f) => !/diaries[\\/]ep\d+[\\/]s\d+\.py$/.test(f));
+  // Shared kit only: every episode's per-scene shot modules (diaries/<ep>/sNN.py) are hashed per shot.
+  const files = walk(path.join(REPO, 'tools/blender/py/hnc_blender'), '.py').filter((f) => !/diaries[\\/][^\\/]+[\\/]s\d+\.py$/.test(f));
   const manifest = JSON.parse(readFileSync(path.join(REPO, 'social/blender/generated/manifest.json'), 'utf8'));
   const assets = manifest.assets.map((a: { assetId: string; sha256: string }) => `${a.assetId}:${a.sha256}`).join(',');
   return sha(files.map((f) => sha(readFileSync(f))).join('') + assets);
@@ -129,7 +139,7 @@ async function plates(): Promise<void> {
     const pictureCues = ((s.sfx as { cue: string }[] | undefined) ?? []).filter((c) => PICTURE_CUES.has(c.cue));
     const key = sha(JSON.stringify({ ...s, sfx: pictureCues }) + takes + src + shotSourceHash(s.id) + bv + quality + e.fps + (s.renderer === 'hybrid' ? uiHash() : ''));
     const dir = plateDir(quality, s.id);
-    const frames = Math.max(1, Math.round(s.dur * e.fps));
+    const frames = shotFrames(s.dur, e.fps);
     const keyFile = path.join(dir, '.key');
     const lastFrame = existsSync(path.join(dir, `${String(frames).padStart(4, '0')}.png`));
     // --rekey: complete shots (key file + every frame) adopt the current key without re-rendering
@@ -208,14 +218,14 @@ function storyboard(): void {
   let t = 0;
   const fmt = (s: number): string => `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, '0')}`;
   const out: string[] = [
-    '# 48 Hours Before Belgium — storyboard (HNC Player Diaries EP01)',
+    `# ${(e as { title?: string }).title ?? EP} — storyboard (HNC Player Diaries)`,
     '',
     `GENERATED from \`packages/reels/src/diaries/${EP}/edit.json\` (${e.shots.length} shots, ${e.fps} fps) by \`npm run diaries -- storyboard\`. Edit the JSON, not this file.`,
     '',
   ];
   let scene = '';
   for (const s of e.shots) {
-    const frames = Math.max(1, Math.round(s.dur * e.fps));
+    const frames = shotFrames(s.dur, e.fps);
     const a = t / e.fps;
     const b = (t + frames) / e.fps;
     if (s.scene !== scene) {
@@ -262,13 +272,13 @@ async function editRender(): Promise<void> {
 function master(): void {
   const inp = path.resolve(REPO, opt('in')!);
   const out = path.resolve(REPO, opt('out')!);
-  // Two-pass EBU R128: measure, then normalise to -14 LUFS / -1.0 dBTP (social platforms).
-  const measured = execFileSync('sh', ['-c', `ffmpeg -hide_banner -i "${inp}" -af loudnorm=I=-14:TP=-1.0:LRA=11:print_format=json -f null - 2>&1 | sed -n '/{/,/}/p'`], { encoding: 'utf8' });
+  // Two-pass EBU R128: measure, then normalise to -14 LUFS / -1.5 dBTP (the AAC encode adds ~0.3 dB of inter-sample peak).
+  const measured = execFileSync('sh', ['-c', `ffmpeg -hide_banner -i "${inp}" -af loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json -f null - 2>&1 | sed -n '/{/,/}/p'`], { encoding: 'utf8' });
   const j = JSON.parse(measured);
-  const af = `loudnorm=I=-14:TP=-1.0:LRA=11:measured_I=${j.input_i}:measured_TP=${j.input_tp}:measured_LRA=${j.input_lra}:measured_thresh=${j.input_thresh}:offset=${j.target_offset}:linear=true`;
+  const af = `loudnorm=I=-14:TP=-1.5:LRA=11:measured_I=${j.input_i}:measured_TP=${j.input_tp}:measured_LRA=${j.input_lra}:measured_thresh=${j.input_thresh}:offset=${j.target_offset}:linear=true`;
   mkdirSync(path.dirname(out), { recursive: true });
   run('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-i', inp, '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-profile:v', 'high', '-pix_fmt', 'yuv420p',
-    '-r', '60', '-movflags', '+faststart', '-af', af, '-ar', '48000', '-c:a', 'aac', '-b:a', '256k', out]);
+    '-r', String(edit().fps), '-movflags', '+faststart', '-af', af, '-ar', '48000', '-c:a', 'aac', '-b:a', '256k', out]);
   const after = execFileSync('sh', ['-c', `ffmpeg -hide_banner -i "${out}" -af loudnorm=print_format=json -f null - 2>&1 | sed -n '/{/,/}/p'`], { encoding: 'utf8' });
   const k = JSON.parse(after);
   const probe = execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration,bit_rate:stream=codec_name,width,height,r_frame_rate,sample_rate,channels', '-of', 'json', out], { encoding: 'utf8' });
@@ -293,7 +303,7 @@ function check(): void {
   const events: { a: number; b: number; line: string; shot: string }[] = [];
   const scenes = new Map<string, [number, number]>();
   for (const s of e.shots) {
-    const frames = Math.max(1, Math.round(s.dur * e.fps));
+    const frames = shotFrames(s.dur, e.fps);
     const a = t / e.fps;
     const sc = scenes.get(s.scene as string) ?? [a, a];
     sc[1] = (t + frames) / e.fps;
@@ -306,7 +316,7 @@ function check(): void {
     t += frames;
   }
   const total = t / e.fps;
-  console.log(`runtime ${total.toFixed(2)} s (${t} frames, ${e.shots.length} shots) — target 65–72`);
+  console.log(`runtime ${total.toFixed(2)} s (${t} frames, ${e.shots.length} shots) — v3 runs long by design (VO + chat open); judge pacing on the animatic`);
   for (const [k, [a, b]] of scenes) console.log(`  ${k} ${a.toFixed(2)}–${b.toFixed(2)} (${(b - a).toFixed(2)})`);
   events.sort((x, y) => x.a - y.a);
   let bad = 0;

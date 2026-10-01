@@ -302,6 +302,8 @@ QUALITY = {
     "animatic": dict(samples=8, pct=40, blur=False, vol=16, rt=False),
     "preview": dict(samples=24, pct=50, blur=True, vol=32, rt=True),
     "final": dict(samples=96, pct=100, blur=True, vol=96, rt=True),
+    # full resolution, a third of the samples: ~3x faster than final; the edit's grain hides the difference
+    "release": dict(samples=32, pct=100, blur=True, vol=48, rt=True),
 }
 
 

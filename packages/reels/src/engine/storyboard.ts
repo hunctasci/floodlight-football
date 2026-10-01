@@ -27,7 +27,7 @@ export function storyboardMarkdown(spec: ContentSpec, tl: Timeline, intro: strin
       })
       .join('<br>');
     const text = tl.overlays
-      .filter((o) => (o.shot === s.id || (!o.shot && o.start < s.start + s.duration && o.end > s.start)) && !['chat', 'typing', 'system-note', 'screen'].includes(o.type))
+      .filter((o) => (o.shot === s.id || (!o.shot && o.start < s.start + s.duration && o.end > s.start)) && !['chat', 'typing', 'draft', 'system-note', 'screen'].includes(o.type))
       .map((o) => (o.kind === 'text' ? `“${(o.text ?? '').replace(/\n/g, ' / ')}” (${o.type})` : `[${o.type}${o.text ? ` ${o.text}` : ''}${o.props.headline ? ` ${o.props.headline}` : ''}${o.props.say ? ` “${o.props.say}”` : ''}]`))
       .filter((v, i, a) => a.indexOf(v) === i)
       .join('<br>');

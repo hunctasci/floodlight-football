@@ -1,18 +1,20 @@
 """Shot context: one edit.json shot -> an empty scene ready for its builder."""
 import json
+import wave
 
 import bpy
+import numpy as np
 
 from ..paths import REPO_ROOT, inside_repo
 from ..cine import cast, look
 from ..cine.camera import Cam
 
-EPISODES = {
-    "ep01": dict(
-        edit=REPO_ROOT / "packages" / "reels" / "src" / "diaries" / "ep01" / "edit.json",
-        voices=REPO_ROOT / "packages" / "reels" / "public" / "generated" / "diaries" / "ep01" / "vo" / "voices.json",
-    ),
-}
+def _episode(ep):
+    gen = REPO_ROOT / "packages" / "reels" / "public" / "generated" / "diaries" / ep
+    return dict(edit=REPO_ROOT / "packages" / "reels" / "src" / "diaries" / ep / "edit.json", voices=gen / "vo" / "voices.json", vo=gen / "vo")
+
+
+EPISODES = {ep: _episode(ep) for ep in ("ep01", "rivals")}
 
 COLLECTIONS = ("SET", "CAST", "PROPS", "LGT", "CAM", "FX")
 
@@ -65,6 +67,45 @@ class Shot:
             return self.line(line_id)
         except KeyError:
             return default
+
+    def card(self, i=0):
+        """(start, end) of the shot's i-th on-screen question card (v4: the interviewer is text), shot-local s."""
+        c = self.spec.get("cards", [])[i]
+        return c["at"], c["at"] + c["dur"]
+
+    def beats(self, line_id, spacing=0.17, top=0.42):
+        """Stressed syllables of the approved take: (shot-local t, strength 0..1) at the loudest
+        envelope peaks, at most one per ``spacing`` s. Read from the WAV itself, so re-voicing a
+        line re-times the acting (the take length is already part of the plate cache key)."""
+        a, _ = self.line(line_id)
+        with wave.open(str(inside_repo(EPISODES[self.episode]["vo"] / f"{line_id}.wav"))) as w:
+            sr, width, ch = w.getframerate(), w.getsampwidth(), w.getnchannels()
+            raw = np.frombuffer(w.readframes(w.getnframes()), np.uint8)
+        if width == 3:  # 24-bit PCM -> int32
+            b = raw.reshape(-1, 3).astype(np.int32)
+            x = (b[:, 0] | (b[:, 1] << 8) | (b[:, 2] << 16)).astype(np.int32)
+            x = np.where(x >= 1 << 23, x - (1 << 24), x) / float(1 << 23)
+        else:
+            x = np.frombuffer(raw.tobytes(), np.int16) / 32768.0
+        x = x.reshape(-1, ch).mean(1)
+        hop = sr // 100  # 10 ms envelope
+        frames = x[: len(x) // hop * hop].reshape(-1, hop)
+        env = np.sqrt(np.convolve((frames ** 2).mean(1), np.ones(5) / 5, "same"))
+        peak = env.max() or 1.0
+        picks = []
+        for i in np.argsort(env)[::-1]:
+            if env[i] < peak * top:
+                break
+            t = i / 100.0
+            if all(abs(t - u) >= spacing for u, _ in picks):
+                picks.append((t, float(env[i] / peak)))
+        return sorted((a + t, w_) for t, w_ in picks)
+
+    def talk(self, p, line_id, amount=1.0):
+        """``perform.talk`` on this shot's placement of ``line_id``."""
+        from ..cine import perform
+        a, b = self.line(line_id)
+        return perform.talk(p, a + 0.05, b - 0.16, self.beats(line_id), amount)
 
     def sfx_at(self, cue):
         for s in self.spec.get("sfx", []):

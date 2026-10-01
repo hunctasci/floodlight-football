@@ -36,6 +36,7 @@ def S11_SH02(sh):
     P.stance(p, 0.0, (STOP.x, STOP.y, 0.0), 180.0)
     P.relax_arms(p, 0.0)
     la, lb = sh.line("L30")
+    sh.talk(p, "L30", amount=0.5)
     # he looks slightly back over his right shoulder — the same half-smile as the car
     p.key("neck", 0.1, (0.0, 0.0, 0.0), "hold")
     p.key("neck", 0.45, (2.0, 0.0, -34.0), "soft")

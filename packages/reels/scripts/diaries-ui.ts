@@ -12,7 +12,14 @@ import { REELS_ROOT, stills } from './lib/remotion';
 const ep = arg('episode', 'ep01')!;
 const ui = path.join(REELS_ROOT, 'public/generated/diaries', ep, 'ui');
 mkdirSync(ui, { recursive: true });
-await stills('DiariesPhoneUI', {}, [0], () => path.join(ui, 'world-table-phone.png'));
+if (ep === 'ep01') {
+  await stills('DiariesPhoneUI', {}, [0], () => path.join(ui, 'world-table-phone.png'));
+  await stills('DiariesMumLinksUI', {}, [0], () => path.join(ui, 'mum-links-phone.png'));
+}
+if (ep === 'rivals') {
+  // the living-room TVs: what the two kids watched (verified scores; original HNC scoreboard)
+  await stills('DiariesTVUI', { score: { home: 'Belgium', away: 'Türkiye', hs: 0, as: 2, clock: "88'", line: 'Brussels · 19.06.2000', era: 'crt' } }, [0], () => path.join(ui, 'tv-2000.png'));
+}
 // Deterministic grain tile (LCG noise around mid-grey; overlay-blended in the edit).
 const N = 512;
 const px = Buffer.alloc(N * N);

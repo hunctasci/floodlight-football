@@ -4,11 +4,14 @@ import math
 import bpy
 from mathutils import Vector
 
-from ...cine import look
+from ...cine import look, props
 from ...cine import perform as P
 from ...cine.perform import write_tracks
 from ...cine.sets import car
+from ...paths import REPO_ROOT
 from .s01 import seat_driver
+
+UI = REPO_ROOT / "packages" / "reels" / "public" / "generated" / "diaries" / "ep01" / "ui"
 
 
 def _car_day(sh, passenger=True):
@@ -61,6 +64,7 @@ def S04_SH01(sh):
 def S04_SH02(sh):
     a, p = _car_day(sh)
     la, lb = sh.line("L12")
+    sh.talk(p, "L12", amount=0.6)
     _reach_knob(p, a, la + 0.05, la + 0.75)
     _radio_screen(sh, a, off_at=sh.sfx_at("radio-off") or la + 0.22)
     d = a["driver"]
@@ -69,7 +73,7 @@ def S04_SH02(sh):
     off = Vector((d.x - 0.9, -9.0, 1.2))
     p.key("gaze_at", 0.0, tuple(off), "hold")
     p.key("look_at", 0.0, tuple(off), "hold")
-    ia, ib = sh.line("L11")
+    ia, ib = sh.card(0)  # Q: YOU DON'T LISTEN TO THAT?
     P.glance(p, ia + 0.6, -0.25, 0.0, dur=0.12, hold=0.3, back=0.15)
     cam = sh.camera(50, fstop=2.8)
     cam.place(0.0, (d.x - 0.12, -2.55, 1.52), head + Vector((0, 0, -0.06)), focus=head + Vector((0, -0.3, 0)))
@@ -84,6 +88,7 @@ def S04_SH03(sh):
         win.hide_render = True  # window rolled down: no sky veil over the profile
     d = a["driver"]
     la, lb = sh.line("L13")
+    sh.talk(p, "L13", amount=0.7)
     # a beat of stillness, then the line; a tiny head shake on "anyway"
     P.smile(p, lb - 0.7, amount=0.3, dur=0.35, tilt=1.0, nod=0.5)
     p.key("neck", lb - 0.6, (0.0, 0.0, 3.0), "soft")
@@ -97,4 +102,44 @@ def S04_SH03(sh):
     sh.finish()
 
 
-SHOTS = {"S04_SH01": S04_SH01, "S04_SH02": S04_SH02, "S04_SH03": S04_SH03}
+def S04_SH04(sh):
+    """Insert (hybrid): the dash phone buzzes and lights up — three links from Mum. "…all of it anyway." """
+    c = sh.cols
+    a = car.build_interior(c["SET"], "day", passenger=False)
+    bpy.context.view_layer.update()
+    car.moving_world(sh.scene, c["SET"], sh.frames, sh.fps, "day", speed=9.0, seed=11)
+    car.day_rig(sh.scene, c["LGT"], a)
+    ph = a["phone"]
+    png = UI / "mum-links-phone.png"
+    if not png.exists():
+        raise FileNotFoundError(f"{png} — run `npm run diaries -- ui` first")
+    img = bpy.data.images.load(str(png), check_existing=True)
+    scr = look.emission("PhoneMumLinks", "#ffffff", 0.0)
+    nt = scr.node_tree
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = img
+    nt.links.new(tex.outputs["Color"], nt.nodes["Emission"].inputs["Color"])
+    # box origin is its base; turned 180° so the lock screen reads from the driver's seat
+    props.plane(c["PROPS"], "CAR_Phone.Screen", (0.07, 0.15), scr, (0, 0, 0.0095), rot=(0, 0, 180), parent=ph)
+    t_buzz = sh.sfx_at("phone-buzz") or 0.1
+    rest_z = ph.location.z
+    tr = {}
+    for f in range(1, sh.frames + 1):
+        t = (f - 1) / sh.fps
+        on = 0.0 if t < t_buzz else min(1.0, (t - t_buzz) / 0.08)
+        tr.setdefault((scr, 'node_tree.nodes["Emission"].inputs[1].default_value', 0), []).append(2.2 * on)
+        # the buzz: a few millimetres of rattle on the dash
+        z = 0.0015 * math.sin(t * 150) if t_buzz <= t < t_buzz + 0.5 else 0.0
+        tr.setdefault((ph, "location", 2), []).append(rest_z + z)
+    write_tracks(tr, sh.frames)
+    at = ph.matrix_world.translation
+    look.area(c["LGT"], "LGT_ScreenGlow", tuple(at + Vector((0, 0, 0.12))), tuple(at + Vector((0, 0, 0.5))), (0.08, 0.15), 2, "#c9d6ff")
+    # from inside the cabin, over the driver's shoulder line (the windscreen is on the far side)
+    cam = sh.camera(50, fstop=5.6)
+    cam.place(0.0, at + Vector((0.07, 0.2, 0.24)), at, focus=at)
+    cam.place(sh.dur, at + Vector((0.065, 0.185, 0.22)), at, focus=at, e="linear")
+    cam.handheld("locked", 1.2)
+    sh.finish(glare=0.4, threshold=0.85)
+
+
+SHOTS = {"S04_SH01": S04_SH01, "S04_SH02": S04_SH02, "S04_SH03": S04_SH03, "S04_SH04": S04_SH04}

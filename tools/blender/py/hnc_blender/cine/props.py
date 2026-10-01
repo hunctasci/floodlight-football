@@ -295,24 +295,79 @@ def pan(col, name="PROP_Pan", loc=(0, 0, 0), rot=(0, 0, 0), r=0.13):
     return body
 
 
-def egg_fried(col, name, loc, parent=None, s=1.0):
-    white = look.flat("EggWhite", "#f6f2e8", rough=0.25, coat=0.6)
-    yolk = look.flat("EggYolk", "#f2a41c", rough=0.15, coat=0.9)
-    w = sphere(col, name, 0.06 * s, white, loc, scale=(1.0, 0.86, 0.1), parent=parent, segs=28, rings=10)
-    tex = tag(bpy.data.textures.new(f"{name}.Edge", "CLOUDS"))
-    tex.noise_scale = 0.03
-    d = w.modifiers.new("Irregular", "DISPLACE")
-    d.texture = tex
-    d.strength = 0.012
-    d.direction = "X"
-    # the white is scaled (1, .86, .1): counter-scale the yolk to a (1, 1, .55) dome
-    sphere(col, f"{name}.Yolk", 0.024 * s, yolk, (0.006, 0.004, 0.06), scale=(1.0, 1.163, 5.5), parent=w)
-    return w
+# A real egg's profile (radius, height), blunt end down: widest at ~40 % of its height, a pointed top.
+# Read at 1.2x life size so it holds its shape beside chunky HNC arms.
+_EGG = [(0.0, 0.0), (0.012, 0.0015), (0.018, 0.006), (0.0215, 0.0135), (0.0225, 0.0225), (0.0215, 0.032),
+        (0.0185, 0.0405), (0.0135, 0.048), (0.0072, 0.0538), (0.0, 0.0568)]
+EGG_SCALE = 1.2
+
+
+def _egg_profile(z0=0.0, z1=1.0):
+    """Slice of the egg profile between height fractions z0..z1, centred on the egg's middle."""
+    h = _EGG[-1][1]
+    pts = []
+    for (r0, a), (r1, b) in zip(_EGG, _EGG[1:]):
+        for u in (0.0, 0.5):
+            r, z = r0 + (r1 - r0) * u, a + (b - a) * u
+            if z0 * h - 1e-6 <= z <= z1 * h + 1e-6:
+                pts.append((r, z))
+    if z1 >= 1.0:
+        pts.append(_EGG[-1])
+    return [(r * EGG_SCALE, (z - h * 0.5) * EGG_SCALE) for r, z in pts]
+
+
+def _shell():
+    return look.flat("EggShell", "#efe2cc", rough=0.55, sheen=0.25)
 
 
 def egg_whole(col, name, loc, parent=None):
-    shell = look.flat("EggShell", "#f0e2cc", rough=0.45)
-    return sphere(col, name, 0.022, shell, loc, scale=(1, 1, 1.3), parent=parent)
+    """An uncracked egg (origin at its centre, blunt end down)."""
+    return lathe(col, name, _egg_profile(), _shell(), loc, segs=36, parent=parent)
+
+
+def egg_halves(col, name, loc):
+    """A cracked egg: two open shell halves under a pivot empty at the crack line.
+    Rotate the halves about their local X to open them. Returns (pivot, bottom, top)."""
+    pivot = tag(bpy.data.objects.new(f"{name}.Pivot", None))
+    col.objects.link(pivot)
+    pivot.location = loc
+    cut = 0.47  # the crack sits just below the widest point
+    zc = (cut - 0.5) * _EGG[-1][1] * EGG_SCALE
+    bottom = lathe(col, f"{name}.Bottom", [(r, z - zc) for r, z in _egg_profile(0.0, cut)], _shell(), (0, 0, 0), segs=36, parent=pivot)
+    top = lathe(col, f"{name}.Top", [(r, z - zc) for r, z in reversed(_egg_profile(cut, 1.0))], _shell(), (0, 0, 0), segs=36, parent=pivot)
+    for o in (bottom, top):
+        o.rotation_mode = "XYZ"
+    return pivot, bottom, top
+
+
+def egg_fried(col, name, loc, seed=0):
+    """Fried egg: an irregular flat white (baked at its real size: no parent scaling, so the yolk
+    can never be stretched) + a separate glossy yolk dome. Returns (white, yolk); scale the white
+    in X/Y only to spread it."""
+    white = look.flat("EggWhite", "#f7f3ea", rough=0.3, coat=0.5)
+    yolk = look.flat("EggYolk", "#f5a81e", rough=0.12, coat=0.9)
+    R, H, segs = 0.068, 0.006, 48
+    rnd = [math.sin(seed * 12.9898 + k * 78.233) * 43758.5453 % 1.0 for k in range(7)]
+
+    def edge(th):  # a few low-frequency lobes: the white never spreads round
+        return 1.0 + sum(0.07 * math.sin((k + 2) * th + rnd[k] * 6.28) / (k + 1) for k in range(4))
+
+    def b(bm):
+        top = bm.verts.new((0.0, 0.0, H))
+        rings = []
+        for f, z in ((0.45, H * 0.92), (0.8, H * 0.55), (1.0, 0.0)):
+            rings.append([bm.verts.new((R * f * edge(2 * math.pi * i / segs) * math.cos(2 * math.pi * i / segs),
+                                        R * f * edge(2 * math.pi * i / segs) * math.sin(2 * math.pi * i / segs), z)) for i in range(segs)])
+        for i in range(segs):
+            bm.faces.new((top, rings[0][i], rings[0][(i + 1) % segs]))
+        for ra, rb in zip(rings, rings[1:]):
+            for i in range(segs):
+                bm.faces.new((ra[i], rb[i], rb[(i + 1) % segs], ra[(i + 1) % segs]))
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+
+    w = obj(col, name, _mesh(name, b), white, loc, smooth=True)
+    y = sphere(col, f"{name}.Yolk", 0.024, yolk, (loc[0] + 0.008, loc[1] + 0.004, loc[2] + H * 0.8), scale=(1.0, 1.0, 0.62), segs=32, rings=16)
+    return w, y
 
 
 def carafe(col, name="PROP_Carafe", loc=(0, 0, 0), level=0.6):

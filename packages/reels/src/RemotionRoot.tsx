@@ -5,7 +5,8 @@ import { ContentComposition, contentMetadata } from './render/ContentComposition
 import { PosterType } from './posters/PosterType';
 import type { PosterDef } from './posters/types';
 import { PlayerDiaries, playerDiariesMetadata, type PlayerDiariesProps } from './diaries/PlayerDiaries';
-import { DiariesPhoneUI } from './diaries/PhoneUI';
+import { DiariesMumLinksUI, DiariesPhoneUI } from './diaries/PhoneUI';
+import { TVScoreboard, type TVScore } from './diaries/Memory';
 
 /**
  * One composition per registered piece (Studio browsing) plus `Content`,
@@ -48,6 +49,17 @@ export const RemotionRoot: React.FC = () => (
       height={1920}
     />
     <Composition id="DiariesPhoneUI" component={DiariesPhoneUI} durationInFrames={1} fps={60} width={1080} height={2340} />
+    <Composition id="DiariesMumLinksUI" component={DiariesMumLinksUI} durationInFrames={1} fps={60} width={1080} height={2340} />
+    {/* 4:3 TV picture for the living-room sets (rivals episode) */}
+    <Composition
+      id="DiariesTVUI"
+      component={TVScoreboard as React.FC<{ score: TVScore }>}
+      defaultProps={{ score: { home: 'Belgium', away: 'Türkiye', hs: 0, as: 2, clock: "88'", line: 'Brussels · 19.06.2000' } as TVScore }}
+      durationInFrames={1}
+      fps={60}
+      width={1440}
+      height={1080}
+    />
     <Composition
       id="Content"
       component={ContentComposition}

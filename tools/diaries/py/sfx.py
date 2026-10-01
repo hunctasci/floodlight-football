@@ -107,6 +107,50 @@ def phone_buzz(dur, seed=0):
     return pan(fade(x, 0.005, 0.02), -0.2)
 
 
+def message_in(dur, seed=0):
+    """Incoming chat bubble: a soft two-partial pop."""
+    d = 0.18
+    x = sine(lambda t: 1320 - 500 * np.minimum(1, t / 0.05), d) * env_ad(d, 0.002, 0.07, 5) * 0.2
+    x += sine(660, d) * env_ad(d, 0.002, 0.05, 5) * 0.08
+    return pan(x, 0.05)
+
+
+def message_out(dur, seed=0):
+    """Sent: a quick upward swoosh-pop."""
+    d = 0.2
+    x = sine(lambda t: 700 + 900 * np.minimum(1, t / 0.08), d) * env_ad(d, 0.003, 0.08, 5) * 0.16
+    x += hp(noise(d, seed), 3000) * env_ad(d, 0.001, 0.03, 5) * 0.03
+    return pan(x, -0.05)
+
+
+def _taps(n, gap, seed, gain):
+    r = rng(seed)
+    out = np.zeros(int((n * gap + 0.1) * SR))
+    for k in range(n):
+        c = bp(noise(0.012, seed + k), 2500, 8000) * env_ad(0.012, 0.0002, 0.004, 5) * gain * r.uniform(0.7, 1.0)
+        i = int((k * gap + r.uniform(-0.01, 0.01) + 0.01) * SR)
+        out[i:i + len(c)] += c
+    return out
+
+
+def key_taps(dur, seed=0):
+    """Phone keyboard taps while typing a short line."""
+    return pan(_taps(11, 0.07, seed, 0.14), 0.0)
+
+
+def key_delete(dur, seed=0):
+    """Holding delete: faster, lighter taps."""
+    return pan(_taps(10, 0.035, seed + 50, 0.1), 0.0)
+
+
+def phone_lock(dur, seed=0):
+    """The side-button lock click."""
+    d = 0.08
+    x = bp(noise(d, seed), 1200, 6000) * env_ad(d, 0.0005, 0.012, 5) * 0.35
+    x += sine(180, d) * env_ad(d, 0.001, 0.02, 5) * 0.15
+    return pan(x, 0.1)
+
+
 def car_door(dur, seed=0):
     """A firm modern car door: latch clack + body thump + a short cabin ring."""
     d = 0.9
@@ -519,6 +563,7 @@ def brand_sting(dur, seed=0):
 CUES = {
     "car-night-bed": car_night_bed, "car-day-bed": car_day_bed, "indicator": indicator, "knob": knob, "radio-off": radio_off,
     "phone-buzz": phone_buzz, "car-door": car_door, "bus-door": bus_door,
+    "message-in": message_in, "message-out": message_out, "key-taps": key_taps, "key-delete": key_delete, "phone-lock": phone_lock,
     "room-morning": room_morning, "home-quiet": home_quiet, "night-room": night_room, "kitchen-evening": kitchen_evening,
     "alarm": alarm, "sheets": sheets, "cloth": cloth, "sizzle": sizzle, "egg-crack": egg_crack, "pan-shuffle": pan_shuffle,
     "coffee-pour": coffee_pour, "cup-scrape": cup_scrape, "footsteps-soft": footsteps_soft, "kid-steps": kid_steps,

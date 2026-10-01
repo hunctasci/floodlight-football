@@ -217,3 +217,67 @@ def build(markers, total, bpm=84):
     trk.add(m["S11_SH03"], strings(CH["D"] + [74], white - m["S11_SH03"] + 0.25, level=0.1), 0.0)
     x = reverb(trk.arr(), HALL, 0.35) + reverb(dry.arr(), HALL, 0.12)
     return x[: int(total * SR)]
+
+
+def build_rivals(markers, total, bpm=92):
+    """'One Goal Between Us': banter pulse under the cross-cut interview, an old upright for the
+    1957 newsreel, the 2000 rise (taiko on the TV), the scoreline argument quickening, a dead stop
+    before the turn ("He's not here for this one"), the tunnel drone and the swell into white."""
+    m = markers
+    beat = 60 / bpm
+    bar = beat * 4
+    trk = Track(total + 3)
+    dry = Track(total + 3)
+
+    def seq(t0, t1, fn, step):
+        t, i = t0, 0
+        while t < t1 - 1e-6:
+            fn(t, i)
+            t += step
+            i += 1
+
+    # the opener's title beat: one hit + the motif as a chord, under the DM
+    t0 = m["S00_SH06"]
+    dry.add(t0, taiko(seed=11, level=0.9))
+    trk.add(t0, strings(CH["D"], m["S02_SH01"] - t0 + 0.4, level=0.06, swell=False), 0.0)
+    # the rooms + the early years: a light plucked pulse; TR's motif up, BE's answer down
+    a, b = m["S02_SH01"], m["S05_SH01"]
+    prog = ["D", "Bm", "G", "A"]
+    seq(a, b, lambda t, i: trk.add(t, pad(CH[prog[i % 4]], bar * 1.05, level=0.03, bright=1000), 0.0), bar)
+    seq(a, b, lambda t, i: trk.add(t, pluck([62, 66, 69, 66][i % 4] if (i // 8) % 2 == 0 else [69, 66, 62, 66][i % 4], 0.4, 0.15, seed=i), -0.3 if (i // 8) % 2 == 0 else 0.3), beat / 2)
+    seq(a, b, lambda t, i: dry.add(t, bass([38, 35, 31, 33][(i // 4) % 4], beat * 0.9, 0.16)), beat)
+    # the newsreel: an old upright, staccato
+    n0, n1 = m["S03_SH02"], m["S03_SH03"]
+    seq(n0, n1, lambda t, i: trk.add(t, piano([74, 78, 81, 78, 76, 74][i % 6], 0.35, 0.3, seed=90 + i), 0.0), beat / 2)
+    # 2000: strings rise from the question; the TV hit; minor under the Belgian sofa; back to major
+    a, tv, sofa, b = m["S05_SH01"], m["S05_SH03"], m["S05_SH04"], m["S06_SH01"]
+    trk.add(a, strings(CH["A"], tv - a + 0.3, level=0.06), 0.0)
+    dry.add(tv, taiko(seed=12, level=0.9))
+    trk.add(tv, strings(CH["D"], sofa - tv + 0.2, level=0.07, swell=False), 0.0)
+    trk.add(sofa, pad(CH["Bm"], b - sofa + 0.4, level=0.035, bright=700), 0.0)
+    for k, n in enumerate((71, 69, 66)):
+        trk.add(sofa + 0.3 + k * beat * 1.5, piano(n, 2.5, 0.3, seed=100 + k), 0.1)
+    # 2009–2010: the pulse returns
+    a, b = m["S06_SH01"], m["S08_SH01"]
+    seq(a, b, lambda t, i: trk.add(t, pluck([62, 69, 66, 69][i % 4], 0.35, 0.14, seed=120 + i), -0.25 if i % 2 else 0.25), beat / 2)
+    seq(a, b, lambda t, i: dry.add(t, bass([38, 43, 45, 38][(i // 4) % 4], beat * 0.9, 0.18)), beat)
+    # the scoreline argument: it quickens, kick + clap, strings climbing
+    a, b = m["S08_SH01"], m["S09_SH01"]
+    b2 = beat / 1.3
+    seq(a, b, lambda t, i: dry.add(t, kick(0.75)), b2)
+    seq(a + b2, b, lambda t, i: dry.add(t, clap(seed=i, level=0.2)), b2 * 2)
+    seq(a, b, lambda t, i: dry.add(t, hat(seed=i, level=0.05), 0.2), b2 / 2)
+    trk.add(a, strings(CH["Bm"], b - a + 0.1, level=0.06), 0.0)
+    # the turn: dead stop on the question … then two piano notes and strings under the answer
+    a, b = m["S09_SH01"], m["S10_SH01"]
+    for k, (bt, n) in enumerate(((2.0, 74), (3.6, 78), (5.4, 81), (7.4, 78))):
+        if a + bt < b:
+            trk.add(a + bt, piano(n, 3.5, 0.3, seed=140 + k), 0.12)
+    trk.add(a + 2.0, strings(CH["G"], b - a - 1.6, level=0.045), 0.0)
+    # the tunnel: low drone, the swell into white; the match card hits
+    a, white = m["S10_SH01"], m["S11_SH01"]
+    trk.add(a, pad([38, 45, 50], white - a + 0.2, level=0.05, bright=380, attack=0.3, release=0.3), 0.0)
+    trk.add(m["S10_SH03"], strings(CH["D"] + [74], white - m["S10_SH03"] + 0.25, level=0.1), 0.0)
+    dry.add(white, taiko(seed=13, level=1.0))
+    x = reverb(trk.arr(), HALL, 0.35) + reverb(dry.arr(), HALL, 0.12)
+    return x[: int(total * SR)]

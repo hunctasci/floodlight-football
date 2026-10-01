@@ -79,6 +79,25 @@ explicit phonemes for Türkiye.
 | Sound | `tools/diaries/py/` | ~50 designed cues, original score engine, mixer with per-speaker treatment + ducking |
 | Edit | `packages/reels/src/diaries/` | episode composition, title/match/end cards, grain, captions |
 
+## v3 additions (2026-10-01)
+
+- **Phone open + teaser** — every episode opens on #9's phone and ends on one message teasing the
+  next. Shots with `"phone": "<key>"` in `edit.json` play a Reel Factory ContentSpec (phone world,
+  same look as our best-performing group-chat reel) from `packages/reels/src/diaries/<ep>/chat.ts`;
+  `"hook"` puts the frame-0 POV caption over it. The phone world gained a `draft` graphic (text typed
+  into the input bar, optionally deleted: the unsent reply).
+- **Diary voice-over** — speaker `NINE_VO` (same timbre as NINE, closer direction); the mixer keeps it
+  dry and ducks score/beds deeper under it. HNC people have no mouth: the VO is how #9 says what he feels.
+- **Speaker captions are burned into the master** (`Captions.tsx`: name tag per speaker, interviewer
+  untagged, VO in italics). `diaries-render --clean` renders the caption-free variant.
+- **`sh.talk(performer, line)`** — speech body language for mouthless heads: head beats on the stressed
+  syllables of the actual take WAV, an inhale before the phrase, a blink as it lands (additive).
+- **Reach guards** — HNC arms are short and HNC bodies wide: shots where a hand must touch a prop
+  (egg on the pan rim, the mug) verify the contact after baking and fail the build if it misses,
+  instead of rendering a prop that floats or orbits a distant hand.
+- `tools/diaries/ep01_cut.py` rebuilds the cut (v3 then v4) from the v2 edit and sizes each VO shot from its
+  real take length; re-run it after re-voicing a VO line.
+
 ## Rules that kept EP01 honest
 
 - Identity is canonical; performance is cinematic. Never edit a GLB or re-model a person.

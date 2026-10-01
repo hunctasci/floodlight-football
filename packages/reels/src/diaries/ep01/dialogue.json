@@ -18,16 +18,16 @@
     },
     "NINE": {
       "who": "TR-PLAYER-09",
-      "voice": "am_michael",
+      "voice": "am_onyx",
       "lang": "en-us",
-      "speed": 0.9,
-      "pitch": 0.97,
+      "speed": 0.95,
+      "pitch": 1.0,
       "fx": "dry",
       "engine": "chatterbox",
-      "exaggeration": 0.3,
-      "cfg": 0.3,
-      "temperature": 0.7,
-      "ref_text": "I don't really think about it too much. You wake up, you have breakfast, you drive. It's a normal day, honestly. The rest happens on the pitch."
+      "exaggeration": 0.5,
+      "cfg": 0.5,
+      "temperature": 0.75,
+      "ref_text": "Most mornings I wake up before everyone else. The house is quiet. I make the coffee, I sit by the window, and I think about the day ahead."
     },
     "CHILD": {
       "who": "TR-FAMILY-CHILD-01",
@@ -80,6 +80,19 @@
       "cfg": 0.5,
       "temperature": 0.8,
       "ref_text": "Good morning and welcome back. The traffic is heavy on the ring road, and later we'll look ahead to the big match on Friday."
+    },
+    "NINE_VO": {
+      "who": "TR-PLAYER-09 — diary voice-over (inner voice, never on camera)",
+      "voice": "am_onyx",
+      "lang": "en-us",
+      "speed": 0.95,
+      "pitch": 1.0,
+      "fx": "vo",
+      "engine": "chatterbox",
+      "exaggeration": 0.5,
+      "cfg": 0.5,
+      "temperature": 0.75,
+      "ref_text": "Most mornings I wake up before everyone else. The house is quiet. I make the coffee, I sit by the window, and I think about the day ahead."
     }
   },
   "phonemes": {
@@ -94,27 +107,25 @@
     {
       "id": "L02",
       "speaker": "NINE",
-      "text": "Ask Belgium.",
-      "speed": 0.86,
-      "exaggeration": 0.35
+      "text": "Ask Belgium."
     },
     {
       "id": "L03",
       "speaker": "CHILD",
-      "text": "You're late."
+      "text": "You're late.",
+      "off": 0.18
     },
     {
       "id": "L04",
       "speaker": "NINE",
-      "text": "I'm not late.",
-      "speed": 0.82,
-      "pitch": 0.95
+      "text": "I'm not late."
     },
     {
       "id": "L05",
       "speaker": "CHILD",
       "text": "You're late.",
-      "speed": 0.78
+      "speed": 0.78,
+      "off": 0.12
     },
     {
       "id": "L06",
@@ -156,8 +167,7 @@
     {
       "id": "L13",
       "speaker": "NINE",
-      "text": "My mother sends me all of it anyway.",
-      "speed": 0.95
+      "text": "My mother sends me all of it anyway."
     },
     {
       "id": "L14",
@@ -175,7 +185,8 @@
       "text": "Two!",
       "speed": 0.8,
       "exaggeration": 0.85,
-      "cfg": 0.4
+      "cfg": 0.4,
+      "gain": 1.5
     },
     {
       "id": "L17",
@@ -197,7 +208,9 @@
       "id": "L20",
       "speaker": "PARTNER",
       "text": "Careful!",
-      "exaggeration": 0.7
+      "exaggeration": 0.7,
+      "off": 0.45,
+      "gain": -2
     },
     {
       "id": "L21",
@@ -215,8 +228,7 @@
     {
       "id": "L23",
       "speaker": "NINE",
-      "text": "Pressure doesn't really affect me.",
-      "speed": 0.94
+      "text": "Pressure doesn't really affect me."
     },
     {
       "id": "L24",
@@ -237,30 +249,80 @@
     {
       "id": "L27",
       "speaker": "NINE",
-      "text": "You feel like everyone's coming with you.",
-      "speed": 0.9,
-      "exaggeration": 0.35,
-      "cfg": 0.3
+      "text": "You feel like everyone's coming with you."
     },
     {
       "id": "L28",
       "speaker": "NINE",
-      "text": "Even when you're playing away.",
-      "speed": 0.84,
-      "exaggeration": 0.35,
-      "cfg": 0.3
+      "text": "Even when you're playing away."
     },
     {
       "id": "L29",
       "speaker": "INT",
-      "text": "Still not nervous?"
+      "text": "Still not nervous?",
+      "tunnel": 0.35
     },
     {
       "id": "L30",
       "speaker": "NINE",
       "text": "Ask Belgium.",
-      "speed": 0.86,
-      "exaggeration": 0.35
+      "tunnel": 0.18
+    },
+    {
+      "id": "L31",
+      "speaker": "NINE_VO",
+      "text": "I've been awake since four. Don't tell him."
+    },
+    {
+      "id": "L32",
+      "speaker": "NINE_VO",
+      "text": "My father made eggs before every game I ever played. He's not here to make them anymore. So I do."
+    },
+    {
+      "id": "L33",
+      "speaker": "NINE_VO",
+      "text": "She has never let me finish one."
+    },
+    {
+      "id": "L34",
+      "speaker": "NINE_VO",
+      "text": "He asked my father for two goals, thirty years ago. He got one."
+    },
+    {
+      "id": "L35",
+      "speaker": "NINE_VO",
+      "text": "This is the only place it goes quiet."
+    },
+    {
+      "id": "L36",
+      "speaker": "NINE_VO",
+      "text": "He's the only defender I'm afraid of."
+    },
+    {
+      "id": "L37",
+      "speaker": "NINE_VO",
+      "text": "She told me at six forty-six.",
+      "say": "She told me at six forty six."
+    },
+    {
+      "id": "L38",
+      "speaker": "NINE_VO",
+      "text": "At his age I slept in my father's shirt too."
+    },
+    {
+      "id": "L39",
+      "speaker": "NINE_VO",
+      "text": "I've been awake since four."
+    },
+    {
+      "id": "L40",
+      "speaker": "NINE",
+      "text": "For what?"
+    },
+    {
+      "id": "L41",
+      "speaker": "NINE",
+      "text": "Not today."
     }
   ],
   "say": {
