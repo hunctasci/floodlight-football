@@ -14,7 +14,8 @@ def S09_SH01(sh):
     look.world(sh.scene, color="#182127", strength=.42)
     look.sun(sh.cols["LGT"], "S09_DirectionalKey", (36, -24, 142), power=4.0, color="#fff1dc", angle=1.5)
     look.area(sh.cols["LGT"], "S09_CoolRim", (-3.4, 3.1, 4.7), (0, .55, .45), size=(3.0, 3.0), power=680, color="#b8d7e5")
-    look.area(sh.cols["LGT"], "S09_TurfFill", (0.8, -1.8, 2.1), (0, .40, .10), size=(2.6, 2.6), power=380, color="#d7f0d4")
+    # Dimmer, less green fill: at 380 W the turf read as a mint plastic floor.
+    look.area(sh.cols["LGT"], "S09_TurfFill", (0.8, -1.8, 2.1), (0, .40, .10), size=(2.6, 2.6), power=150, color="#e8efe0")
     ball = cast.prop_identity(sh.scene, sh.cols["PROPS"], "hnc-ball")
     ground = Vector((0.0, .40, football.BALL_R))
     # Author physical fall + damped rebound: entry at the cut, contact at

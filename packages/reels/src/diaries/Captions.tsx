@@ -18,6 +18,7 @@ const TAGS: Record<string, { label: string; color: string }> = {
   CHILD: { label: 'KID', color: '#e0a526' },
   PARTNER: { label: 'PARTNER', color: '#7fae86' },
   ELDER: { label: 'REGULAR', color: '#b9a37a' },
+  COMM: { label: '🎙 COMMENTARY', color: '#e30a17' }, // same red as the ScoreBug: one broadcast package
 };
 // The radio is background noise the off-click cuts; it is never captioned (same rule as the mixer's .srt).
 const SILENT = new Set(['RADIO']);

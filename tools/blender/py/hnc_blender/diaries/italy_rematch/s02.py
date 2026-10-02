@@ -21,7 +21,7 @@ def S02_SH01(sh):
     info = architecture.shared(sh, "elevator")
     # Threshold composition: actor, call/floor panel, overhead display and
     # opening doors share one observational frame.
-    p = sh.person("TR-PLAYER-09", "kit", profile="calm")
+    p = sh.person("TR-PLAYER-09", "home", profile="calm")  # home clothes until the S09 genre switch
     P.stance(p, 0.0, (-0.18, -1.02, 0.0), face=140.0, width=0.92)
     button_at = (0.81, -0.175, 0.91)
     P.look(p, 0.0, button_at, dur=0.18)
@@ -78,13 +78,15 @@ def S02_SH01(sh):
         door.keyframe_insert("location", frame=60)
 
     cam = sh.camera(28, fstop=4.0)
-    cam.place(0.0, (-0.72, -4.35, 1.43), (0.16, -0.02, 1.34), focus=(0.02, -0.55, 1.18))
-    cam.place(sh.dur, (-0.64, -4.08, 1.46), (0.15, 0.12, 1.36), focus=(0.05, -0.42, 1.20))
+    # Three-quarter side: his face and the overhead display share the frame (v1 showed only his back).
+    cam.place(0.0, (-0.85, -3.05, 1.45), (0.12, -0.40, 1.40), focus=(-0.18, -1.02, 1.30))  # corridor is ±1.0 m wide
+    cam.place(sh.dur, (-0.82, -2.85, 1.47), (0.12, -0.30, 1.42), focus=(-0.18, -1.02, 1.30))
     cam.handheld("locked", 0.22)
     sh.scene["hnc_architecture"] = "shared modern residential corridor/elevator"
     sh.scene["hnc_s02_display_sequence"] = "1-4-1-4"
     sh.scene["hnc_s02_button_contact"] = "TR-PLAYER-09.R IK -> ARCH_Button_1; 14 mm button travel"
     sh.scene["hnc_s02_wrong_floor"] = 4
+    sh.keep_in_frame(p)
     sh.finish(glare=0.10, threshold=1.45, vignette=0.14, dispersion=0.0004)
 
 

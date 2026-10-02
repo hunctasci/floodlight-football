@@ -7,6 +7,7 @@ import { EndCard, HookBox, ItalyRematchEndCard, MatchCard, NextEpisode, Question
 import { ArchiveGate, lookFilter, Super, TVInRoom } from './Memory';
 import { KineticOver, StatsOpener } from './Opener';
 import { EPISODES, timeline, type Quality, type TimedShot } from './edit';
+import { ScoreBug, scoreBugText } from './ScoreBug';
 import { DIARY_TYPE, useDiaryFonts } from './type';
 
 export interface PlayerDiariesProps {
@@ -133,6 +134,7 @@ export const PlayerDiaries: React.FC<PlayerDiariesProps> = ({ episode, quality, 
     [shots, ep, fps],
   );
   const stem = (name: string) => staticFile(`generated/diaries/${episode}/audio/${name}.wav`);
+  const bugText = ep.edit.scoreBug ? scoreBugText(shots, fps, ep.edit.scoreBug, frame) : null;
   return (
     <AbsoluteFill style={{ background: '#000' }}>
       {shots.map((s) => (
@@ -141,6 +143,12 @@ export const PlayerDiaries: React.FC<PlayerDiariesProps> = ({ episode, quality, 
         </Sequence>
       ))}
       <Grain frame={frame} />
+      {ep.edit.hook ? (
+        <Sequence from={0} durationInFrames={Math.round(ep.edit.hook.dur * fps)} name="hook">
+          <HookBox text={ep.edit.hook.text} sub={ep.edit.hook.tr} />
+        </Sequence>
+      ) : null}
+      {bugText ? <ScoreBug text={bugText} /> : null}
       {shots.map((s) => (s.super ? (
         <Sequence key={`super-${s.id}`} from={s.from} durationInFrames={Math.min(s.frames, Math.round(2.4 * ep.edit.fps))} name={`super:${s.id}`}>
           <SuperLayer {...s.super} frames={Math.min(s.frames, Math.round(2.4 * ep.edit.fps))} />

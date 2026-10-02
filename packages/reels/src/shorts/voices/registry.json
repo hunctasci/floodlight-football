@@ -1,0 +1,58 @@
+{
+  "schema": "hnc-shorts-voices/1",
+  "engine": "qwen",
+  "model": "mlx-community/Qwen3-TTS-12Hz-1.7B-VoiceDesign-bf16",
+  "note": "Persistent voice identities. Episodes reference voiceId only; raw model settings live here. Same free/local mlx-audio VoiceDesign mechanism as tools/diaries/py/voices_qwen.py — no paid TTS.",
+  "voices": {
+    "HNC-NARRATOR-01": {
+      "who": "Global HNC short-form narrator (fictional, synthetic)",
+      "status": "active",
+      "engine": "qwen",
+      "lang": "en",
+      "temperature": 0.9,
+      "tempo": 1.15,
+      "design": "Young adult male football fan, neutral international English with a light unplaceable accent, energetic and playful, confident like a friend sending a voice note, fast but crystal clear, not a radio announcer, not a movie trailer voice.",
+      "deliveryDefault": "fast, playful, confident"
+    },
+    "EN-PLAYER-01": {
+      "who": "England player (THE GROUP CHAT, fictional synthetic)",
+      "status": "active",
+      "engine": "qwen",
+      "lang": "en",
+      "temperature": 0.85,
+      "tempo": 1.05,
+      "design": "Young adult male footballer, neutral international English with a light southern English lilt, dry and calm, slightly confident, speaks softly like a pre-match text, never a caricature, never imitating any real person.",
+      "deliveryDefault": "dry, calm, slightly confident"
+    },
+    "HR-PLAYER-01": {
+      "who": "Croatia player (THE GROUP CHAT, fictional synthetic)",
+      "status": "active",
+      "engine": "qwen",
+      "lang": "en",
+      "temperature": 0.85,
+      "tempo": 1.05,
+      "design": "Young adult male footballer, international English with a subtle warm central-European lilt, calm and wry, quietly confident and amused, never a caricature, never imitating any real person.",
+      "deliveryDefault": "calm, wry, confident"
+    },
+    "EN-SUPPORTER-01": {
+      "who": "England supporter (THE GROUP CHAT, fictional synthetic)",
+      "status": "active",
+      "engine": "qwen",
+      "lang": "en",
+      "temperature": 0.9,
+      "tempo": 1.18,
+      "design": "Young adult male football fan, international English, overconfident football friend, playful and fast, casual voice-note energy, believes the win is obvious, never abusive, never imitating any real person.",
+      "deliveryDefault": "playful, fast, overconfident"
+    },
+    "HR-SUPPORTER-01": {
+      "who": "Croatia supporter (THE GROUP CHAT, fictional synthetic)",
+      "status": "active",
+      "engine": "qwen",
+      "lang": "en",
+      "temperature": 0.9,
+      "tempo": 1.1,
+      "design": "Young adult male football fan, international English with subtle warmth, dry internet humor, understated and amused, deadpan one-liner energy, never abusive, never imitating any real person.",
+      "deliveryDefault": "dry, understated, amused"
+    }
+  }
+}

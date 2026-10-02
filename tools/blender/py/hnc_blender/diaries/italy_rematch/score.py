@@ -109,8 +109,9 @@ def build_glyph(collection, text, loc, height, depth=0.12, material=None,
 
 def build_score_typography(scene, collection, height=5.05, seed=SEED):
     """Build the intact architectural score and return its construction record."""
-    matte = look.flat("S11_Score_Matte", "#4b5661", rough=0.74, spec=0.28, coat=0.06)
-    edge = look.flat("S11_Score_FractureEdge", "#65727d", rough=0.66, spec=0.35, coat=0.08)
+    # Lighter than v1 (#4b5661): on the navy backdrop the score must read as an opponent, not a shadow.
+    matte = look.flat("S11_Score_Matte", "#7d8c95", rough=0.74, spec=0.28, coat=0.06)
+    edge = look.flat("S11_Score_FractureEdge", "#9aa7ae", rough=0.66, spec=0.35, coat=0.08)
     # Barlow Condensed proportions keep the score tall and leave a readable void
     # around the ball's line of travel.
     chars = [

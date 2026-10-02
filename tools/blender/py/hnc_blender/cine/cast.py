@@ -33,6 +33,10 @@ PEOPLE = {
     "TR-PLAYER-10": {"kit": "hnc-player-tr-10"},
     "BE-PLAYER-10": {"kit": "hnc-player-be-10"},
     "IT-PLAYER-08": {"kit": "hnc-player-it-08"},
+    # THE GROUP CHAT (shorts): original fictional HR/EN players. Canonical
+    # factory builds (white-primary tournament treatments, no official kits).
+    "HR-PLAYER-01": {"kit": "hnc-player-hr-01"},
+    "EN-PLAYER-01": {"kit": "hnc-player-en-01"},
 }
 
 PROFILE = {
@@ -44,6 +48,8 @@ PROFILE = {
     "IT-PLAYER-08": "calm",
     "TR-FAMILY-PARTNER-01": "calm",
     "TR-SUPPORTER-ELDER-01": "elder",
+    "HR-PLAYER-01": "calm",
+    "EN-PLAYER-01": "calm",
 }
 
 

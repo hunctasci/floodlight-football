@@ -22,8 +22,10 @@ def _set(sh, label):
 
 def _giant(sh, char, name):
     # Same Barlow mesh, depth, matte material and architectural scale as S11.
-    glyph = score.build_glyph(sh.cols["PROPS"], char, (0.0, 5.10, .12), 5.05,
-                              depth=.30, name=name)
+    glyph = score.build_glyph(sh.cols["PROPS"], char, (0.0, 5.10, .12), 5.05, depth=.30, name=name,
+                              material=look.flat(f"{name}_Mat", "#8a99a0", rough=.63, spec=.30, coat=.08))
+    # Warm key on the number so it separates from the navy wall (v1: grey on navy, low contrast).
+    look.area(sh.cols["LGT"], f"{name}_Key", (-2.6, 1.2, 4.2), (0.0, 5.1, 2.4), size=(2.5, 2.5), power=700.0, color="#ffd9a8")
     glyph["hnc_score_role"] = "static defensive gate"
     glyph["hnc_score_seed"] = score.SEED
     return glyph

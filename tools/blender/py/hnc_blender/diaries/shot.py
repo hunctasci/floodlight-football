@@ -56,6 +56,7 @@ class Shot:
         self.q = look.setup_render(scene, self.frames, quality, fps=self.fps)
         self.people = {}
         self.cam = None
+        self._frame_checks = []
 
     # ------------------------------------------------------------ timing
     def line(self, line_id):
@@ -129,6 +130,10 @@ class Shot:
         self.scene.camera = self.cam.obj
         return self.cam
 
+    def keep_in_frame(self, p, times=None, margin=0.06):
+        """Fail the build if this person's head leaves the frame at any of `times` (s; default start/mid/end)."""
+        self._frame_checks.append((p, times or (0.0, self.dur / 2, max(0.0, self.dur - 1 / self.fps)), margin))
+
     def finish(self, **kw):
         for p in self.people.values():
             if not getattr(p, "_baked", False):
@@ -137,4 +142,24 @@ class Shot:
         if self.cam:
             self.cam.bake()
         look.finish(self.scene, **kw)
+        # Framing guard (italy-rematch review: cameras that missed #9 rendered "fine").
+        from bpy_extras.object_utils import world_to_camera_view
+        for p, times, m in self._frame_checks:
+            head = p.rig.parts["head"]
+            for t in times:
+                self.scene.frame_set(1 + round(t * self.fps))
+                co = world_to_camera_view(self.scene, self.scene.camera, head.matrix_world.translation)
+                if not (co.z > 0 and m < co.x < 1 - m and m < co.y < 1 - m):
+                    raise RuntimeError(f"{self.id}: head of {head.name} out of frame at t={t:.2f}s (x={co.x:.2f}, y={co.y:.2f})")
+                # In frame is not enough: a wall or the bedding between lens and face also hides him.
+                origin = self.scene.camera.matrix_world.translation.copy()
+                target = head.matrix_world.translation
+                for _ in range(16):  # step past geometry the shot hides from render (e.g. a removed front wall)
+                    ray = target - origin
+                    hit, loc, _n, _i, obj, _m = self.scene.ray_cast(bpy.context.evaluated_depsgraph_get(), origin, ray.normalized(), distance=ray.length)
+                    if not hit or obj.name.split(".")[0] == head.name.split(".")[0]:
+                        break
+                    if not obj.hide_render:
+                        raise RuntimeError(f"{self.id}: head of {head.name} hidden behind {obj.name} at t={t:.2f}s")
+                    origin = loc + ray.normalized() * 1e-3
         self.scene.frame_set(1)

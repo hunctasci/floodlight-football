@@ -52,7 +52,7 @@ def _descend(p, info, start=0.0, step_time=0.235):
 
 def S07_SH01(sh):
     info = architecture.shared(sh, "stairs")
-    p = sh.person("TR-PLAYER-09", "kit", profile="sport")
+    p = sh.person("TR-PLAYER-09", "home", profile="sport")
     _descend(p, info)
     # He notices the pattern without stopping or turning the beat into a scare.
     P.glance(p, 0.72, -0.30, dur=0.12, hold=0.18, back=0.14, head=-1.0)
@@ -77,6 +77,7 @@ def S07_SH01(sh):
         "service-door 1 with four horizontal bars",
     ]
     sh.scene["hnc_s07_contact"] = "nine authored tread landings at 0.18m rise"
+    sh.keep_in_frame(p)
     sh.finish(glare=0.05, threshold=1.55, vignette=0.13, dispersion=0.0004)
 
 

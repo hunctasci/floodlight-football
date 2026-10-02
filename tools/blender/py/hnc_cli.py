@@ -183,9 +183,15 @@ def main():
     ds.add_argument("--save-blend", action="store_true")
     # parse_known_args: Cycles reads its own `--cycles-device METAL` from the same argv.
     args, _unknown = parser.parse_known_args(argv)
-    code = {"build": cmd_build, "inspect": cmd_inspect, "render": cmd_render, "plate": cmd_plate,
-            "acting-test": cmd_acting_test, "rig-selftest": cmd_rig_selftest,
-            "diaries-shot": cmd_diaries_shot}[args.command](args)
+    # Blender exits 0 on an uncaught --python exception; batch callers need a real failure code.
+    try:
+        code = {"build": cmd_build, "inspect": cmd_inspect, "render": cmd_render, "plate": cmd_plate,
+                "acting-test": cmd_acting_test, "rig-selftest": cmd_rig_selftest,
+                "diaries-shot": cmd_diaries_shot}[args.command](args)
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
     sys.exit(code)
 
 

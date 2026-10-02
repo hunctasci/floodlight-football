@@ -560,6 +560,38 @@ def brand_sting(dur, seed=0):
     return reverb(stereo(out + swell), HALL, 0.35)
 
 
+def _lay(out, x, at):
+    """Add stereo clip `x` into stereo `out` at `at` seconds (clipped to `out`)."""
+    i = int(at * SR)
+    n = max(0, min(len(x), len(out) - i))
+    out[i:i + n] += x[:n]
+    return out
+
+
+def score_motif(dur, seed=0):
+    """Italy rematch: the recurring 1–4 motif — one low BUM, then four dry ticks (the score as rhythm)."""
+    out = np.zeros((int(SR * max(dur, 1.0)), 2))
+    _lay(out, sub_hit(1.6, seed) * 0.9, 0.0)
+    for k in range(4):
+        _lay(out, watch_click(0.08, seed + k) * 0.7, 0.32 + k * 0.13)
+    return out
+
+
+def elevator_ding(dur, seed=0):
+    """Two-partial lift chime with a soft ring-out."""
+    d = max(dur, 0.9)
+    x = (sine(1318.5, d) * 0.5 + sine(1975.5, d) * 0.25) * env_ad(d, 0.002, 0.6, 4) * 0.5
+    return reverb(stereo(x), ROOM, 0.15)
+
+
+def football_impact(dur, seed=0):
+    """Genre switch: a sub drop under a hard ball slap."""
+    out = np.zeros((int(SR * max(dur, 1.6)), 2))
+    _lay(out, sub_hit(1.6, seed), 0.0)
+    _lay(out, ball_land(0.5, seed) * 1.2, 0.0)
+    return out
+
+
 CUES = {
     "car-night-bed": car_night_bed, "car-day-bed": car_day_bed, "indicator": indicator, "knob": knob, "radio-off": radio_off,
     "phone-buzz": phone_buzz, "car-door": car_door, "bus-door": bus_door,
@@ -573,6 +605,10 @@ CUES = {
     "lamp-wobble": lamp_wobble, "ice-crinkle": ice_crinkle, "knife-chop": knife_chop, "plate-set": plate_set,
     "cutlery": cutlery, "interview-tone": interview_tone, "tunnel-tone": tunnel_tone, "tunnel-steps": tunnel_steps,
     "zip": zip_, "watch-click": watch_click, "flashes": flashes, "sub-hit": sub_hit, "brand-sting": brand_sting,
+    # Italy rematch (THE SCORE WON'T LEAVE HIM ALONE)
+    "score-14-motif": score_motif, "elevator-ding": elevator_ding, "football-impact": football_impact,
+    "football-rhythm": training_bed,
+    "crowd-rise": lambda dur, seed=0: crowd("stadium-bed-02.wav", max(dur, 2.0), 1.0, 0.8, rise=0.15),
     # CC0 stadium recordings (packages/social-video/assets/audio/SOURCES.md)
     "crowd-roar": lambda dur, seed=0: crowd("goal-roar-01.wav", max(dur, 2.0), 0.0, 1.0),
     "crowd-grow": lambda dur, seed=0: crowd("stadium-bed-02.wav", max(dur, 2.0), 1.0, 0.8, rise=0.15),
@@ -581,7 +617,8 @@ CUES = {
 
 # Beds fill the span they are given; one-shots play at their natural length.
 BEDS = {"car-night-bed", "car-day-bed", "room-morning", "home-quiet", "night-room", "kitchen-evening", "bakery-room",
-        "training-bed", "interview-tone", "tunnel-tone", "crowd-muffled", "crowd-grow", "sizzle", "coffee-pour", "alarm"}
+        "training-bed", "interview-tone", "tunnel-tone", "crowd-muffled", "crowd-grow", "sizzle", "coffee-pour", "alarm",
+        "football-rhythm", "crowd-rise"}
 
 
 def cue(name, dur, seed=0):

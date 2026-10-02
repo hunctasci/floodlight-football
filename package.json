@@ -37,7 +37,8 @@
     "blender:verify": "tsx tools/blender/blender.ts verify",
     "blender:render:test": "tsx tools/blender/blender.ts render-test",
     "blender:plates": "tsx tools/blender/plates.ts",
-    "diaries": "tsx tools/diaries/diaries.ts"
+    "diaries": "tsx tools/diaries/diaries.ts",
+    "shorts": "tsx tools/shorts/shorts.ts"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

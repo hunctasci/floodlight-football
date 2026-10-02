@@ -1,12 +1,29 @@
 {
   "schema": "hnc-diaries-dialogue/1",
   "episode": "italy-rematch",
-  "note": "Only the two approved spoken lines in the locked cut.",
+  "note": "v2: the commentator who never left (spec: social/player-diaries/italy-rematch/screenplay-v2-commentary.md).",
   "speakers": {
     "NINE": {
       "who": "TR-PLAYER-09 (Türkiye #9)",
+      "voice": "am_onyx",
       "lang": "en-us",
-      "fx": "dry"
+      "speed": 0.95,
+      "pitch": 1.0,
+      "fx": "dry",
+      "engine": "chatterbox",
+      "exaggeration": 0.5,
+      "cfg": 0.5,
+      "temperature": 0.75,
+      "ref_text": "Most mornings I wake up before everyone else. The house is quiet. I make the coffee, I sit by the window, and I think about the day ahead."
+    },
+    "COMM": {
+      "who": "Off-screen match commentator (fictional, synthetic)",
+      "engine": "qwen",
+      "lang": "en",
+      "fx": "broadcast",
+      "temperature": 0.9,
+      "design": "Male English football radio commentator in his fifties from the north of England, gravelly slightly hoarse voice, strong northern English accent. Very excitable and fast, shouting on big moments, then deadpan and understated for the punchline.",
+      "tempo": 1.2
     }
   },
   "lines": [
@@ -23,6 +40,141 @@
       "text": "Enough.",
       "tr": "Yeter.",
       "delivery": "quiet, final, not angry"
+    },
+    {
+      "id": "L03",
+      "speaker": "COMM",
+      "text": "Good morning, and welcome back to Bursa… sorry. His bedroom.",
+      "tr": "Günaydın, Bursa'ya tekrar hoş geldiniz… pardon. Yatak odasına.",
+      "delivery": "big warm match-intro energy, then a flat deadpan correction"
+    },
+    {
+      "id": "L04",
+      "speaker": "COMM",
+      "text": "Still one–four.",
+      "tr": "Hâlâ bir–dört.",
+      "say": "Still one, four.",
+      "delivery": "quiet, resigned"
+    },
+    {
+      "id": "L05",
+      "speaker": "COMM",
+      "text": "One egg in. Four out. Defending: familiar.",
+      "tr": "Bir yumurta girdi. Dört çıktı. Savunma: tanıdık.",
+      "delivery": "match-report rhythm, driest on the last word"
+    },
+    {
+      "id": "L06",
+      "speaker": "COMM",
+      "text": "He ordered one espresso. Italy ordered four.",
+      "tr": "O bir espresso istedi. İtalya dört.",
+      "delivery": "fast, punchline landed flat"
+    },
+    {
+      "id": "L07",
+      "speaker": "COMM",
+      "text": "Going down. Again.",
+      "tr": "Aşağı iniyoruz. Yine.",
+      "delivery": "deadpan"
+    },
+    {
+      "id": "L08",
+      "speaker": "COMM",
+      "text": "Trip: fourteen kilometres. Sat-nav suggests… Bologna.",
+      "tr": "Yol: on dört kilometre. Navigasyon öneriyor… Bologna.",
+      "delivery": "reading stats, small dramatic pause before Bologna"
+    },
+    {
+      "id": "L09",
+      "speaker": "COMM",
+      "text": "Fifty-four percent possession. Of the pavement. Still lost.",
+      "tr": "Yüzde elli dört topla oynama. Kaldırımda. Yine kaybetti.",
+      "delivery": "mock gravity, each phrase drier"
+    },
+    {
+      "id": "L10",
+      "speaker": "COMM",
+      "text": "The locals remember.",
+      "tr": "Mahalle unutmadı.",
+      "delivery": "hushed, knowing"
+    },
+    {
+      "id": "L11",
+      "speaker": "COMM",
+      "text": "Twenty-seven minutes. Three goals. He still feels it.",
+      "tr": "Yirmi yedi dakika. Üç gol. Hâlâ hissediyor.",
+      "delivery": "grave, slow-motion replay voice"
+    },
+    {
+      "id": "L12",
+      "speaker": "COMM",
+      "text": "Oh no. They've travelled.",
+      "tr": "Eyvah. Deplasmana gelmişler.",
+      "delivery": "genuine alarm, then flat"
+    },
+    {
+      "id": "L13",
+      "speaker": "COMM",
+      "text": "He's going long! He's going… down the stairs.",
+      "tr": "Uzun koşuyor! Koşuyor… merdivenlerden aşağı.",
+      "delivery": "rising excitement, then deflating"
+    },
+    {
+      "id": "L14",
+      "speaker": "COMM",
+      "text": "Last Monday: Bursa.",
+      "tr": "Geçen pazartesi: Bursa.",
+      "delivery": "low, serious, the music has changed"
+    },
+    {
+      "id": "L15",
+      "speaker": "COMM",
+      "text": "Next Monday: Bologna.",
+      "tr": "Gelecek pazartesi: Bologna.",
+      "delivery": "building, determined"
+    },
+    {
+      "id": "L16",
+      "speaker": "COMM",
+      "text": "Past the one!",
+      "tr": "Biri geçti!",
+      "delivery": "excited shout"
+    },
+    {
+      "id": "L17",
+      "speaker": "COMM",
+      "text": "Past the number four!",
+      "tr": "Dördü geçti!",
+      "delivery": "louder excited shout"
+    },
+    {
+      "id": "L18",
+      "speaker": "COMM",
+      "text": "And—",
+      "tr": "Ve—",
+      "say": "Aaand—",
+      "delivery": "peak shout, cut off"
+    },
+    {
+      "id": "L19",
+      "speaker": "COMM",
+      "text": "Every scoreboard resets.",
+      "tr": "Her skor tabelası sıfırlanır.",
+      "delivery": "calm, warm, after the storm"
+    },
+    {
+      "id": "L20",
+      "speaker": "COMM",
+      "text": "Even the Italian ones.",
+      "tr": "İtalyan olanlar bile.",
+      "delivery": "small smile in the voice"
+    },
+    {
+      "id": "L21",
+      "speaker": "COMM",
+      "text": "Monday. Bologna. Nil–nil… for now.",
+      "tr": "Pazartesi. Bologna. Sıfır–sıfır… şimdilik.",
+      "delivery": "slow dramatic pre-match build, knowing"
     }
   ]
 }

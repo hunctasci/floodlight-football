@@ -8,7 +8,7 @@ from . import architecture, score
 def S06_SH01(sh):
     architecture.shared(sh, "corridor")
     mirror = architecture.reflection_end(sh, y=2.72)
-    p = sh.person("TR-PLAYER-09", "kit", profile="calm")
+    p = sh.person("TR-PLAYER-09", "home", profile="calm")
     P.stance(p, 0.0, (-0.68, -2.20, 0.0), face=180.0, width=0.90)
     # Walk away from camera along +Y. Peripheral attention leads the restrained
     # head correction; the final look is back into an ordinary empty corridor.
@@ -59,13 +59,14 @@ def S06_SH01(sh):
     )
     sh.scene["hnc_s06_direct_score"] = False
     sh.scene["hnc_s06_reflection_aperture"] = mirror["aperture"]
+    sh.keep_in_frame(p)
     sh.finish(glare=0.06, threshold=1.55, vignette=0.15, dispersion=0.0004)
 
 
 def S06_SH02(sh):
     info = architecture.shared(sh, "elevator")
-    p = sh.person("TR-PLAYER-09", "kit", profile="calm")
-    P.stance(p, 0.0, (-0.84, -1.16, 0.0), face=180.0, width=0.94)
+    p = sh.person("TR-PLAYER-09", "home", profile="calm")
+    P.stance(p, 0.0, (-0.55, -0.70, 0.0), face=180.0, width=0.94)  # fully in frame (v1 half off the left edge)
     P.look(p, 0.72, (0.05, 2.20, 1.18), dur=0.22, w=0.76)
     P.glance(p, 1.62, 0.14, dur=0.12, hold=None, back=0.12, head=0.8)
 
@@ -79,11 +80,16 @@ def S06_SH02(sh):
     for o in (one, four):
         o["hnc_commuter_number"] = True
         o["hnc_font_size_m"] = glyph_size
+    # Turned toward camera and rim-lit so they read as two standing objects, not a flat "14" sign.
+    one.rotation_mode = "XYZ"
+    one.rotation_euler[2] = math.radians(10)
+    look.area(sh.cols["LGT"], "S06_CommuterRim", (0.0, 3.6, 2.6), (0, -.6, .4), (2.0, 1.0), 520, "#d8e6ff")
     # Hold after the reveal, then a tiny rigid acknowledgement from the 4.
     four.rotation_mode = "XYZ"
+    four.rotation_euler[2] = math.radians(-12)
     four.keyframe_insert("rotation_euler", frame=1)
     four.keyframe_insert("rotation_euler", frame=47)
-    four.rotation_euler[2] = math.radians(-2.6)
+    four.rotation_euler[2] = math.radians(-14.6)
     four.keyframe_insert("rotation_euler", frame=57)
     four.keyframe_insert("rotation_euler", frame=sh.frames)
 
@@ -95,12 +101,14 @@ def S06_SH02(sh):
         door.keyframe_insert("location", frame=sh.frames)
 
     cam = sh.camera(22, fstop=4.2)
-    cam.place(0.0, (0.42, -3.55, 1.42), (0.20, 1.48, 1.23), focus=(0.12, 2.32, 1.18))
-    cam.place(sh.dur, (0.46, -3.20, 1.44), (0.20, 1.62, 1.24), focus=(0.12, 2.40, 1.18))
+    # Higher, over his shoulder: he no longer blocks the "1" (v2 review).
+    cam.place(0.0, (0.42, -3.55, 1.95), (0.0, 1.48, 1.15), focus=(0.0, 2.32, 1.10))
+    cam.place(sh.dur, (0.46, -3.20, 1.97), (0.0, 1.62, 1.16), focus=(0.0, 2.40, 1.10))
     cam.handheld("locked", 0.20)
     sh.scene["hnc_s06_elevator_numbers"] = "1,4; approved physical score grammar; 1.78m cap height"
     sh.scene["hnc_s06_elevator_cabin_m"] = info["cabin"]
     sh.scene["hnc_s06_four_rotation_deg"] = -2.6
+    sh.keep_in_frame(p)
     sh.finish(glare=0.09, threshold=1.42, vignette=0.12, dispersion=0.0004)
 
 

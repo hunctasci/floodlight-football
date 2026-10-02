@@ -44,10 +44,10 @@ def _counting_hands(sh, elder, hand_target):
         # the pose shares its exact wrist position without inheriting the rig's
         # arbitrary hand-control rotation.
         obj["hnc_attached_wrist"] = "TR-SUPPORTER-ELDER-01 hand.R (shared authored wrist target)"
-    # 18 clear FOUR frames, then a clean replacement and 14 clear ONE frames.
+    # The score in order — ONE (≈0.6–1.4 s), then FOUR under "The locals remember." (v1 counted 4→1, backwards).
     for frame in range(1, sh.frames + 1):
-        four = 15 <= frame <= 32
-        one = 39 <= frame <= 52
+        one = 18 <= frame <= 42
+        four = 46 <= frame <= 94
         for name, obj in poses.items():
             visible = four if name == "HAND_FOUR" else one
             obj.hide_render = not visible
@@ -85,15 +85,16 @@ def S05_SH01(sh):
 
     # The palm overlaps the elder's raised wrist/forearm rather than reading
     # as an isolated sign in the space between the two people.
-    hand_target = (-2.45, -1.42, 1.43)
+    # Chest height, palm to #9: v1 raised a single finger beside his face (read as rude).
+    hand_target = (-2.30, -1.55, 1.20)
     P.look(elder, 0.18, (-0.10, -1.62, 1.38), w=0.58, dur=0.20)
-    P.reach(elder, 0.24, "R", hand_target, dur=0.20, rot=(0, 0, 0), e="out")
+    P.reach(elder, 0.45, "R", hand_target, dur=0.20, rot=(0, 0, 0), e="out")
     _counting_hands(sh, elder, hand_target)
-    elder.hold("hand.R", 1.72)
-    elder.hold("ik_hand.R", 1.72)
-    P.nod(elder, 1.86, depth=2.8, dur=0.30)
-    P.look(nine, 0.70, hand_target, w=0.72, dur=0.16)
-    nine.key("head", 0.92, (1.7, -1.1, 0.0), "soft")
+    elder.hold("hand.R", 3.15)
+    elder.hold("ik_hand.R", 3.15)
+    P.nod(elder, 4.05, depth=2.8, dur=0.30)
+    P.look(nine, 1.00, hand_target, w=0.72, dur=0.16)
+    nine.key("head", 1.30, (1.7, -1.1, 0.0), "soft")
     # Dialogue is timing-only: use edit placement and a short dry body beat;
     # no audio is synthesized or generated in this task.
     line_start, line_end = sh.line_or("L01", (1.0, 1.46))
@@ -102,10 +103,12 @@ def S05_SH01(sh):
     cam = sh.camera(50, fstop=4.0)
     # Keep the 50mm camera just inside the front wall: this is a readable
     # interior two-shot, never an exterior view through the bakery facade.
-    cam.place(0.0, (-1.00, -6.70, 1.62), (-2.18, -1.48, 1.34), focus=(-2.18, -1.48, 1.38))
-    cam.place(sh.dur, (-.94, -6.62, 1.61), (-2.12, -1.48, 1.34), focus=(-2.12, -1.48, 1.38), e="linear")
+    cam.place(0.0, (-1.35, -7.30, 1.60), (-2.02, -1.50, 1.30), focus=(-2.02, -1.50, 1.34))
+    cam.place(sh.dur, (-1.30, -7.20, 1.59), (-2.00, -1.50, 1.30), focus=(-2.00, -1.50, 1.34), e="linear")
     cam.handheld("locked", 0.28)
-    sh.scene["hnc_event_frames"] = {"supporter_four_start": 15, "supporter_four_end": 32, "supporter_one_start": 39, "supporter_one_end": 52, "really_timing": 31, "supporter_nod": 57}
+    sh.scene["hnc_event_frames"] = {"supporter_one_start": 18, "supporter_one_end": 42, "supporter_four_start": 46, "supporter_four_end": 94, "supporter_nod": 122}
+    sh.keep_in_frame(elder)
+    sh.keep_in_frame(nine)
     sh.scene["hnc_dialogue_method"] = "L01 edit timing-only performance; no voice asset required"
     sh.finish(glare=0.05, threshold=1.55, vignette=0.10)
 

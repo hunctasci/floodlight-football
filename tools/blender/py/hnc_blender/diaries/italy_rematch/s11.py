@@ -48,15 +48,20 @@ def S11_SH01(sh):
     # Portrait coverage needs a little more breathing room than a landscape
     # three-quarter: keep the whole player in frame while the score still
     # dominates the vertical axis.
-    cam = sh.camera(40, fstop=2.8)
-    cam.place(0.0, (2.75, -10.2, 2.75), (-0.05, 4.6, 2.35), focus=(0.0, 3.9, 2.25), e="smooth")
-    cam.place(sh.dur, (2.55, -9.4, 2.85), (-0.02, 5.25, 2.48), focus=(0.0, 5.9, 2.35), e="smooth")
+    # Low, behind-right of #9 at 28mm: he is big in the foreground and the whole 1–4 still towers behind
+    # (v1: 40mm from 10 m away left him tiny on a phone).
+    look.area(sh.cols["LGT"], "S11_ScoreKey", (-2.6, 2.0, 5.0), (0.0, 7.0, 2.6), size=(3.0, 3.0), power=900.0, color="#ffd9a8")
+    cam = sh.camera(28, fstop=4.0)
+    # Straight behind him: he covers only the dash, so "1 – 4" frames him at the strike.
+    cam.place(0.0, (0.45, -2.60, 1.00), (0.0, 6.0, 2.60), focus=(0.35, 1.2, 1.0), e="smooth")
+    cam.place(sh.dur, (0.42, -2.25, 1.05), (0.0, 6.2, 2.70), focus=(0.3, 6.4, 2.2), e="smooth")
     impact(cam, impact_t + 0.055, strength=0.34, decay=0.22)
     cam.handheld("locked", 0.55)
     sh.scene["hnc_s11_score_seed"] = score.SEED
     sh.scene["hnc_s11_score_fragments"] = score_rec["fragment_count"]
     sh.scene["hnc_s11_score_internal_light"] = True
     sh.scene["hnc_s11_fracture_method"] = "deterministic custom pre-fractured Boolean font mesh + rigid-body handoff"
+    sh.keep_in_frame(p, times=(0.0, 1.0))
     sh.finish(glare=0.42, threshold=1.05, vignette=0.20, dispersion=0.001)
 
 

@@ -5,6 +5,9 @@ import { ContentComposition, contentMetadata } from './render/ContentComposition
 import { PosterType } from './posters/PosterType';
 import type { PosterDef } from './posters/types';
 import { PlayerDiaries, playerDiariesMetadata, type PlayerDiariesProps } from './diaries/PlayerDiaries';
+import { ShortFilm, shortMetadata, type ShortFilmProps } from './shorts/ShortFilm';
+import { SYSTEM_SMOKE } from './shorts/system-smoke';
+import { GroupChatFilm, GROUP_CHAT_SPEC, groupChatMetadata } from './shorts/group-chat-croatia-england';
 import { DiariesMumLinksUI, DiariesPhoneUI } from './diaries/PhoneUI';
 import { TVScoreboard, type TVScore } from './diaries/Memory';
 
@@ -67,6 +70,26 @@ export const RemotionRoot: React.FC = () => (
       calculateMetadata={contentMetadata}
       durationInFrames={1}
       fps={30}
+      width={1080}
+      height={1920}
+    />
+    <Composition
+      id="HNCShortSystemSmoke"
+      component={ShortFilm}
+      defaultProps={{ spec: SYSTEM_SMOKE, voices: {} } as ShortFilmProps}
+      calculateMetadata={shortMetadata}
+      durationInFrames={210}
+      fps={60}
+      width={1080}
+      height={1920}
+    />
+    <Composition
+      id="HNCShortGroupChatCroatiaEngland"
+      component={GroupChatFilm}
+      defaultProps={{ spec: GROUP_CHAT_SPEC, voices: {} }}
+      calculateMetadata={groupChatMetadata}
+      durationInFrames={864}
+      fps={60}
       width={1080}
       height={1920}
     />

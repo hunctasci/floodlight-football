@@ -133,6 +133,9 @@ def main():
                 y = stereo(lp(hp(x, 80), 9500)) * db(0.5)
                 for c in range(2):
                     place(vo_bus[:, c], at, y[:, c])
+            elif sp == "COMM":
+                # TV commentary: band-limited broadcast mic, centred, a touch forward of the room.
+                y = stereo(lp(hp(x, 140), 7800)) * db(1.0)
             else:
                 y = stereo(hp(x, 70))
             for c in range(2):
@@ -162,7 +165,8 @@ def main():
 
     # ---- music + ducking under dialogue
     # each episode has its own arrangement, anchored to its own shots
-    build = score.build_rivals if str(dialogue.get("episode", "")).startswith("rivals") else score.build
+    ep = str(dialogue.get("episode", ""))
+    build = score.build_rivals if ep.startswith("rivals") else score.build_italy if ep == "italy-rematch" else score.build
     mus = build(markers, total)
     mus = np.pad(mus, ((0, max(0, n - len(mus))), (0, 0)))[:n] * db(-4)
     env = envelope(dia)

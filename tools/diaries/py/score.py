@@ -281,3 +281,54 @@ def build_rivals(markers, total, bpm=92):
     dry.add(white, taiko(seed=13, level=1.0))
     x = reverb(trk.arr(), HALL, 0.35) + reverb(dry.arr(), HALL, 0.12)
     return x[: int(total * SR)]
+
+
+def build_italy(markers, total, bpm=100):
+    """'The Score Won't Leave Him Alone': a sneaky pizzicato pulse under the commentary (the score
+    following him), a dead stop for the 'Enough.' beat, a driving build through the football act with
+    the hit on the shatter, two quiet piano notes for the 0–0 reset, the tunnel swell into the card."""
+    m = markers
+    beat = 60 / bpm
+    bar = beat * 4
+    trk = Track(total + 3)
+    dry = Track(total + 3)
+
+    def seq(t0, t1, fn, step):
+        t, i = t0, 0
+        while t < t1 - 1e-6:
+            fn(t, i)
+            t += step
+            i += 1
+
+    # 1. THE COMEDY: staccato plucks tiptoeing in Bm under the commentator, a soft bass on 1 and 3
+    a, b = m["S00_SH02"], m["S08_SH01"]
+    prog = ["Bm", "G", "Em", "F#m"]
+    seq(a, b, lambda t, i: trk.add(t, pad(CH[prog[i % 4]], bar * 1.05, level=0.022, bright=800), 0.0), bar)
+    seq(a, b, lambda t, i: trk.add(t, pluck([71, 74, 78, 74][i % 4] - (5 if (i // 8) % 2 else 0), 0.25, 0.12, seed=i), -0.3 if i % 2 else 0.3), beat / 2)
+    seq(a, b, lambda t, i: dry.add(t, bass([35, 31, 28, 30][(i // 8) % 4], beat * 0.8, 0.13)), beat * 2)
+    # the escalation (physical numbers, the stairs): strings creep in
+    trk.add(m["S06_SH02"], strings(CH["Bm"], b - m["S06_SH02"] + 0.2, level=0.04), 0.0)
+    # 2. S08: dead stop — the silence is the joke ("Enough.")
+    # 3. THE FOOTBALL ACT: the ball's impact, then the drive
+    a, strike = m["S09_SH01"], m["S11_SH01"]
+    dry.add(a, taiko(seed=21, level=0.9))
+    b2 = beat / 1.15
+    seq(m["S10_SH01"], strike, lambda t, i: dry.add(t, kick(0.8)), b2)
+    seq(m["S10_SH01"] + b2, strike, lambda t, i: dry.add(t, clap(seed=i, level=0.2)), b2 * 2)
+    seq(m["S10_SH01"], strike, lambda t, i: dry.add(t, hat(seed=i, level=0.05), 0.2), b2 / 2)
+    seq(m["S10_SH01"], strike, lambda t, i: dry.add(t, bass([38, 38, 43, 45][(i // 4) % 4], b2 * 0.9, 0.24)), b2)
+    trk.add(m["S10_SH01"], strings(CH["D"], strike - m["S10_SH01"] + 0.3, level=0.07), 0.0)
+    # the strike: a breath of near-silence, then the hit as the 1–4 shatters (impact ≈ 1.9 s into S11)
+    hit = strike + 1.9
+    dry.add(hit, taiko(seed=22, level=1.0))
+    trk.add(hit + 0.02, strings(CH["D"] + [74], 2.4, level=0.07, swell=False), 0.0)
+    # 4. THE RESET: two soft piano notes over the wipe and the crema
+    trk.add(m["S13_SH01"] + 0.2, piano(74, 3.0, 0.3, seed=31), -0.1)
+    trk.add(m["S13_SH01"] + 1.25, piano(69, 3.0, 0.26, seed=32), 0.1)
+    trk.add(m["S14_SH01"] + 0.6, piano(78, 3.0, 0.24, seed=33), 0.0)
+    # 5. THE TUNNEL: low drone, strings swell into the card (the brand sting takes over)
+    a, card = m["S15_SH01"], m["S16_SH01"]
+    trk.add(a, pad([38, 45, 50], card - a + 0.3, level=0.05, bright=380, attack=0.3, release=0.3), 0.0)
+    trk.add(a, strings(CH["D"] + [74], card - a + 0.3, level=0.09), 0.0)
+    x = reverb(trk.arr(), HALL, 0.35) + reverb(dry.arr(), HALL, 0.12)
+    return x[: int(total * SR)]

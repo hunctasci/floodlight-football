@@ -15,6 +15,7 @@ import rivals from './rivals/edit.json';
 import rivalsDialogue from './rivals/dialogue.json';
 import italyRematch from './italy-rematch/edit.json';
 import italyRematchDialogue from './italy-rematch/dialogue.json';
+import italyRematchVoices from '../../public/generated/diaries/italy-rematch/vo/voices.json';
 import type { TVScore } from './Memory';
 import type { OpenerBeat } from './Opener';
 
@@ -54,11 +55,22 @@ export interface DiaryShot {
   sfx?: { cue: string; at: number; gain?: number; dur?: number }[];
 }
 
+/** Broadcast score bug over the whole episode: `before` until `flip` (shot-relative s), then `after`. */
+export interface ScoreBugSpec {
+  before: string;
+  after: string;
+  flip: { shot: string; at: number };
+  hideOn: string[];
+}
+
 export interface DiaryEdit {
   episode: string;
   title: string;
   fps: number;
   shots: DiaryShot[];
+  /** Episode-level frame-0 hook (HookBox over the plates), shown for `dur` seconds. */
+  hook?: { text: string; tr?: string; dur: number };
+  scoreBug?: ScoreBugSpec;
 }
 
 export interface TimedShot extends DiaryShot {
@@ -79,7 +91,7 @@ export interface DiaryEpisode {
 export const EPISODES: Record<string, DiaryEpisode> = {
   ep01: { edit: ep01 as unknown as DiaryEdit, dialogue: ep01Dialogue, voices: ep01Voices, phones: { open: EP01_CHAT_OPEN, teaser: EP01_CHAT_TEASER } },
   rivals: { subtitles: 'tr', edit: rivals as unknown as DiaryEdit, dialogue: rivalsDialogue, voices: rivalsVoices as Record<string, { seconds: number }>, phones: { open: RIVALS_CHAT_OPEN, teaser: RIVALS_CHAT_TEASER } },
-  'italy-rematch': { subtitles: 'tr', edit: italyRematch as unknown as DiaryEdit, dialogue: italyRematchDialogue, voices: {}, phones: {} },
+  'italy-rematch': { subtitles: 'tr', edit: italyRematch as unknown as DiaryEdit, dialogue: italyRematchDialogue, voices: italyRematchVoices, phones: {} },
 };
 
 /**

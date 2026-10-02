@@ -215,7 +215,7 @@ def digital_clock(col, name="PROP_Clock", text="06:47", loc=(0, 0, 0), rot=(0, 0
     seg = look.emission(f"ClockSeg_{glow}", glow, strength)
     # 7-segment layout per digit, in a 0.03 x 0.05 cell
     SEG = {"a": (0, 1, 0.5, 1), "b": (1, 0.5, 1, 1), "c": (1, 0, 1, 0.5), "d": (0, 0, 0.5, 0), "e": (0, 0, 0, 0.5), "f": (0, 0.5, 0, 1), "g": (0, 0.5, 0.5, 0.5)}
-    DIG = {"0": "abcdef", "1": "bc", "2": "abged", "3": "abgcd", "4": "fgbc", "5": "afgcd", "6": "afgedc", "7": "abc", "8": "abcdefg", "9": "abcdfg"}
+    DIG = {"0": "abcdef", "1": "bc", "2": "abged", "3": "abgcd", "4": "fgbc", "5": "afgcd", "6": "afgedc", "7": "abc", "8": "abcdefg", "9": "abcdfg", "-": "g"}
     w, hgt, th = 0.026, 0.044, 0.0055
     x0 = -0.066
     x = x0

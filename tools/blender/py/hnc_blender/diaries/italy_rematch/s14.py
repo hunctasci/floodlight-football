@@ -36,8 +36,9 @@ def S14_SH01(sh):
     P.look(p, 1.37, (.12, -.45, 1.58), w=.55, dur=.34)
     P.smile(p, 1.72, amount=.18, dur=.42, hold=.55, tilt=.35, nod=.0)
     cam = sh.camera(85, fstop=2.8)
-    cam.place(0.0, (-.18, -.25, 1.18), (-.18, .70, .865), focus=(-.18, .70, .864))
-    cam.place(.62, (-.18, -.25, 1.18), (-.18, .70, .865), focus=(-.18, .70, .864), e="hold")
+    # Closer and held longer on the crema so the 0–0 reads on a phone (v1: too small, 0.62 s).
+    cam.place(0.0, (-.18, .30, 1.02), (-.18, .70, .865), focus=(-.18, .70, .864))
+    cam.place(.95, (-.18, .30, 1.02), (-.18, .70, .865), focus=(-.18, .70, .864), e="hold")
     cam.place(1.55, (.60, -1.60, 1.30), (.17, .84, 1.38), focus=(.22, .88, 1.38), e="smooth")
     cam.place(sh.dur, (.58, -1.56, 1.31), (.22, .96, 1.48), focus=(.25, 1.00, 1.48), e="smooth")
     cam.handheld("locked", .15)

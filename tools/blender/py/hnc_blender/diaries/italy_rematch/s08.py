@@ -110,6 +110,7 @@ def S08_SH03(sh):
     cam.handheld("locked", .10)
     sh.scene["hnc_event_frames"] = {"enough_pause": 8, "enough_timing": 12, "comedy_rhythm_end": 27}
     sh.scene["hnc_dialogue_method"] = "L02 edit timing-only performance; comedy rhythm ends on final frame"
+    sh.keep_in_frame(p)
     sh.finish(glare=.02, threshold=1.7, vignette=.09)
 
 

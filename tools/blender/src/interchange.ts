@@ -55,6 +55,10 @@ export interface HncPlayerFixture {
   purpose: HncExportPurpose;
   look?: HncWardrobeId;
   accent?: string;
+  /** Optional kit override (shorts system: fictional tournament treatments that
+   * stay white-primary with restrained accents; geometry/materials canonical). */
+  primary?: string;
+  secondary?: string;
   proportions?: HncProportionsId;
   tag?: string;
 }
@@ -103,6 +107,13 @@ export const HNC_EXPORT_FIXTURES: readonly HncExportFixture[] = [
   // HNC Player Diaries Italy rematch: original fictional Italy #8 midfielder.
   // Uses the shared IT country palette and canonical player factory; no official marks.
   { kind: 'player', assetId: 'hnc-player-it-08', country: 'IT', number: 8, id: 8, keeper: false, purpose: 'cast' },
+  // THE GROUP CHAT (shorts): two original fictional players. Canonical factory +
+  // canonical proportions/materials/geometry; only the kit colour treatment is
+  // overridden to a fictional tournament look (white primary, restrained accents).
+  // HR-PLAYER-01: id 7 -> skin 3, number 4. EN-PLAYER-01: id 4 -> skin 0, number 9.
+  // No real-player likeness, no federation logos, no official kits.
+  { kind: 'player', assetId: 'hnc-player-hr-01', country: 'HR', number: 4, id: 7, keeper: false, purpose: 'cast', primary: '#f4f2ec', secondary: '#c8102e' },
+  { kind: 'player', assetId: 'hnc-player-en-01', country: 'GB', number: 9, id: 4, keeper: false, purpose: 'cast', primary: '#f4f2ec', secondary: '#1b2a5e' },
 ];
 
 export interface HncExpectedMaterial {
@@ -456,7 +467,8 @@ export function describeExport(root: THREE.Object3D): HncExpected {
 export function buildHncPlayerExport(f: Omit<HncPlayerFixture, 'purpose'>): HncExportBuild {
   const country = getCountry(f.country);
   if (!country) throw new Error(`Unknown HNC country code: ${f.country}`);
-  const { primary, secondary } = country.colors;
+  const primary = f.primary ?? country.colors.primary;
+  const secondary = f.secondary ?? country.colors.secondary;
   // Same call the game (renderer.ts) and Reels (CastActor) make.
   const visual = createHncPlayerVisual({ id: f.id, number: f.number, primary, secondary, keeper: f.keeper });
   if (f.proportions) applyHncProportions(visual, f.proportions);
@@ -481,6 +493,8 @@ export function buildHncPlayerExport(f: Omit<HncPlayerFixture, 'purpose'>): HncE
     ...(f.look ? { look: f.look } : {}),
     ...(f.proportions ? { proportions: f.proportions } : {}),
     ...(f.accent ? { accent: f.accent } : {}),
+    ...(f.primary ? { primaryOverride: f.primary } : {}),
+    ...(f.secondary ? { secondaryOverride: f.secondary } : {}),
   };
   root.userData = { ...root.userData, hncAsset: f.assetId, hncFactory: 'createHncPlayerVisual', ...params };
   return { root, params, sourceFactory: 'createHncPlayerVisual', expected: describeExport(root) };

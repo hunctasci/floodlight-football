@@ -109,20 +109,59 @@ export const EndCard: React.FC<{ frame: number; fps: number; series: string }> =
 
 /** Italy-rematch's short final punctuation: fixture, date, then the league name. */
 export const ItalyRematchEndCard: React.FC<{ frame: number; fps: number }> = ({ frame, fps }) => {
-  const fixture = spring({ frame: frame - 2, fps, config: { damping: 24, stiffness: 190, mass: 0.75 } });
-  const date = interpolate(frame, [10, 17], [0, 1], clamp);
-  const league = spring({ frame: frame - 32, fps, config: { damping: 22, stiffness: 170, mass: 0.7 } });
+  const C = HNC_BRAND.colors;
+  const t = frame / fps;
+  // Hand-off from the episode's broadcast package: the corner score bug flies in and becomes the hero board.
+  const fly = spring({ frame, fps, config: { damping: 22, stiffness: 150, mass: 0.8 } });
+  const logo = spring({ frame: frame - 6, fps, config: { damping: 16, stiffness: 140, mass: 0.7 } });
+  const meta = interpolate(t, [0.45, 0.75], [0, 1], clamp);
+  // Calls to action wait for the last commentator caption to clear (≈1 s into the card).
+  const follow = spring({ frame: frame - Math.round(1.05 * fps), fps, config: { damping: 18, stiffness: 170, mass: 0.7 } });
+  const share = spring({ frame: frame - Math.round(1.25 * fps), fps, config: { damping: 18, stiffness: 170, mass: 0.7 } });
+  const pulse = 1 + 0.025 * Math.max(0, Math.sin((t - 1.6) * Math.PI * 2.2)) * (t > 1.6 ? 1 : 0);
+  const glow = 0.55 + 0.1 * Math.sin(t * 2.4);
+  const board = {
+    left: interpolate(fly, [0, 1], [54, 110]),
+    top: interpolate(fly, [0, 1], [120, 820]),
+    scale: interpolate(fly, [0, 1], [0.32, 1]),
+  };
   return (
-    <AbsoluteFill style={{ background: '#101b31', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: -190, right: -230, width: 720, height: 720, borderRadius: 999, background: '#f5efe313', border: '2px solid #f5efe52a' }} />
-      <div style={{ position: 'absolute', bottom: 248, left: 90, right: 90, height: 3, background: HNC_BRAND.colors.red, opacity: fixture }} />
-      <div style={{ textAlign: 'center', color: '#f6f2e9', marginTop: -55 }}>
-        <div style={{ fontFamily: DIARY_TYPE.display, fontWeight: 600, fontSize: 110, letterSpacing: 6, opacity: fixture, transform: `translateY(${interpolate(fixture, [0, 1], [28, 0])}px)` }}>ITALY</div>
-        <div style={{ fontFamily: DIARY_TYPE.text, fontWeight: 600, fontSize: 30, letterSpacing: 11, margin: '14px 0', color: '#d7d1c5', opacity: fixture }}>VS</div>
-        <div style={{ fontFamily: DIARY_TYPE.display, fontWeight: 600, fontSize: 110, letterSpacing: 3, opacity: fixture, transform: `translateY(${interpolate(fixture, [0, 1], [28, 0])}px)` }}>TÜRKİYE</div>
-        <div style={{ fontFamily: DIARY_TYPE.text, fontWeight: 650, fontSize: 31, letterSpacing: 8, color: '#e0d9ca', marginTop: 42, opacity: date }}>5 OCTOBER</div>
-        <div style={{ fontFamily: DIARY_TYPE.display, fontWeight: 600, fontSize: 72, letterSpacing: 12, color: '#f6f2e9', marginTop: 115, opacity: league, transform: `translateY(${interpolate(league, [0, 1], [16, 0])}px)` }}>HNC LEAGUE</div>
+    <AbsoluteFill style={{ background: C.navy, overflow: 'hidden' }}>
+      {/* floodlit pitch below, the centre circle faint behind everything */}
+      <div style={{ position: 'absolute', left: -200, right: -200, bottom: -520, height: 1100, borderRadius: '50%', background: 'radial-gradient(closest-side, #1f6b3acc, #1f6b3a33 60%, transparent)', opacity: glow }} />
+      <div style={{ position: 'absolute', left: 540 - 380, top: 960 - 380, width: 760, height: 760, borderRadius: 999, border: '3px solid #f8efdb14' }} />
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 958, height: 3, background: '#f8efdb10' }} />
+      {/* the badge, under a floodlight */}
+      <div style={{ position: 'absolute', left: 540 - 300, top: 100, width: 600, height: 600, borderRadius: 999, background: 'radial-gradient(closest-side, #f8cc5440, transparent)', opacity: logo }} />
+      <Img src={staticFile(`assets/${getAsset('hnc-logo').file}`)} style={{ position: 'absolute', left: 540 - 210, top: 190, width: 420, height: 420, opacity: Math.min(1, logo * 1.4), transform: `scale(${interpolate(logo, [0, 1], [0.7, 1])}) rotate(${interpolate(logo, [0, 1], [-8, 0])}deg)`, filter: 'drop-shadow(0 18px 40px #000a)' }} />
+      {/* NEXT MATCH */}
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 740, textAlign: 'center', fontFamily: DIARY_TYPE.display, fontWeight: 600, fontSize: 40, letterSpacing: 14, color: C.gold, opacity: meta }}>NEXT MATCH</div>
+      <div style={{ position: 'absolute', left: board.left, top: board.top, width: 860, height: 190, transformOrigin: '0 0', transform: `scale(${board.scale})`, display: 'flex', alignItems: 'stretch', borderRadius: 18, overflow: 'hidden', boxShadow: '0 24px 60px #0009', background: '#0b1d33' }}>
+        <div style={{ width: 22, background: '#1f5fbf' }} />
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 46px', fontFamily: DIARY_TYPE.display, fontWeight: 600, color: C.cream }}>
+          <span style={{ fontSize: 96, letterSpacing: 4 }}>ITA</span>
+          <span style={{ fontSize: 132, letterSpacing: 8, color: '#ffffff' }}>0–0</span>
+          <span style={{ fontSize: 96, letterSpacing: 4 }}>TUR</span>
+        </div>
+        <div style={{ width: 22, background: C.red }} />
       </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 1040, textAlign: 'center', fontFamily: DIARY_TYPE.text, fontWeight: 650, fontSize: 34, letterSpacing: 7, color: '#e0d9ca', opacity: meta }}>MON 5 OCT · 21:45 TSİ · BOLOGNA</div>
+      {/* calls to action: Instagram-native pills */}
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 1190, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 34 }}>
+        <div style={{ opacity: Math.min(1, follow * 1.4), transform: `translateY(${interpolate(follow, [0, 1], [40, 0])}px)`, textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 18, background: C.gold, color: C.navy, borderRadius: 999, padding: '20px 64px', fontFamily: DIARY_TYPE.display, fontWeight: 600, fontSize: 58, letterSpacing: 6, boxShadow: '0 14px 34px #0008' }}>
+            <span style={{ fontSize: 64, lineHeight: 1 }}>＋</span>FOLLOW
+          </div>
+          <div style={{ marginTop: 10, fontFamily: DIARY_TYPE.text, fontWeight: 600, fontSize: 30, color: '#cfc8b8' }}>Takip et</div>
+        </div>
+        <div style={{ opacity: Math.min(1, share * 1.4), transform: `translateY(${interpolate(share, [0, 1], [40, 0])}px) scale(${pulse})`, textAlign: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 18, border: `4px solid ${C.cream}`, color: C.cream, borderRadius: 999, padding: '16px 52px', fontFamily: DIARY_TYPE.display, fontWeight: 600, fontSize: 52, letterSpacing: 5 }}>
+            <span style={{ fontSize: 56, lineHeight: 1 }}>↗</span>SHARE WITH YOUR 1–4 FRIEND
+          </div>
+          <div style={{ marginTop: 10, fontFamily: DIARY_TYPE.text, fontWeight: 600, fontSize: 30, color: '#cfc8b8' }}>1–4'ü hâlâ konuşan arkadaşına gönder</div>
+        </div>
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 120, textAlign: 'center', fontFamily: DIARY_TYPE.text, fontWeight: 600, fontSize: 28, letterSpacing: 9, color: '#f8efdb99', opacity: meta }}>{upper(HNC_BRAND.site)}</div>
     </AbsoluteFill>
   );
 };

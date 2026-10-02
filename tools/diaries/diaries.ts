@@ -42,6 +42,8 @@ const venvPy = (dir: string): string => {
 };
 const PY = process.env.HNC_DIARIES_PY ?? venvPy(path.join(REPO, '..', '.tools', 'tts'));
 const CHATTERBOX_PY = process.env.HNC_CHATTERBOX_PY ?? venvPy(path.join(REPO, '..', '.tools', 'chatterbox'));
+// Qwen3-TTS VoiceDesign speakers (engine "qwen") run in the mlx-audio venv (Apple Silicon).
+const QWEN_PY = process.env.HNC_QWEN_PY ?? venvPy(path.join(REPO, '..', '.tools', 'mlx-audio'));
 // Same discovery as blender:* (HNC_BLENDER_BIN → BLENDER_PATH → macOS app → `blender` on PATH).
 const BLENDER = findBlender();
 
@@ -364,6 +366,9 @@ const commands: Record<string, () => unknown> = {
     const lines = args.slice(1).filter((a) => /^L\d+$/.test(a));
     run(PY, [path.join(REPO, 'tools/diaries/py/voices.py'), DIALOGUE, path.join(GEN, 'vo'), '--refs']);
     run(CHATTERBOX_PY, [path.join(REPO, 'tools/diaries/py/voices_chatterbox.py'), DIALOGUE, path.join(GEN, 'vo'), ...lines, ...(opt('takes') ? [`--takes=${opt('takes')}`] : [])]);
+    if (Object.values(JSON.parse(readFileSync(DIALOGUE, 'utf8')).speakers as Record<string, { engine?: string }>).some((s) => s.engine === 'qwen')) {
+      run(QWEN_PY, [path.join(REPO, 'tools/diaries/py/voices_qwen.py'), DIALOGUE, path.join(GEN, 'vo'), ...lines, ...(opt('takes') ? [`--takes=${opt('takes')}`] : [])]);
+    }
   },
   plates,
   ui: () => run('npx', ['tsx', 'scripts/diaries-ui.ts', '--episode', EP], path.join(REPO, 'packages/reels')),

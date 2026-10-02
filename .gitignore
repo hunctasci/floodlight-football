@@ -20,6 +20,9 @@ packages/reels/public/generated/diaries/ep01/*
 !packages/reels/public/generated/diaries/rivals/
 packages/reels/public/generated/diaries/rivals/*
 !packages/reels/public/generated/diaries/rivals/vo/
+!packages/reels/public/generated/diaries/italy-rematch/
+packages/reels/public/generated/diaries/italy-rematch/*
+!packages/reels/public/generated/diaries/italy-rematch/vo/
 # Blender pipeline (tools/blender): generated interchange assets, .blend files and
 # renders are rebuilt by `npm run blender:export|build|render:test` — never edit/commit them.
 social/blender/generated/
