@@ -1,0 +1,35 @@
+{
+  "source_in": 43.2,
+  "source_out": 86.07347916666667,
+  "film_duration": 43.4,
+  "continuous_source_correlation": 1.0,
+  "max_constant_gain_error": 1.1920928955078125e-07,
+  "internal_music_cuts": 0,
+  "music_end_fade_added": false,
+  "highest_source_crest": 77.7,
+  "touch_seconds": 34.5,
+  "touch_frame_zero_based": 2070,
+  "outro_from": 35.1,
+  "outro_duration": 8.3,
+  "natural_music_end": 42.87347916666667,
+  "voice_peak": 0.0,
+  "master": {
+    "premix_measurement": {
+      "input_i": "-12.70",
+      "input_tp": "0.42",
+      "input_lra": "11.80",
+      "input_thresh": "-23.85",
+      "output_i": "-13.66",
+      "output_tp": "-1.00",
+      "output_lra": "4.20",
+      "output_thresh": "-24.30",
+      "normalization_type": "dynamic",
+      "target_offset": "-1.84"
+    },
+    "mastering": "constant gain only; no compression, limiter or adaptive gain",
+    "gain_db": -2.8000000000000007,
+    "final_integrated_lufs": "-15.50",
+    "final_true_peak_dbtp": "-2.38",
+    "final_lra": "11.80"
+  }
+}

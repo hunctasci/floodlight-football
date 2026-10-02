@@ -1,0 +1,154 @@
+{
+  "source_in_seconds": 40,
+  "policy": "continuous original tempo; no internal splice, artificial crescendo, compression or tempo change",
+  "analysis": "50 ms stereo RMS and inspected harmonic spectrogram; not a substitute for perceptual listening",
+  "accents": [
+    {
+      "source_seconds": 42.25,
+      "seconds_from_40": 2.25,
+      "rms": 0.2452
+    },
+    {
+      "source_seconds": 44.2,
+      "seconds_from_40": 4.2,
+      "rms": 0.108
+    },
+    {
+      "source_seconds": 44.95,
+      "seconds_from_40": 4.95,
+      "rms": 0.1183
+    },
+    {
+      "source_seconds": 45.7,
+      "seconds_from_40": 5.7,
+      "rms": 0.1128
+    },
+    {
+      "source_seconds": 46.5,
+      "seconds_from_40": 6.5,
+      "rms": 0.1121
+    },
+    {
+      "source_seconds": 49.6,
+      "seconds_from_40": 9.6,
+      "rms": 0.0955
+    },
+    {
+      "source_seconds": 50.75,
+      "seconds_from_40": 10.75,
+      "rms": 0.0838
+    },
+    {
+      "source_seconds": 51.5,
+      "seconds_from_40": 11.5,
+      "rms": 0.0913
+    },
+    {
+      "source_seconds": 55.45,
+      "seconds_from_40": 15.45,
+      "rms": 0.3018
+    },
+    {
+      "source_seconds": 57.45,
+      "seconds_from_40": 17.45,
+      "rms": 0.2663
+    },
+    {
+      "source_seconds": 58.75,
+      "seconds_from_40": 18.75,
+      "rms": 0.2491
+    },
+    {
+      "source_seconds": 60.3,
+      "seconds_from_40": 20.3,
+      "rms": 0.2943
+    },
+    {
+      "source_seconds": 61.1,
+      "seconds_from_40": 21.1,
+      "rms": 0.329
+    },
+    {
+      "source_seconds": 62.05,
+      "seconds_from_40": 22.05,
+      "rms": 0.2608
+    },
+    {
+      "source_seconds": 64.0,
+      "seconds_from_40": 24.0,
+      "rms": 0.2517
+    },
+    {
+      "source_seconds": 65.45,
+      "seconds_from_40": 25.45,
+      "rms": 0.3585
+    },
+    {
+      "source_seconds": 66.8,
+      "seconds_from_40": 26.8,
+      "rms": 0.2404
+    },
+    {
+      "source_seconds": 67.85,
+      "seconds_from_40": 27.85,
+      "rms": 0.3241
+    },
+    {
+      "source_seconds": 69.65,
+      "seconds_from_40": 29.65,
+      "rms": 0.3221
+    },
+    {
+      "source_seconds": 71.0,
+      "seconds_from_40": 31.0,
+      "rms": 0.37
+    },
+    {
+      "source_seconds": 71.8,
+      "seconds_from_40": 31.8,
+      "rms": 0.2927
+    },
+    {
+      "source_seconds": 72.85,
+      "seconds_from_40": 32.85,
+      "rms": 0.3257
+    },
+    {
+      "source_seconds": 74.75,
+      "seconds_from_40": 34.75,
+      "rms": 0.3159
+    },
+    {
+      "source_seconds": 75.5,
+      "seconds_from_40": 35.5,
+      "rms": 0.3547
+    },
+    {
+      "source_seconds": 76.7,
+      "seconds_from_40": 36.7,
+      "rms": 0.2597
+    },
+    {
+      "source_seconds": 77.7,
+      "seconds_from_40": 37.7,
+      "rms": 0.4581
+    },
+    {
+      "source_seconds": 78.85,
+      "seconds_from_40": 38.85,
+      "rms": 0.3771
+    },
+    {
+      "source_seconds": 79.8,
+      "seconds_from_40": 39.8,
+      "rms": 0.2351
+    }
+  ],
+  "largest_measured_crest": {
+    "source_seconds": 77.7,
+    "seconds_from_40": 37.7,
+    "rms": 0.4581
+  },
+  "review_audio": "/Users/codex/Desktop/hnc/floodlight-football/social/output/shorts/first-touch-on-the-moon/music-from-40-study.wav",
+  "status": "timing study; existing film mix not yet replaced"
+}

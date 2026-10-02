@@ -1,0 +1,32 @@
+[
+  {
+    "asset": "cast-manifest.json",
+    "bytes": 29165,
+    "sha256": "b86ca0af66b1dc3722d18551dd7f823e85c29e2ae32e979d3f7951419b5ccb49"
+  },
+  {
+    "asset": "hnc-lunar-01.glb",
+    "bytes": 31552,
+    "sha256": "5a4c62fd03c11140c35eb002c967d8a307c81bfd4f31f26b8392b5d5463fc2b4"
+  },
+  {
+    "asset": "hnc-lunar-02.glb",
+    "bytes": 32296,
+    "sha256": "8c1026b34632318ea9ebad7b57264ea60db61f5928066c549ae110a166ca061b"
+  },
+  {
+    "asset": "moon.glb",
+    "bytes": 13799876,
+    "sha256": "12d3b0bb7fe214903f51447d1bc61710f442e92a11c703fcaca6d4e7ff8e67d4"
+  },
+  {
+    "asset": "zarathustra-source.wav",
+    "bytes": 16526186,
+    "sha256": "00f5bfa72a7daa9b846b5fb7329cd150c48bbb20fde7f3fb926c7049b5f42e6c"
+  },
+  {
+    "asset": "zarathustra.ogg",
+    "bytes": 541374,
+    "sha256": "062eff6d8e82ed7426d4b76b7352348c7e2c5db6c41e1e35b760b808af6ee266"
+  }
+]

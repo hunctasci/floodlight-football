@@ -7,7 +7,8 @@ import type { PosterDef } from './posters/types';
 import { PlayerDiaries, playerDiariesMetadata, type PlayerDiariesProps } from './diaries/PlayerDiaries';
 import { ShortFilm, shortMetadata, type ShortFilmProps } from './shorts/ShortFilm';
 import { SYSTEM_SMOKE } from './shorts/system-smoke';
-import { GroupChatFilm, GROUP_CHAT_SPEC, groupChatMetadata } from './shorts/group-chat-croatia-england';
+import { GroupChatFilm, GROUP_CHAT_SPEC, GROUP_CHAT_SPEC_V2, GroupChatFilmV2, groupChatMetadata, groupChatV2Metadata } from './shorts/group-chat-croatia-england';
+import { HncPreview, hncPreviewMetadata } from './shorts/HncPreview';
 import { DiariesMumLinksUI, DiariesPhoneUI } from './diaries/PhoneUI';
 import { TVScoreboard, type TVScore } from './diaries/Memory';
 
@@ -89,6 +90,26 @@ export const RemotionRoot: React.FC = () => (
       defaultProps={{ spec: GROUP_CHAT_SPEC, voices: {} }}
       calculateMetadata={groupChatMetadata}
       durationInFrames={864}
+      fps={60}
+      width={1080}
+      height={1920}
+    />
+    <Composition
+      id="HNCVariantPreview"
+      component={HncPreview}
+      defaultProps={{ part: 'hook', variant: 'ticket' }}
+      calculateMetadata={hncPreviewMetadata}
+      durationInFrames={90}
+      fps={60}
+      width={1080}
+      height={1920}
+    />
+    <Composition
+      id="HNCShortGroupChatCroatiaEnglandV2"
+      component={GroupChatFilmV2}
+      defaultProps={{ spec: GROUP_CHAT_SPEC_V2, voices: {} }}
+      calculateMetadata={groupChatV2Metadata}
+      durationInFrames={786}
       fps={60}
       width={1080}
       height={1920}

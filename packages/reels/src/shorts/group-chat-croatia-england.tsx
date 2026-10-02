@@ -2,9 +2,11 @@ import React from 'react';
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { ShortCaptions, shortCues } from './Captions';
 import { ShortCta } from './Cta';
-import { GroupChatOverlay, type GroupChatMessage } from './GroupChatOverlay';
+import { ChatTakeover, GroupChatOverlay, type GroupChatMessage } from './GroupChatOverlay';
+import { HncCta, HncHook } from './HncEntry';
 import { ShortHook } from './Hook';
 import { shortFrames, type ShortSpec } from './spec';
+import { useDiaryFonts } from '../diaries/type';
 
 /**
  * THE GROUP CHAT: CROATIA vs ENGLAND (episode 1).
@@ -220,6 +222,292 @@ export const GroupChatFilm: React.FC<GroupChatFilmProps> = ({ spec = GROUP_CHAT_
 
 export const groupChatMetadata = ({ props }: { props: GroupChatFilmProps }) => {
   const spec = props.spec ?? GROUP_CHAT_SPEC;
+  const total = spec.hook.duration + spec.scenes.reduce((n, s) => n + s.duration, 0) + spec.cta.duration;
+  return { durationInFrames: shortFrames(total, spec.fps), fps: spec.fps, width: 1080, height: 1920 };
+};
+
+/* ================================================================ V2 == */
+
+export const GROUP_CHAT_V2_ID = 'group-chat-croatia-england-v2';
+const V2_PLATE = (name: string) => `generated/shorts/${GROUP_CHAT_V2_ID}/plates-v2/${name}.png`;
+
+/**
+ * THE GROUP CHAT V2: same story, professional execution. 13.1 s @ 60 fps.
+ *
+ * Ownership (ONE MESSAGE = ONE REPRESENTATION): polite lines live ONLY as
+ * physical cards (no 2D bubbles); joins live ONLY as UI pills; the meltdown
+ * ignites as clean UI then hands off via ChatTakeover to physical cards;
+ * the punchline lives ONLY physically; the CTA ticket flips out of that
+ * card space. No sender labels, no debug layers, no duplicated captions.
+ */
+export const GROUP_CHAT_SPEC_V2: ShortSpec = {
+  schema: 'hnc-short/1',
+  id: GROUP_CHAT_V2_ID,
+  title: 'The Group Chat: Croatia vs England (V2)',
+  fps: 60,
+  width: 1080,
+  height: 1920,
+  hook: {
+    headline: 'CROATIA OR ENGLAND?',
+    subline: 'PICK A SIDE ↓',
+    duration: 1.1,
+    voice: {
+      voiceId: 'HNC-NARRATOR-01',
+      text: 'Croatia or England? Pick a side.',
+      say: 'Cro-ay-sha! Or England? Pick a side.',
+      delivery: 'fast, playful, confident',
+      at: 0.05,
+      tempo: 1.55,
+    },
+  },
+  scenes: [
+    {
+      id: 'polite-en',
+      duration: 0.8,
+      visual: { kind: 'plate', src: V2_PLATE('02-polite-en') },
+      voice: { voiceId: 'EN-PLAYER-01', text: 'Good luck.', delivery: 'dry, calm, softly', at: 0.12 },
+    },
+    {
+      id: 'polite-hr',
+      duration: 0.9,
+      visual: { kind: 'plate', src: V2_PLATE('02-polite-hr') },
+      voice: { voiceId: 'HR-PLAYER-01', text: 'You too.', delivery: 'quick, dry, warm', at: 0.08, tempo: 1.35 },
+    },
+    {
+      id: 'problem',
+      duration: 1.0,
+      visual: { kind: 'plate', src: V2_PLATE('03-easy-win') },
+      voice: { voiceId: 'EN-SUPPORTER-01', text: 'Easy win.', delivery: 'playful, fast, overconfident', at: 0.35 },
+    },
+    {
+      id: 'answer',
+      duration: 1.0,
+      visual: { kind: 'plate', src: V2_PLATE('04-screenshot') },
+      voice: { voiceId: 'HR-SUPPORTER-01', text: 'Screenshot taken.', delivery: 'dry, understated, amused', at: 0.3 },
+    },
+    {
+      id: 'meltdown',
+      duration: 1.3,
+      visual: { kind: 'plate', src: V2_PLATE('03-easy-win') },
+    },
+    {
+      id: 'takeover',
+      duration: 0.3,
+      visual: { kind: 'plate', src: V2_PLATE('03-easy-win') },
+    },
+    {
+      id: 'chaos-a',
+      duration: 0.35,
+      visual: { kind: 'plate', src: V2_PLATE('05-takeover-physical') },
+    },
+    {
+      id: 'chaos-a-pile',
+      duration: 0.65,
+      visual: { kind: 'plate', src: V2_PLATE('05-chaos-a') },
+    },
+    {
+      id: 'chaos-b',
+      duration: 0.8,
+      visual: { kind: 'plate', src: V2_PLATE('05-chaos-b') },
+    },
+    {
+      id: 'chaos-c',
+      duration: 0.8,
+      visual: { kind: 'plate', src: V2_PLATE('05-chaos-c') },
+    },
+    {
+      id: 'chaos-d',
+      duration: 0.7,
+      visual: { kind: 'plate', src: V2_PLATE('05-chaos-d') },
+    },
+    {
+      id: 'overwhelm',
+      duration: 0.7,
+      visual: { kind: 'plate', src: V2_PLATE('05-overwhelm') },
+    },
+    {
+      id: 'breath',
+      duration: 0.2,
+      visual: { kind: 'plate', src: V2_PLATE('06-final-message') },
+    },
+    {
+      id: 'punchline',
+      duration: 1.0,
+      visual: { kind: 'plate', src: V2_PLATE('06-final-message') },
+    },
+  ],
+  cta: {
+    headline: 'WHO TALKS BEFORE KICKOFF?',
+    subline: 'TAG THEM ↓',
+    showUrl: true,
+    duration: 1.5,
+    voice: { voiceId: 'HNC-NARRATOR-01', text: 'Who talks before kickoff?', delivery: 'fast, playful, confident', at: 0.05 },
+  },
+};
+
+export type GroupChatV2Representation = 'ui' | 'takeover' | 'physical';
+
+export interface GroupChatV2RepresentationWindow {
+  messageId: string;
+  kind: GroupChatV2Representation;
+  from: number;
+  to: number;
+}
+
+/**
+ * Absolute ownership windows for every message that crosses media. Endpoints
+ * are half-open, so DELETE THAT changes representation on one exact frame
+ * boundary instead of existing twice during the handoff.
+ */
+export const GROUP_CHAT_V2_REPRESENTATION_WINDOWS: readonly GroupChatV2RepresentationWindow[] = [
+  { messageId: 'good-luck', kind: 'ui', from: 1.1, to: 1.9 },
+  { messageId: 'you-too', kind: 'ui', from: 1.9, to: 2.8 },
+  { messageId: 'easy-win', kind: 'ui', from: 2.8, to: 3.8 },
+  { messageId: 'screenshot-taken', kind: 'ui', from: 3.8, to: 4.8 },
+  { messageId: 'delete-that', kind: 'ui', from: 5.15, to: 6.1 },
+  { messageId: 'delete-that', kind: 'takeover', from: 6.1, to: 6.4 },
+  { messageId: 'delete-that', kind: 'physical', from: 6.4, to: 10.4 },
+  { messageId: 'come-back', kind: 'ui', from: 5.45, to: 6.1 },
+  { messageId: 'come-back', kind: 'physical', from: 8.2, to: 10.4 },
+] as const;
+
+export const groupChatV2RepresentationAt = (messageId: string, seconds: number): GroupChatV2Representation | null =>
+  GROUP_CHAT_V2_REPRESENTATION_WINDOWS.find((window) => window.messageId === messageId && seconds >= window.from && seconds < window.to)?.kind ?? null;
+
+/** The polite conversation is deliberately clean 2D UI over card-free plates. */
+const V2_THREAD: GroupChatMessage[] = [
+  { id: 'good-luck', kind: 'message', sender: '', side: 'right', text: 'good luck.', at: 0.08, color: '#1b2a5e' },
+  { id: 'you-too', kind: 'message', sender: '', side: 'left', text: 'you too.', at: 0.88, color: '#e30a17' },
+  { id: 'join-en', kind: 'join', sender: '', side: 'center', text: 'EN SUPPORTER JOINED', at: 1.72 },
+  { id: 'easy-win', kind: 'message', sender: '', side: 'right', text: 'easy win.', at: 2.05, color: '#1b2a5e' },
+  { id: 'join-hr', kind: 'join', sender: '', side: 'center', text: 'HR SUPPORTER JOINED', at: 2.72 },
+  { id: 'screenshot-taken', kind: 'message', sender: '', side: 'left', text: 'screenshot taken.', at: 3.0, color: '#e30a17' },
+];
+
+/** Meltdown UI: two readable messages only, no glyph-dependent emoji or debug labels. */
+const V2_MELTDOWN: GroupChatMessage[] = [
+  { id: 'm-take', kind: 'message', sender: '', side: 'right', text: 'DELETE THAT', at: 0.35, color: '#1b2a5e' },
+  { id: 'm-back', kind: 'message', sender: '', side: 'left', text: "WE'LL COME BACK TO THIS", at: 0.65, color: '#c8102e' },
+];
+
+interface Cam { s0: number; s1: number; x0: number; x1: number; vibe?: 'vibrate' | 'handheld' }
+
+/** Cinematic progression: locked polite -> push-in -> handheld chaos -> stable punchline. */
+const V2_CAM: Record<string, Cam> = {
+  hook: { s0: 1.1, s1: 1.16, x0: 0, x1: 0, vibe: 'vibrate' },
+  'polite-en': { s0: 1.0, s1: 1.03, x0: 30, x1: 30 },
+  'polite-hr': { s0: 1.0, s1: 1.03, x0: -30, x1: -30 },
+  problem: { s0: 1.0, s1: 1.04, x0: 10, x1: 10 },
+  answer: { s0: 1.0, s1: 1.03, x0: -10, x1: -12 },
+  meltdown: { s0: 1.07, s1: 1.12, x0: -40, x1: -40, vibe: 'handheld' },
+  takeover: { s0: 1.12, s1: 1.3, x0: -40, x1: -40 },
+  'chaos-a': { s0: 2.0, s1: 1.0, x0: 0, x1: 0 },
+  'chaos-a-pile': { s0: 1.0, s1: 1.06, x0: 0, x1: 10, vibe: 'handheld' },
+  'chaos-b': { s0: 1.12, s1: 1.16, x0: 0, x1: -10, vibe: 'handheld' },
+  'chaos-c': { s0: 1.08, s1: 1.14, x0: 10, x1: 0, vibe: 'handheld' },
+  'chaos-d': { s0: 1.05, s1: 1.08, x0: -60, x1: -60, vibe: 'handheld' },
+  overwhelm: { s0: 1.18, s1: 1.24, x0: 0, x1: 0 },
+  breath: { s0: 1.05, s1: 1.05, x0: 0, x1: 0 },
+  punchline: { s0: 1.05, s1: 1.05, x0: 0, x1: 0 },
+  cta: { s0: 1.05, s1: 1.08, x0: 0, x1: 0 },
+};
+
+const PlateShot: React.FC<{ src: string; cam: Cam; dim?: number }> = ({ src, cam, dim = 0 }) => {
+  const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
+  const t = frame / fps;
+  const k = durationInFrames > 1 ? frame / (durationInFrames - 1) : 1;
+  const e = 1 - Math.pow(1 - k, 3);
+  let x = cam.x0 + (cam.x1 - cam.x0) * e;
+  let y = 0;
+  let rot = 0;
+  if (cam.vibe === 'vibrate' && t < 0.45) {
+    x += Math.sin(t * 2 * Math.PI * 28) * 7 * (1 - t / 0.45);
+  } else if (cam.vibe === 'handheld') {
+    x += Math.sin(t * 2 * Math.PI * 0.6) * 8;
+    y += Math.cos(t * 2 * Math.PI * 0.43) * 6;
+    rot = Math.sin(t * 2 * Math.PI * 0.5) * 0.15;
+  }
+  const s = cam.s0 + (cam.s1 - cam.s0) * e;
+  return (
+    <div style={{ position: 'absolute', inset: -60, transform: `translate(${x}px, ${y}px) rotate(${rot}deg) scale(${s})` }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={staticFile(src)} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: dim > 0 ? `brightness(${1 - dim})` : undefined }} />
+      {dim > 0 ? <div style={{ position: 'absolute', inset: 0, background: `rgba(10,15,30,${dim * 0.55})` }} /> : null}
+    </div>
+  );
+};
+
+export interface GroupChatFilmV2Props extends GroupChatFilmProps {
+  variant?: 'programme' | 'scoreboard' | 'ticket';
+}
+
+export const GroupChatFilmV2: React.FC<GroupChatFilmV2Props> = ({ spec = GROUP_CHAT_SPEC_V2, voices = {}, audio = true, captions = true, variant = 'programme' }) => {
+  useDiaryFonts();
+  const lines = React.useMemo(() => padLines(spec), [spec]);
+  const cues = React.useMemo(() => shortCues(lines, voices), [lines, voices]);
+  const hookFrames = shortFrames(spec.hook.duration, spec.fps);
+  let from = hookFrames;
+  const sceneRanges = spec.scenes.map((s) => {
+    const frames = shortFrames(s.duration, spec.fps);
+    const r = { from, frames, scene: s };
+    from += frames;
+    return r;
+  });
+  const ctaFrames = shortFrames(spec.cta.duration, spec.fps);
+  const ctaFrom = from;
+  const total = hookFrames + sceneRanges.reduce((n, r) => n + r.frames, 0) + ctaFrames;
+  const stem = (name: string) => staticFile(`generated/shorts/${spec.id}/audio/${name}.wav`);
+  const range = (id: string) => sceneRanges.find((r) => r.scene.id === id)!;
+  const plateOf = (id: string): string => {
+    const v = range(id).scene.visual;
+    return v.kind === 'plate' ? v.src : '';
+  };
+  const hookPlate = V2_PLATE('01-hook');
+  const excludeOnScreenCopy = lines.map((line) => line.id);
+  return (
+    <AbsoluteFill style={{ background: '#0a0f1e' }}>
+      <Sequence from={0} durationInFrames={total} name="base">
+        <Background color="#101b31" />
+      </Sequence>
+      {/* hook rides the vibrating phone close-up: movement at frame 0 */}
+      <Sequence from={0} durationInFrames={hookFrames} name="hook">
+        <PlateShot src={hookPlate} cam={V2_CAM.hook} />
+        <HncHook variant={variant === 'scoreboard' ? 'scoreboard' : 'programme'} />
+      </Sequence>
+      {sceneRanges.map((r) =>
+        r.scene.id === 'takeover' ? (
+          <Sequence key={r.scene.id} from={r.from} durationInFrames={r.frames} name={r.scene.id}>
+            <PlateShot src={plateOf('takeover')} cam={V2_CAM.takeover} dim={0.35} />
+            <ChatTakeover text="DELETE THAT" side="right" color="#1b2a5e" />
+          </Sequence>
+        ) : (
+          <Sequence key={r.scene.id} from={r.from} durationInFrames={r.frames} name={r.scene.id}>
+            <PlateShot src={plateOf(r.scene.id)} cam={V2_CAM[r.scene.id] ?? { s0: 1, s1: 1, x0: 0, x1: 0 }} dim={r.scene.id === 'meltdown' ? 0.3 : 0} />
+          </Sequence>
+        ),
+      )}
+      {/* Modern chat UI owns the polite exchange. The underlying plates are card-free. */}
+      <Sequence from={range('polite-en').from} durationInFrames={range('answer').from + range('answer').frames - range('polite-en').from} name="chat-thread">
+        <GroupChatOverlay messages={V2_THREAD} maxVisible={2} heroIds={['good-luck', 'you-too', 'easy-win', 'screenshot-taken']} />
+      </Sequence>
+      <Sequence from={range('meltdown').from} durationInFrames={range('meltdown').frames} name="chat-meltdown-ui">
+        <GroupChatOverlay messages={V2_MELTDOWN} maxVisible={3} heroIds={['m-take']} />
+      </Sequence>
+      {/* CTA emerges from the punchline card world (dimmed final plate). */}
+      <Sequence from={ctaFrom} durationInFrames={ctaFrames} name="cta-plate">
+        <PlateShot src={plateOf('punchline')} cam={V2_CAM.cta} />
+        <div style={{ position: 'absolute', inset: 0, background: '#0a0f1eb8' }} />
+        <HncCta variant="ticket" />
+      </Sequence>
+      {captions ? <ShortCaptions cues={cues} excludeIds={excludeOnScreenCopy} /> : null}
+      {audio ? <Audio src={stem('audio-mix-v2')} /> : null}
+    </AbsoluteFill>
+  );
+};
+
+export const groupChatV2Metadata = ({ props }: { props: GroupChatFilmV2Props }) => {
+  const spec = props.spec ?? GROUP_CHAT_SPEC_V2;
   const total = spec.hook.duration + spec.scenes.reduce((n, s) => n + s.duration, 0) + spec.cta.duration;
   return { durationInFrames: shortFrames(total, spec.fps), fps: spec.fps, width: 1080, height: 1920 };
 };

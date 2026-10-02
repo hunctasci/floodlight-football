@@ -1,0 +1,101 @@
+{
+  "id": "first-touch-on-the-moon",
+  "title": "HNC LUNAR AWAY DAY \u2014 THE FIRST TOUCH ON THE MOON",
+  "duration": 43.4,
+  "fps": 60,
+  "width": 1080,
+  "height": 1920,
+  "cast": [
+    "HNC-LUNAR-01",
+    "HNC-LUNAR-02"
+  ],
+  "shots": [
+    {
+      "id": "01-space",
+      "at": 0,
+      "duration": 5.6,
+      "lens": "orbital compressed wide",
+      "purpose": "monumental away distance"
+    },
+    {
+      "id": "02-cabin",
+      "at": 5.6,
+      "duration": 2.7,
+      "lens": "cargo macro",
+      "purpose": "ceremonial ball release"
+    },
+    {
+      "id": "03-prep",
+      "at": 8.3,
+      "duration": 2.4,
+      "lens": "helmet portrait",
+      "purpose": "serious fictional crew"
+    },
+    {
+      "id": "04-approach",
+      "at": 10.7,
+      "duration": 4,
+      "lens": "low compressed exterior",
+      "purpose": "touchdown implication"
+    },
+    {
+      "id": "05-airlock",
+      "at": 14.7,
+      "duration": 2.4,
+      "lens": "symmetrical doorway",
+      "purpose": "sunlight release"
+    },
+    {
+      "id": "06-first-step",
+      "at": 17.1,
+      "duration": 1.9,
+      "lens": "boot macro",
+      "purpose": "deliberate lunar step"
+    },
+    {
+      "id": "07-lunar-wide",
+      "at": 19.0,
+      "duration": 8.6,
+      "lens": "25mm wide",
+      "purpose": "empty lunar training ground"
+    },
+    {
+      "id": "08-build",
+      "at": 27.6,
+      "duration": 3.5,
+      "lens": "70mm macro",
+      "purpose": "ball down"
+    },
+    {
+      "id": "09-play",
+      "at": 31.1,
+      "duration": 2.3,
+      "lens": "43mm two-shot",
+      "purpose": "restrained lunar pass"
+    },
+    {
+      "id": "10-first-touch",
+      "at": 33.4,
+      "duration": 1.7,
+      "lens": "33mm low hero",
+      "purpose": "immaculate simple control"
+    },
+    {
+      "id": "11-outro",
+      "at": 35.1,
+      "duration": 8.3,
+      "purpose": "physical glow blooms to white; canonical HNC badge, lunar editorial identity; score ends naturally"
+    }
+  ],
+  "spokenLine": null,
+  "touchContact": 34.5,
+  "musicClimax": 34.5,
+  "production": "EEVEE native 60 fps plates; standalone Remotion editorial assembly; no dialogue per user revision",
+  "musicExcerpt": {
+    "sourceIn": 43.2,
+    "sourceOut": 86.07347916666667,
+    "continuous": true,
+    "naturalEnding": true,
+    "highestRecordingCrest": 77.7
+  }
+}

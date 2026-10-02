@@ -33,13 +33,40 @@ SIDES = {
 
 
 def _scene(name):
-    bpy.ops.wm.read_factory_settings(use_empty=True)
-    # Fresh file drops every datablock; the look-material cache would hold
-    # dead pointers (its liveness guard itself crashes on removed structs).
+    # Fresh plate without wm file ops (headless- and MCP-safe): unlink the
+    # whole content tree and purge orphan datablocks instead of resetting.
+    # The look-material cache is cleared first so it never holds dead pointers
+    # (its liveness guard itself crashes on removed structs).
     try:
         look._cache.clear()
     except Exception:
         pass
+    for scene in list(bpy.data.scenes):
+        for child in list(scene.collection.children):
+            try:
+                scene.collection.children.unlink(child)
+            except Exception:
+                pass
+    for coll in list(bpy.data.collections):
+        try:
+            bpy.data.collections.remove(coll)
+        except Exception:
+            pass
+    for obj in list(bpy.data.objects):
+        try:
+            bpy.data.objects.remove(obj, do_unlink=True)
+        except Exception:
+            pass
+    for store in ("meshes", "curves", "materials", "lights", "cameras"):
+        try:
+            block = getattr(bpy.data, store)
+            for dat in list(block):
+                try:
+                    block.remove(dat)
+                except Exception:
+                    pass
+        except Exception:
+            pass
     sc = bpy.context.scene
     sc.name = name
     cols = {}
@@ -51,8 +78,14 @@ def _scene(name):
 
 
 def _render_setup(sc, samples=48):
+    import os as _os
     r = sc.render
-    r.resolution_x, r.resolution_y = 1080, 1920
+    if _os.environ.get("HNC_QA"):
+        # Cheap headless QA: 540x960, low samples. Full quality below.
+        r.resolution_x, r.resolution_y = 540, 960
+        samples = min(samples, 16)
+    else:
+        r.resolution_x, r.resolution_y = 1080, 1920
     r.resolution_percentage = 100
     r.film_transparent = False
     r.engine = "BLENDER_EEVEE"
@@ -105,9 +138,14 @@ def _room(sc, cols, side):
     # Lights: soft key from camera-left, cool rim from behind, dark arena void.
     look.area(cols["LGT"], "GC_Key", (-1.6, -2.2, 2.4), (0.2, 0.5, 1.0), size=(1.4, 1.4), power=260.0, color="#fff2e2")
     look.point(cols["LGT"], "GC_Fill", (1.8, -1.6, 1.6), 40.0, "#dfe8ff", radius=0.2)
-    look.sun(cols["LGT"], "GC_Rim", (35, 0, 160), power=1.1, color="#cfe0ff")
+    look.sun(cols["LGT"], "GC_Rim", (35, 0, 160), power=1.6, color="#cfe0ff")
     look.world(sc, color="#0a0f1e", strength=0.35)
     return m
+
+
+def _phonelight(cols, loc=(0.25, -0.4, 1.05)):
+    """Small cool glow at the phone: subtle face/phone-light interaction."""
+    look.point(cols["LGT"], "GC_PhoneGlow", loc, 6.0, "#cfe0ff", radius=0.05)
 
 
 def _player(cols, side, seed, gaze, smile_on=False, glance_x=0.0):
@@ -157,64 +195,98 @@ def _camera(cols, pos, target, lens=52.0):
     return obj
 
 
-def _plate_polite(side, seed, card_text, card_side, stare=(0.0, 0.0)):
+def _plate_hook():
+    """Hook close-up: player checking a buzzing phone. Partial torso/hands/phone
+    shot (70mm), NO message cards yet — the chat has not opened. Remotion adds
+    the vibration wobble and HNC editorial typography over this movement."""
+    sc, cols = _scene("GC_hook")
+    _render_setup(sc)
+    _room(sc, cols, "en")
+    gaze = Vector((0.25, -0.05, 0.9))
+    _player(cols, "en", 11, gaze)
+    _phone(cols)
+    _phonelight(cols)
+    _camera(cols, (0.25, -2.3, 1.2), (0.25, 0.1, 0.85), lens=58.0)
+    look.finish(sc, glare=0.15, threshold=1.2, vignette=0.16)
+    return sc
+
+
+def _plate_polite(side, seed):
     sc, cols = _scene(f"GC_{side}")
     _render_setup(sc)
     _room(sc, cols, side)
     gaze = Vector((0.25, -0.05, 0.9))
     _player(cols, side, seed, gaze)
     _phone(cols)
-    C.make_chat_card(cols["PROPS"], "GC_Hero", card_text, (0.45, -0.9, 1.0), (0, 0, -6),
-                     card_side, SIDES[side]["accent"], scale=0.85)
-    _camera(cols, (0.1, -3.6, 1.6), (0.2, 0.5, 0.95), lens=46.0)
+    _phonelight(cols)
+    # The polite exchange is modern Remotion UI. Keep the filmed plate clean:
+    # physical cards do not enter the room until the signature takeover.
+    # Tighter 65mm-equivalent framing with subtle DOF feel; EN stays
+    # screen-right, HR screen-left via small lateral offsets.
+    xoff = 0.12 if side == "en" else -0.12
+    _camera(cols, (0.1 + xoff, -2.9, 1.45), (0.2 + xoff, 0.5, 0.95), lens=62.0)
     look.finish(sc, glare=0.15, threshold=1.2, vignette=0.16)
     return sc
 
 
-def _plate_reaction(side, seed, hero_text, hero_side, bg_cards, glance_x=0.0, smile_on=False):
+def _plate_reaction(side, seed, glance_x=0.0, smile_on=False):
     sc, cols = _scene(f"GC_{side}")
     _render_setup(sc)
     _room(sc, cols, side)
     gaze = Vector((0.25, -0.05, 0.9))
     _player(cols, side, seed, gaze, smile_on=smile_on, glance_x=glance_x)
     _phone(cols)
-    C.make_chat_card(cols["PROPS"], "GC_Hero", hero_text, (0.55, -0.75, 1.2), (0, 0, -4),
-                     hero_side, SIDES[side]["accent"], scale=0.85)
-    specs = []
-    for i, (txt, x, y, z, rz, sd, acc, s) in enumerate(bg_cards):
-        specs.append((txt, (x, y, z), (0, 0, rz), sd, acc, s))
-    C.pile(cols["PROPS"], "GC_BG", specs)
-    _camera(cols, (0.05, -3.4, 1.55), (0.2, 0.5, 1.0), lens=46.0)
+    _phonelight(cols)
+    # Reaction plates also remain card-free. UI hierarchy stays in Remotion,
+    # and the character performance remains readable behind it.
+    xoff = 0.1 if side == "en" else -0.1
+    _camera(cols, (0.05 + xoff, -3.3, 1.5), (0.25 + xoff, 0.4, 1.0), lens=50.0)
     look.finish(sc, glare=0.15, threshold=1.2, vignette=0.16)
     return sc
 
 
-def _plate_chaos():
+def _plate_chaos(stage=9):
     sc, cols = _scene("GC_chaos")
-    _render_setup(sc, samples=40)
+    _render_setup(sc, samples=48)
     _room(sc, cols, "en")
     gaze = Vector((0.25, -0.4, 0.9))
     _player(cols, "en", 41, gaze, glance_x=9.0)
     _phone(cols, loc=(0.3, -0.1, 0.95))
-    # Authored pile: 12 physical cards floating/fallen around the buried player.
+    _phonelight(cols, loc=(0.3, -0.45, 1.05))
+    # Authored escalation: each stage adds cards to the same deterministic
+    # composition (2 -> 4 -> 6 -> 8 -> 9), so the pile grows instead of
+    # jumping between unrelated rooms or camera angles.
     acc_r, acc_n = SIDES["hr"]["accent"], SIDES["en"]["accent"]
     specs = [
+        ("DELETE THAT", (0.15, -0.9, 1.7), (0, 0, 3), "right", acc_n, 0.95),
         ("easy win.", (0.55, -0.7, 1.5), (0, 0, -10), "right", acc_n, 0.95),
         ("screenshot taken.", (-0.35, -0.5, 1.3), (0, 0, 8), "left", acc_r, 0.95),
-        ("DELETE THAT", (0.15, -0.9, 1.7), (0, 0, 3), "right", acc_n, 0.95),
         ("saved.", (-0.4, -0.8, 0.75), (0, 0, -14), "left", acc_r, 0.9),
         ("WE WILL COME BACK", (-0.3, 0.3, 1.3), (0, 0, 12), "left", acc_r, 0.9),
         ("mute him", (0.8, 0.0, 1.0), (0, 0, -8), "right", acc_n, 0.85),
         ("talk after full time", (0.3, -1.1, 0.6), (0, 0, 5), "right", acc_n, 0.9),
-        ("...", (-0.9, -0.9, 0.55), (0, 0, -5), "left", acc_r, 0.8),
         ("seen.", (1.0, -1.0, 0.5), (0, 0, 10), "right", acc_n, 0.8),
-        ("typing...", (-0.15, 0.3, 1.9), (0, 0, -3), "left", acc_r, 0.85),
         ("ADMIN", (0.75, 0.35, 1.85), (0, 0, 6), "right", acc_n, 0.8),
-        ("full time.", (-0.6, 0.4, 0.45), (0, 0, -9), "left", acc_r, 0.8),
     ]
-    C.pile(cols["PROPS"], "GC_Chaos", specs)
-    _camera(cols, (0.0, -4.0, 1.6), (0.1, 0.4, 0.95), lens=44.0)
+    C.pile(cols["PROPS"], "GC_Chaos", specs[:stage])
+    _camera(cols, (0.0, -3.6, 1.55), (0.1, 0.4, 0.95), lens=52.0)
     look.finish(sc, glare=0.15, threshold=1.2, vignette=0.18)
+    return sc
+
+
+def _plate_takeover_physical():
+    """First physical frame continues the navy DELETE THAT card in close-up."""
+    sc, cols = _scene("GC_takeover_physical")
+    _render_setup(sc)
+    _room(sc, cols, "en")
+    gaze = Vector((0.25, -0.4, 0.9))
+    _player(cols, "en", 41, gaze, glance_x=9.0)
+    _phone(cols, loc=(0.3, -0.1, 0.95))
+    _phonelight(cols, loc=(0.3, -0.45, 1.05))
+    C.make_chat_card(cols["PROPS"], "GC_Takeover", "DELETE THAT", (0.1, -2.2, 0.95), (0, 0, 0),
+                     "right", SIDES["en"]["accent"], scale=1.8)
+    _camera(cols, (0.0, -3.6, 1.55), (0.1, 0.4, 0.95), lens=52.0)
+    look.finish(sc, glare=0.12, threshold=1.2, vignette=0.18)
     return sc
 
 
@@ -225,26 +297,28 @@ def _plate_final():
     gaze = Vector((0.3, -0.6, 1.2))
     _player(cols, "hr", 77, gaze)
     _phone(cols)
-    # Buried hints: two half-out-of-frame cards behind, one clean hero card.
-    C.make_chat_card(cols["PROPS"], "GC_Buried0", "saved.", (-1.15, 0.6, 0.8), (0, 0, 14), "left", SIDES["hr"]["accent"], 0.9)
-    C.make_chat_card(cols["PROPS"], "GC_Buried1", "easy win.", (1.3, 0.7, 0.9), (0, 0, -12), "right", SIDES["en"]["accent"], 0.9)
+    _phonelight(cols)
+    # Punchline is isolated: one pristine physical card, no buried messages.
     C.make_chat_card(cols["PROPS"], "GC_Final", "SEE YOU AFTER FULL TIME.", (0.2, -1.1, 1.25), (0, 0, 0),
-                     "left", SIDES["hr"]["accent"], scale=1.3)
-    _camera(cols, (0.15, -3.5, 1.55), (0.2, 0.4, 1.05), lens=46.0)
+                     "left", SIDES["hr"]["accent"], scale=1.45)
+    _camera(cols, (0.15, -3.2, 1.5), (0.2, 0.4, 1.05), lens=52.0)
     look.finish(sc, glare=0.12, threshold=1.2, vignette=0.14)
     return sc
 
 
 PLATES = {
-    "02-polite-en": lambda: _plate_polite("en", 11, "good luck", "right"),
-    "02-polite-hr": lambda: _plate_polite("hr", 22, "you too", "left"),
-    "03-easy-win": lambda: _plate_reaction("en", 33, "easy win.", "right",
-                                           [("good luck", -0.4, -0.3, 1.0, 8, "right", "#1b2a5e", 0.7)], glance_x=7.0),
-    "04-screenshot": lambda: _plate_reaction("hr", 44, "screenshot taken.", "left",
-                                             [("easy win.", 0.55, -0.2, 1.15, -9, "right", "#1b2a5e", 0.7),
-                                              ("you too", -0.45, -0.3, 1.0, 7, "left", "#c8102e", 0.65)],
-                                             smile_on=True),
-    "05-chaos": _plate_chaos,
+    "01-hook": _plate_hook,
+    "02-polite-en": lambda: _plate_polite("en", 11),
+    "02-polite-hr": lambda: _plate_polite("hr", 22),
+    "03-easy-win": lambda: _plate_reaction("en", 33, glance_x=7.0),
+    "04-screenshot": lambda: _plate_reaction("hr", 44, smile_on=True),
+    "05-takeover-physical": _plate_takeover_physical,
+    "05-chaos-a": lambda: _plate_chaos(2),
+    "05-chaos-b": lambda: _plate_chaos(4),
+    "05-chaos-c": lambda: _plate_chaos(6),
+    "05-chaos-d": lambda: _plate_chaos(8),
+    "05-overwhelm": lambda: _plate_chaos(9),
+    "05-chaos": lambda: _plate_chaos(9),
     "06-final-message": _plate_final,
 }
 

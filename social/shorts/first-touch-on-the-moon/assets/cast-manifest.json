@@ -1,0 +1,1234 @@
+{
+  "assets": [
+    {
+      "assetId": "hnc-lunar-01",
+      "expected": {
+        "root": "HNC_Player_LU_NAR01",
+        "nodes": [
+          {
+            "name": "HNC_Player_LU_NAR01",
+            "parent": null,
+            "part": "root",
+            "mesh": false,
+            "material": null,
+            "vertices": 0,
+            "triangles": 0,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              0,
+              0
+            ],
+            "worldMin": null,
+            "worldMax": null,
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Body",
+            "parent": "HNC_Player_LU_NAR01",
+            "part": "body",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Kit_TR",
+            "vertices": 40,
+            "triangles": 24,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              1.02,
+              0
+            ],
+            "worldMin": [
+              -0.415692,
+              0.595,
+              -0.48
+            ],
+            "worldMax": [
+              0.415692,
+              1.445,
+              0.48
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.ChestStripe",
+            "parent": "HNC_Player_LU_NAR01",
+            "part": "stripe",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_TrimStripe_TR",
+            "vertices": 40,
+            "triangles": 24,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              1.28,
+              0
+            ],
+            "worldMin": [
+              -0.402702,
+              1.18,
+              -0.465
+            ],
+            "worldMax": [
+              0.402702,
+              1.38,
+              0.465
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.ShirtNumber",
+            "parent": "HNC_Player_LU_NAR01",
+            "part": "number",
+            "mesh": true,
+            "smoothTriangles": 0,
+            "outward": 0,
+            "material": "HNC_Number_01",
+            "vertices": 4,
+            "triangles": 2,
+            "hasNormals": true,
+            "worldPosition": [
+              0,
+              1.04,
+              -0.44
+            ],
+            "worldMin": [
+              -0.26,
+              0.78,
+              -0.44
+            ],
+            "worldMax": [
+              0.26,
+              1.3,
+              -0.44
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Head",
+            "parent": "HNC_Player_LU_NAR01",
+            "part": "head",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Skin_1",
+            "vertices": 240,
+            "triangles": 80,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              1.7,
+              0
+            ],
+            "worldMin": [
+              -0.32,
+              1.38,
+              -0.32
+            ],
+            "worldMax": [
+              0.32,
+              2.02,
+              0.32
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Hair",
+            "parent": "LUNAR01.Head",
+            "part": "hair",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Hair",
+            "vertices": 54,
+            "triangles": 72,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              1.81,
+              0
+            ],
+            "worldMin": [
+              -0.31479,
+              1.890824,
+              -0.31479
+            ],
+            "worldMax": [
+              0.31479,
+              2.135,
+              0.31479
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Eye.R",
+            "parent": "LUNAR01.Head",
+            "part": "eyes[0]",
+            "mesh": true,
+            "smoothTriangles": 30,
+            "outward": 1,
+            "material": "HNC_Eye",
+            "vertices": 30,
+            "triangles": 30,
+            "hasNormals": true,
+            "worldPosition": [
+              -0.11,
+              1.72,
+              0.3
+            ],
+            "worldMin": [
+              -0.145,
+              1.685,
+              0.266713
+            ],
+            "worldMax": [
+              -0.081684,
+              1.755,
+              0.333287
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Eye.L",
+            "parent": "LUNAR01.Head",
+            "part": "eyes[1]",
+            "mesh": true,
+            "smoothTriangles": 30,
+            "outward": 1,
+            "material": "HNC_Eye",
+            "vertices": 30,
+            "triangles": 30,
+            "hasNormals": true,
+            "worldPosition": [
+              0.11,
+              1.72,
+              0.3
+            ],
+            "worldMin": [
+              0.075,
+              1.685,
+              0.266713
+            ],
+            "worldMax": [
+              0.138316,
+              1.755,
+              0.333287
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Leg.R",
+            "parent": "HNC_Player_LU_NAR01",
+            "part": "legL",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Trim_TR",
+            "vertices": 34,
+            "triangles": 20,
+            "hasNormals": false,
+            "worldPosition": [
+              -0.2,
+              0.38,
+              0
+            ],
+            "worldMin": [
+              -0.323637,
+              0.045,
+              -0.105172
+            ],
+            "worldMax": [
+              -0.076363,
+              0.715,
+              0.13
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Boot.R",
+            "parent": "LUNAR01.Leg.R",
+            "part": "legL.boot",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Boot",
+            "vertices": 24,
+            "triangles": 12,
+            "hasNormals": false,
+            "worldPosition": [
+              -0.2,
+              0.05,
+              0.07
+            ],
+            "worldMin": [
+              -0.285,
+              -0.01,
+              -0.09
+            ],
+            "worldMax": [
+              -0.115,
+              0.11,
+              0.23
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Leg.L",
+            "parent": "HNC_Player_LU_NAR01",
+            "part": "legR",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Trim_TR",
+            "vertices": 34,
+            "triangles": 20,
+            "hasNormals": false,
+            "worldPosition": [
+              0.2,
+              0.38,
+              0
+            ],
+            "worldMin": [
+              0.076363,
+              0.045,
+              -0.105172
+            ],
+            "worldMax": [
+              0.323637,
+              0.715,
+              0.13
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Boot.L",
+            "parent": "LUNAR01.Leg.L",
+            "part": "legR.boot",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Boot",
+            "vertices": 24,
+            "triangles": 12,
+            "hasNormals": false,
+            "worldPosition": [
+              0.2,
+              0.05,
+              0.07
+            ],
+            "worldMin": [
+              0.115,
+              -0.01,
+              -0.09
+            ],
+            "worldMax": [
+              0.285,
+              0.11,
+              0.23
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Arm.R",
+            "parent": "HNC_Player_LU_NAR01",
+            "part": "armL",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Kit_TR",
+            "vertices": 34,
+            "triangles": 20,
+            "hasNormals": false,
+            "worldPosition": [
+              -0.48,
+              1.08,
+              0
+            ],
+            "worldMin": [
+              -0.603637,
+              0.745,
+              -0.105172
+            ],
+            "worldMax": [
+              -0.356363,
+              1.415,
+              0.13
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Arm.L",
+            "parent": "HNC_Player_LU_NAR01",
+            "part": "armR",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Kit_TR",
+            "vertices": 34,
+            "triangles": 20,
+            "hasNormals": false,
+            "worldPosition": [
+              0.48,
+              1.08,
+              0
+            ],
+            "worldMin": [
+              0.356363,
+              0.745,
+              -0.105172
+            ],
+            "worldMax": [
+              0.603637,
+              1.415,
+              0.13
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR01.Shorts",
+            "parent": "HNC_Player_LU_NAR01",
+            "part": "shorts",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Trim_TR",
+            "vertices": 40,
+            "triangles": 24,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              0.68,
+              0
+            ],
+            "worldMin": [
+              -0.407032,
+              0.545,
+              -0.47
+            ],
+            "worldMax": [
+              0.407032,
+              0.815,
+              0.47
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "materials": [
+          {
+            "name": "HNC_Kit_TR",
+            "baseColorLinear": [
+              0.854993,
+              0.814847,
+              0.708376
+            ],
+            "baseColorHex": "#eee9db",
+            "roughness": 0.85,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          },
+          {
+            "name": "HNC_TrimStripe_TR",
+            "baseColorLinear": [
+              0.006995,
+              0.015996,
+              0.039546
+            ],
+            "baseColorHex": "#142238",
+            "roughness": 0.9,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          },
+          {
+            "name": "HNC_Number_01",
+            "baseColorLinear": [
+              1,
+              1,
+              1
+            ],
+            "baseColorHex": "#ffffff",
+            "roughness": null,
+            "metalness": null,
+            "unlit": true,
+            "transparent": true,
+            "flatShading": false,
+            "map": {
+              "width": 64,
+              "height": 64
+            }
+          },
+          {
+            "name": "HNC_Skin_1",
+            "baseColorLinear": [
+              0.313989,
+              0.107023,
+              0.045186
+            ],
+            "baseColorHex": "#985c3c",
+            "roughness": 1,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          },
+          {
+            "name": "HNC_Hair",
+            "baseColorLinear": [
+              0.021219,
+              0.021219,
+              0.043735
+            ],
+            "baseColorHex": "#28283b",
+            "roughness": 1,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          },
+          {
+            "name": "HNC_Eye",
+            "baseColorLinear": [
+              0.009134,
+              0.015996,
+              0.029557
+            ],
+            "baseColorHex": "#182230",
+            "roughness": null,
+            "metalness": null,
+            "unlit": true,
+            "transparent": false,
+            "flatShading": false,
+            "map": null
+          },
+          {
+            "name": "HNC_Trim_TR",
+            "baseColorLinear": [
+              0.006995,
+              0.015996,
+              0.039546
+            ],
+            "baseColorHex": "#142238",
+            "roughness": 0.9,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          },
+          {
+            "name": "HNC_Boot",
+            "baseColorLinear": [
+              0.006995,
+              0.006995,
+              0.011612
+            ],
+            "baseColorHex": "#14141c",
+            "roughness": 0.6,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          }
+        ],
+        "boundsMin": [
+          -0.603637,
+          -0.01,
+          -0.48
+        ],
+        "boundsMax": [
+          0.603637,
+          2.135,
+          0.48
+        ]
+      },
+      "params": {
+        "country": "TR",
+        "number": 1,
+        "id": 21,
+        "keeper": false,
+        "primary": "#eee9db",
+        "secondary": "#142238",
+        "skin": "#985c3c",
+        "skinIndex": 1,
+        "primaryOverride": "#eee9db",
+        "secondaryOverride": "#142238"
+      },
+      "sha256": "5a4c62fd03c11140c35eb002c967d8a307c81bfd4f31f26b8392b5d5463fc2b4"
+    },
+    {
+      "assetId": "hnc-lunar-02",
+      "expected": {
+        "root": "HNC_Player_LU_NAR02",
+        "nodes": [
+          {
+            "name": "HNC_Player_LU_NAR02",
+            "parent": null,
+            "part": "root",
+            "mesh": false,
+            "material": null,
+            "vertices": 0,
+            "triangles": 0,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              0,
+              0
+            ],
+            "worldMin": null,
+            "worldMax": null,
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Body",
+            "parent": "HNC_Player_LU_NAR02",
+            "part": "body",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Kit_TR",
+            "vertices": 40,
+            "triangles": 24,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              1.02,
+              0
+            ],
+            "worldMin": [
+              -0.415692,
+              0.595,
+              -0.48
+            ],
+            "worldMax": [
+              0.415692,
+              1.445,
+              0.48
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.ChestStripe",
+            "parent": "HNC_Player_LU_NAR02",
+            "part": "stripe",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_TrimStripe_TR",
+            "vertices": 40,
+            "triangles": 24,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              1.28,
+              0
+            ],
+            "worldMin": [
+              -0.402702,
+              1.18,
+              -0.465
+            ],
+            "worldMax": [
+              0.402702,
+              1.38,
+              0.465
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.ShirtNumber",
+            "parent": "HNC_Player_LU_NAR02",
+            "part": "number",
+            "mesh": true,
+            "smoothTriangles": 0,
+            "outward": 0,
+            "material": "HNC_Number_02",
+            "vertices": 4,
+            "triangles": 2,
+            "hasNormals": true,
+            "worldPosition": [
+              0,
+              1.04,
+              -0.44
+            ],
+            "worldMin": [
+              -0.26,
+              0.78,
+              -0.44
+            ],
+            "worldMax": [
+              0.26,
+              1.3,
+              -0.44
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Head",
+            "parent": "HNC_Player_LU_NAR02",
+            "part": "head",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Skin_2",
+            "vertices": 240,
+            "triangles": 80,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              1.7,
+              0
+            ],
+            "worldMin": [
+              -0.32,
+              1.38,
+              -0.32
+            ],
+            "worldMax": [
+              0.32,
+              2.02,
+              0.32
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Hair",
+            "parent": "LUNAR02.Head",
+            "part": "hair",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Hair",
+            "vertices": 54,
+            "triangles": 72,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              1.81,
+              0
+            ],
+            "worldMin": [
+              -0.31479,
+              1.890824,
+              -0.31479
+            ],
+            "worldMax": [
+              0.31479,
+              2.135,
+              0.31479
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Eye.R",
+            "parent": "LUNAR02.Head",
+            "part": "eyes[0]",
+            "mesh": true,
+            "smoothTriangles": 30,
+            "outward": 1,
+            "material": "HNC_Eye",
+            "vertices": 30,
+            "triangles": 30,
+            "hasNormals": true,
+            "worldPosition": [
+              -0.11,
+              1.72,
+              0.3
+            ],
+            "worldMin": [
+              -0.145,
+              1.685,
+              0.266713
+            ],
+            "worldMax": [
+              -0.081684,
+              1.755,
+              0.333287
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Eye.L",
+            "parent": "LUNAR02.Head",
+            "part": "eyes[1]",
+            "mesh": true,
+            "smoothTriangles": 30,
+            "outward": 1,
+            "material": "HNC_Eye",
+            "vertices": 30,
+            "triangles": 30,
+            "hasNormals": true,
+            "worldPosition": [
+              0.11,
+              1.72,
+              0.3
+            ],
+            "worldMin": [
+              0.075,
+              1.685,
+              0.266713
+            ],
+            "worldMax": [
+              0.138316,
+              1.755,
+              0.333287
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Leg.R",
+            "parent": "HNC_Player_LU_NAR02",
+            "part": "legL",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Trim_TR",
+            "vertices": 34,
+            "triangles": 20,
+            "hasNormals": false,
+            "worldPosition": [
+              -0.2,
+              0.38,
+              0
+            ],
+            "worldMin": [
+              -0.323637,
+              0.045,
+              -0.105172
+            ],
+            "worldMax": [
+              -0.076363,
+              0.715,
+              0.13
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Boot.R",
+            "parent": "LUNAR02.Leg.R",
+            "part": "legL.boot",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Boot",
+            "vertices": 24,
+            "triangles": 12,
+            "hasNormals": false,
+            "worldPosition": [
+              -0.2,
+              0.05,
+              0.07
+            ],
+            "worldMin": [
+              -0.285,
+              -0.01,
+              -0.09
+            ],
+            "worldMax": [
+              -0.115,
+              0.11,
+              0.23
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Leg.L",
+            "parent": "HNC_Player_LU_NAR02",
+            "part": "legR",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Trim_TR",
+            "vertices": 34,
+            "triangles": 20,
+            "hasNormals": false,
+            "worldPosition": [
+              0.2,
+              0.38,
+              0
+            ],
+            "worldMin": [
+              0.076363,
+              0.045,
+              -0.105172
+            ],
+            "worldMax": [
+              0.323637,
+              0.715,
+              0.13
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Boot.L",
+            "parent": "LUNAR02.Leg.L",
+            "part": "legR.boot",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Boot",
+            "vertices": 24,
+            "triangles": 12,
+            "hasNormals": false,
+            "worldPosition": [
+              0.2,
+              0.05,
+              0.07
+            ],
+            "worldMin": [
+              0.115,
+              -0.01,
+              -0.09
+            ],
+            "worldMax": [
+              0.285,
+              0.11,
+              0.23
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Arm.R",
+            "parent": "HNC_Player_LU_NAR02",
+            "part": "armL",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Kit_TR",
+            "vertices": 34,
+            "triangles": 20,
+            "hasNormals": false,
+            "worldPosition": [
+              -0.48,
+              1.08,
+              0
+            ],
+            "worldMin": [
+              -0.603637,
+              0.745,
+              -0.105172
+            ],
+            "worldMax": [
+              -0.356363,
+              1.415,
+              0.13
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Arm.L",
+            "parent": "HNC_Player_LU_NAR02",
+            "part": "armR",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Kit_TR",
+            "vertices": 34,
+            "triangles": 20,
+            "hasNormals": false,
+            "worldPosition": [
+              0.48,
+              1.08,
+              0
+            ],
+            "worldMin": [
+              0.356363,
+              0.745,
+              -0.105172
+            ],
+            "worldMax": [
+              0.603637,
+              1.415,
+              0.13
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "name": "LUNAR02.Shorts",
+            "parent": "HNC_Player_LU_NAR02",
+            "part": "shorts",
+            "mesh": true,
+            "outward": 1,
+            "material": "HNC_Trim_TR",
+            "vertices": 40,
+            "triangles": 24,
+            "hasNormals": false,
+            "worldPosition": [
+              0,
+              0.68,
+              0
+            ],
+            "worldMin": [
+              -0.407032,
+              0.545,
+              -0.47
+            ],
+            "worldMax": [
+              0.407032,
+              0.815,
+              0.47
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "materials": [
+          {
+            "name": "HNC_Kit_TR",
+            "baseColorLinear": [
+              0.854993,
+              0.814847,
+              0.708376
+            ],
+            "baseColorHex": "#eee9db",
+            "roughness": 0.85,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          },
+          {
+            "name": "HNC_TrimStripe_TR",
+            "baseColorLinear": [
+              0.006995,
+              0.015996,
+              0.039546
+            ],
+            "baseColorHex": "#142238",
+            "roughness": 0.9,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          },
+          {
+            "name": "HNC_Number_02",
+            "baseColorLinear": [
+              1,
+              1,
+              1
+            ],
+            "baseColorHex": "#ffffff",
+            "roughness": null,
+            "metalness": null,
+            "unlit": true,
+            "transparent": true,
+            "flatShading": false,
+            "map": {
+              "width": 64,
+              "height": 64
+            }
+          },
+          {
+            "name": "HNC_Skin_2",
+            "baseColorLinear": [
+              0.679542,
+              0.274677,
+              0.130136
+            ],
+            "baseColorHex": "#d78f65",
+            "roughness": 1,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          },
+          {
+            "name": "HNC_Hair",
+            "baseColorLinear": [
+              0.021219,
+              0.021219,
+              0.043735
+            ],
+            "baseColorHex": "#28283b",
+            "roughness": 1,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          },
+          {
+            "name": "HNC_Eye",
+            "baseColorLinear": [
+              0.009134,
+              0.015996,
+              0.029557
+            ],
+            "baseColorHex": "#182230",
+            "roughness": null,
+            "metalness": null,
+            "unlit": true,
+            "transparent": false,
+            "flatShading": false,
+            "map": null
+          },
+          {
+            "name": "HNC_Trim_TR",
+            "baseColorLinear": [
+              0.006995,
+              0.015996,
+              0.039546
+            ],
+            "baseColorHex": "#142238",
+            "roughness": 0.9,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          },
+          {
+            "name": "HNC_Boot",
+            "baseColorLinear": [
+              0.006995,
+              0.006995,
+              0.011612
+            ],
+            "baseColorHex": "#14141c",
+            "roughness": 0.6,
+            "metalness": 0,
+            "unlit": false,
+            "transparent": false,
+            "flatShading": true,
+            "map": null
+          }
+        ],
+        "boundsMin": [
+          -0.603637,
+          -0.01,
+          -0.48
+        ],
+        "boundsMax": [
+          0.603637,
+          2.135,
+          0.48
+        ]
+      },
+      "params": {
+        "country": "TR",
+        "number": 2,
+        "id": 22,
+        "keeper": false,
+        "primary": "#eee9db",
+        "secondary": "#142238",
+        "skin": "#d78f65",
+        "skinIndex": 2,
+        "primaryOverride": "#eee9db",
+        "secondaryOverride": "#142238"
+      },
+      "sha256": "8c1026b34632318ea9ebad7b57264ea60db61f5928066c549ae110a166ca061b"
+    }
+  ]
+}

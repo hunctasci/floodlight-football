@@ -14,7 +14,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkShort, shortDuration, type ShortSpec } from '../../packages/reels/src/shorts/spec.ts';
 import { SYSTEM_SMOKE } from '../../packages/reels/src/shorts/system-smoke.ts';
-import { GROUP_CHAT_SPEC } from '../../packages/reels/src/shorts/group-chat-croatia-england.tsx';
+import { GROUP_CHAT_SPEC, GROUP_CHAT_SPEC_V2 } from '../../packages/reels/src/shorts/group-chat-croatia-england.tsx';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const REG = path.join(REPO, 'packages/reels/src/shorts/voices/registry.json');
@@ -28,7 +28,7 @@ const opt = (name: string, dflt?: string): string | undefined => {
   return i >= 0 ? args[i + 1] : dflt;
 };
 
-const ALL_SPECS: ShortSpec[] = [SYSTEM_SMOKE, GROUP_CHAT_SPEC as unknown as ShortSpec];
+const ALL_SPECS: ShortSpec[] = [SYSTEM_SMOKE, GROUP_CHAT_SPEC as unknown as ShortSpec, GROUP_CHAT_SPEC_V2 as unknown as ShortSpec];
 const selSpecs = (): ShortSpec[] => {
   const ep = opt('episode');
   if (!ep) return ALL_SPECS;
@@ -95,7 +95,12 @@ function voices(): void {
     writeFileSync(dlg, JSON.stringify(dialogue, null, 2) + '\n');
     console.log(`qwen: ${lines.length} line(s), --takes=${takes} (max 2 for narrator bootstrap)`);
     execFileSync(QWEN_PY, [path.join(REPO, 'tools/shorts/py/qwen_shorts.py'), dlg, REG, vo, `--takes=${takes}`], { cwd: REPO, stdio: 'inherit' });
-    assemble(spec.id, total);
+    if (spec.id === 'group-chat-croatia-england-v2') {
+      // V2 owns its timeline + SFX family (see tools/shorts/py/audio_v2.py).
+      execFileSync('python3', [path.join(REPO, 'tools/shorts/py/audio_v2.py')], { cwd: REPO, stdio: 'inherit' });
+    } else {
+      assemble(spec.id, total);
+    }
   }
 }
 
@@ -241,17 +246,29 @@ async function render(): Promise<void> {
   const { video } = await import('../../packages/reels/scripts/lib/remotion.ts');
   const scale = Number(opt('scale', '1'));
   const targets = episode ? selSpecs() : [ALL_SPECS[0]];
-  const compFor = (id: string): string => (id === 'group-chat-croatia-england' ? 'HNCShortGroupChatCroatiaEngland' : 'HNCShortSystemSmoke');
+  const compFor = (id: string): string =>
+    id === 'group-chat-croatia-england-v2'
+      ? 'HNCShortGroupChatCroatiaEnglandV2'
+      : id === 'group-chat-croatia-england'
+        ? 'HNCShortGroupChatCroatiaEngland'
+        : 'HNCShortSystemSmoke';
   const defaultOut = (id: string): string =>
-    id === 'group-chat-croatia-england'
-      ? 'social/output/shorts/group-chat-croatia-england/group-chat-croatia-england.mp4'
-      : 'social/output/shorts/system-smoke/hnc-short-system-smoke.mp4';
+    id === 'group-chat-croatia-england-v2'
+      ? 'social/output/shorts/group-chat-croatia-england-v2/group-chat-croatia-england-v2.mp4'
+      : id === 'group-chat-croatia-england'
+        ? 'social/output/shorts/group-chat-croatia-england/group-chat-croatia-england.mp4'
+        : 'social/output/shorts/system-smoke/hnc-short-system-smoke.mp4';
   for (const spec of targets) {
     const out = path.resolve(REPO, opt('out', defaultOut(spec.id))!);
     console.log(`${compFor(spec.id)} ${spec.id} [60fps captions] -> ${path.relative(REPO, out)}`);
     const voicesJson = path.join(genDir(spec.id), 'vo', 'voices.json');
     const voicesMap = existsSync(voicesJson) ? (JSON.parse(readFileSync(voicesJson, 'utf8')) as Record<string, { seconds: number }>) : {};
-    const inputProps = spec.id === 'group-chat-croatia-england' ? { spec: GROUP_CHAT_SPEC, voices: voicesMap } : { spec: SYSTEM_SMOKE, voices: voicesMap };
+    const inputProps =
+      spec.id === 'group-chat-croatia-england-v2'
+        ? { spec: GROUP_CHAT_SPEC_V2, voices: voicesMap }
+        : spec.id === 'group-chat-croatia-england'
+          ? { spec: GROUP_CHAT_SPEC, voices: voicesMap }
+          : { spec: SYSTEM_SMOKE, voices: voicesMap };
     await video(compFor(spec.id), inputProps, out, { scale });
     const probe = execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:stream=codec_name,width,height,r_frame_rate,sample_rate,channels,codec_type', '-of', 'json', out], { encoding: 'utf8' });
     writeFileSync(out.replace(/\.mp4$/, '.probe.json'), probe);

@@ -1,0 +1,283 @@
+{
+  "analysis": "decoded stereo RMS, 50 ms windows; local peak prominence 0.025; all times seconds",
+  "source_peaks": [
+    {
+      "source": 1.45,
+      "rms": 0.0769
+    },
+    {
+      "source": 4.95,
+      "rms": 0.1441
+    },
+    {
+      "source": 6.65,
+      "rms": 0.1708
+    },
+    {
+      "source": 9.1,
+      "rms": 0.1068
+    },
+    {
+      "source": 10.85,
+      "rms": 0.0442
+    },
+    {
+      "source": 13.65,
+      "rms": 0.1046
+    },
+    {
+      "source": 14.45,
+      "rms": 0.1225
+    },
+    {
+      "source": 16.75,
+      "rms": 0.0697
+    },
+    {
+      "source": 18.5,
+      "rms": 0.072
+    },
+    {
+      "source": 20.8,
+      "rms": 0.2461
+    },
+    {
+      "source": 22.9,
+      "rms": 0.1638
+    },
+    {
+      "source": 24.8,
+      "rms": 0.2765
+    },
+    {
+      "source": 25.95,
+      "rms": 0.0847
+    },
+    {
+      "source": 27.35,
+      "rms": 0.1164
+    },
+    {
+      "source": 28.1,
+      "rms": 0.105
+    },
+    {
+      "source": 28.9,
+      "rms": 0.1548
+    },
+    {
+      "source": 30.65,
+      "rms": 0.0946
+    },
+    {
+      "source": 31.95,
+      "rms": 0.0819
+    },
+    {
+      "source": 34.5,
+      "rms": 0.0811
+    },
+    {
+      "source": 37.65,
+      "rms": 0.1468
+    },
+    {
+      "source": 38.4,
+      "rms": 0.195
+    },
+    {
+      "source": 39.2,
+      "rms": 0.1443
+    },
+    {
+      "source": 42.25,
+      "rms": 0.2452
+    },
+    {
+      "source": 44.2,
+      "rms": 0.108
+    },
+    {
+      "source": 44.95,
+      "rms": 0.1183
+    },
+    {
+      "source": 45.7,
+      "rms": 0.1128
+    },
+    {
+      "source": 46.5,
+      "rms": 0.1121
+    },
+    {
+      "source": 49.6,
+      "rms": 0.0955
+    },
+    {
+      "source": 50.75,
+      "rms": 0.0838
+    },
+    {
+      "source": 51.5,
+      "rms": 0.0913
+    },
+    {
+      "source": 55.45,
+      "rms": 0.3018
+    },
+    {
+      "source": 57.45,
+      "rms": 0.2663
+    },
+    {
+      "source": 58.75,
+      "rms": 0.2491
+    },
+    {
+      "source": 60.3,
+      "rms": 0.2943
+    },
+    {
+      "source": 61.1,
+      "rms": 0.329
+    },
+    {
+      "source": 62.05,
+      "rms": 0.2608
+    },
+    {
+      "source": 64.0,
+      "rms": 0.2517
+    },
+    {
+      "source": 65.45,
+      "rms": 0.3585
+    },
+    {
+      "source": 66.8,
+      "rms": 0.2404
+    },
+    {
+      "source": 67.85,
+      "rms": 0.3241
+    },
+    {
+      "source": 69.65,
+      "rms": 0.3221
+    },
+    {
+      "source": 71.0,
+      "rms": 0.37
+    },
+    {
+      "source": 71.8,
+      "rms": 0.2927
+    },
+    {
+      "source": 72.85,
+      "rms": 0.3257
+    },
+    {
+      "source": 74.75,
+      "rms": 0.3159
+    },
+    {
+      "source": 75.5,
+      "rms": 0.3547
+    },
+    {
+      "source": 76.7,
+      "rms": 0.2597
+    },
+    {
+      "source": 77.7,
+      "rms": 0.4581
+    },
+    {
+      "source": 78.85,
+      "rms": 0.3771
+    },
+    {
+      "source": 79.8,
+      "rms": 0.2351
+    }
+  ],
+  "edit_segments": [
+    {
+      "source_in": 43.2,
+      "source_out": 86.07347916666667,
+      "film_in": 0,
+      "fade_in": 0.025,
+      "fade_out": 0
+    }
+  ],
+  "film_markers": [
+    {
+      "label": "continuous recurring passage begins",
+      "source": 43.2,
+      "film": 0
+    },
+    {
+      "label": "recurring brass entrance / cabin",
+      "source": 49.6,
+      "film": 6.4
+    },
+    {
+      "label": "rising phrase / prep",
+      "source": 51.5,
+      "film": 8.3
+    },
+    {
+      "label": "orchestral entrance / approach",
+      "source": 55.45,
+      "film": 12.25
+    },
+    {
+      "label": "percussive accent / approach",
+      "source": 57.45,
+      "film": 14.25
+    },
+    {
+      "label": "airlock reveal",
+      "source": 58.75,
+      "film": 15.55
+    },
+    {
+      "label": "first step accent",
+      "source": 61.1,
+      "film": 17.9
+    },
+    {
+      "label": "lunar wide crescendo",
+      "source": 65.45,
+      "film": 22.25
+    },
+    {
+      "label": "ball down accent",
+      "source": 71,
+      "film": 27.8
+    },
+    {
+      "label": "pass / final buildup",
+      "source": 75.5,
+      "film": 32.3
+    },
+    {
+      "label": "highest recording crest / first touch",
+      "source": 77.7,
+      "film": 34.5
+    },
+    {
+      "label": "glow-to-white outro begins",
+      "source": 78.3,
+      "film": 35.1
+    },
+    {
+      "label": "natural recording ending",
+      "source": 86.07347916666667,
+      "film": 42.87347916666667
+    }
+  ],
+  "policy": "continuous original-tempo excerpt through actual EOF; no internal cut, end fade, gain ramp or voice",
+  "selection": "whole-recording maximum at 77.70 s; source ending retained intact"
+}

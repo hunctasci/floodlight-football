@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 
 export interface ShortCue {
+  id: string;
   a: number;
   b: number;
   speaker: string;
@@ -20,6 +21,7 @@ export function shortCues(
 ): ShortCue[] {
   return lines
     .map((l) => ({
+      id: l.id,
       a: l.at + 0.04,
       b: l.at + Math.max(0.8, (seconds[l.id]?.seconds ?? 1.2) - 0.1),
       speaker: l.speaker,
@@ -36,11 +38,16 @@ function twoLines(text: string): [string, string?] {
   return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
 }
 
-export const ShortCaptions: React.FC<{ cues: ShortCue[] }> = ({ cues }) => {
+/**
+ * Captions skip any cue whose id is excluded — e.g. a CTA whose visible
+ * headline already IS the spoken line (never duplicate readable UI as a
+ * subtitle). Chat messages are UI, not subtitles: they never enter `cues`.
+ */
+export const ShortCaptions: React.FC<{ cues: ShortCue[]; excludeIds?: string[] }> = ({ cues, excludeIds = [] }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const t = frame / fps;
-  const cue = [...cues].reverse().find((c) => t >= c.a && t < c.b);
+  const cue = [...cues].reverse().find((c) => t >= c.a && t < c.b && !excludeIds.includes(c.id));
   if (!cue) return null;
   const fade = Math.min(interpolate(t, [cue.a, cue.a + 0.07], [0, 1], { extrapolateRight: 'clamp' }), interpolate(t, [cue.b - 0.07, cue.b], [1, 0], { extrapolateLeft: 'clamp' }));
   const [l1, l2] = twoLines(cue.text);
